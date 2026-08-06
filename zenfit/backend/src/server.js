@@ -28,6 +28,11 @@ const ready = initDb().catch((err) => {
   throw err;
 });
 
+// Without a terminal handler this rejection is "unhandled" until the first
+// request awaits it, which crashes the process on a cold start. The middleware
+// below still awaits `ready` and turns the failure into a 503 per request.
+ready.catch(() => {});
+
 app.get("/api/health", (req, res) =>
   res.json({
     ok: true,
