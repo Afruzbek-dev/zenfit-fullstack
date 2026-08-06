@@ -1,0 +1,329 @@
+import { useRef, useState } from "react";
+import { Camera, ImageIcon, Sparkles, Type, Check, RotateCcw, Info, Loader2, Crown } from "lucide-react";
+import { Screen, ScreenHeader, Section, Button, ErrorNote, EmptyState } from "../components/ui.jsx";
+import { api } from "../api.js";
+import { haptic } from "../telegram.js";
+import { useApp } from "../store.jsx";
+
+/** Downscales before upload — phone photos are far larger than the model needs. */
+async function compressImage(file, maxDim = 1280, quality = 0.82) {
+  if (!file.type.startsWith("image/")) return file;
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
+    if (scale === 1 && file.size < 900_000) return file;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    canvas.getContext("2d").drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+
+    const blob = await new Promise((r) => canvas.toBlob(r, "image/jpeg", quality));
+    bitmap.close?.();
+    return blob ? new File([blob], "scan.jpg", { type: "image/jpeg" }) : file;
+  } catch {
+    return file;
+  }
+}
+
+export default function ScanScreen({ onNavigate }) {
+  const { addMeal, showToast, subscription } = useApp();
+  const cameraRef = useRef(null);
+  const galleryRef = useRef(null);
+
+  const [mode, setMode] = useState("photo"); // photo | text
+  const [preview, setPreview] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+  const [quotaHit, setQuotaHit] = useState(false);
+  const [text, setText] = useState("");
+  const [freeLeft, setFreeLeft] = useState(null);
+  const [portion, setPortion] = useState(1);
+
+  function reset() {
+    setPreview(null);
+    setResult(null);
+    setError(null);
+    setQuotaHit(false);
+    setPortion(1);
+  }
+
+  async function handleFile(e) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allows re-picking the same file
+    if (!file) return;
+
+    reset();
+    setPreview(URL.createObjectURL(file));
+    setBusy(true);
+    try {
+      const compressed = await compressImage(file);
+      const res = await api.scanImage(compressed);
+      setResult(res.result);
+      setFreeLeft(res.freeScansLeft);
+      haptic("success");
+    } catch (err) {
+      if (err.status === 402) setQuotaHit(true);
+      else setError(err.message || "Skanerlab bo'lmadi");
+      haptic("error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function askText() {
+    if (text.trim().length < 2) return;
+    reset();
+    setBusy(true);
+    try {
+      const res = await api.askAi(text.trim());
+      setResult(res.result);
+      haptic("success");
+    } catch (err) {
+      if (err.status === 402) setQuotaHit(true);
+      else setError(err.message || "AI javob bera olmadi");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function save() {
+    try {
+      await addMeal({
+        name: result.name,
+        emoji: "🍽️",
+        kcal: Math.round((result.kcalPerServing || 0) * portion),
+        carbs: Math.round((result.carbs || 0) * portion),
+        protein: Math.round((result.protein || 0) * portion),
+        fat: Math.round((result.fat || 0) * portion),
+        source: mode === "photo" ? "ai_scan" : "ai_ask",
+      });
+      haptic("success");
+      showToast("Ovqat qo'shildi ✓", "success");
+      reset();
+      setText("");
+      onNavigate("home");
+    } catch (e) {
+      showToast(e.message || "Saqlab bo'lmadi", "error");
+    }
+  }
+
+  const scaled = result
+    ? {
+        kcal: Math.round((result.kcalPerServing || 0) * portion),
+        carbs: Math.round((result.carbs || 0) * portion),
+        protein: Math.round((result.protein || 0) * portion),
+        fat: Math.round((result.fat || 0) * portion),
+      }
+    : null;
+
+  return (
+    <Screen>
+      <ScreenHeader
+        title="AI Skaner"
+        subtitle="Taom rasmini oling — kaloriya avtomatik hisoblanadi"
+        right={
+          freeLeft !== null && !subscription?.isPremium ? (
+            <span className="shrink-0 rounded-full border border-borderSoft bg-surfaceAlt px-2.5 py-1.5 text-[11px] font-semibold text-muted">
+              {freeLeft} bepul
+            </span>
+          ) : null
+        }
+      />
+
+      <div className="mb-5 flex gap-2 rounded-2xl border border-borderSoft bg-surfaceAlt p-1">
+        {[
+          { id: "photo", label: "Rasm bilan", Icon: Camera },
+          { id: "text", label: "Yozib so'rash", Icon: Type },
+        ].map((m) => (
+          <button
+            key={m.id}
+            onClick={() => {
+              setMode(m.id);
+              reset();
+            }}
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2.5 text-[12.5px] font-bold transition-colors ${
+              mode === m.id ? "bg-neon text-neonOn" : "text-muted"
+            }`}
+          >
+            <m.Icon size={14} /> {m.label}
+          </button>
+        ))}
+      </div>
+
+      <input ref={cameraRef} type="file" accept="image/*" capture="environment" onChange={handleFile} className="hidden" />
+      <input ref={galleryRef} type="file" accept="image/*" onChange={handleFile} className="hidden" />
+
+      {mode === "photo" && !preview && !result && (
+        <>
+          <button
+            onClick={() => {
+              haptic("light");
+              cameraRef.current?.click();
+            }}
+            className="card card-lit mb-3 flex w-full flex-col items-center gap-3 px-6 py-10 active:scale-[0.99]"
+          >
+            <span className="relative grid h-20 w-20 place-items-center">
+              <span className="absolute inset-0 animate-pulse-ring rounded-full bg-neon/20" />
+              <span className="relative grid h-16 w-16 place-items-center rounded-full bg-neon">
+                <Camera size={28} className="text-neonOn" />
+              </span>
+            </span>
+            <span className="font-display text-[16px] font-bold text-ink">Rasmga olish</span>
+            <span className="max-w-[240px] text-center text-[12px] leading-relaxed text-muted">
+              Taomni tepadan, yaxshi yorug'likda suratga oling
+            </span>
+          </button>
+
+          <Button full variant="ghost" onClick={() => galleryRef.current?.click()}>
+            <ImageIcon size={16} /> Galereyadan tanlash
+          </Button>
+
+          <Section title="Yaxshi natija uchun" className="mt-6">
+            <div className="card flex flex-col gap-2 px-4 py-3.5">
+              {[
+                "Taomni tepadan yoki 45° burchakdan oling",
+                "Yoniga qoshiq yoki likopcha kiritsangiz, hajmni aniqroq baholaydi",
+                "Bir kadrda bitta taom bo'lsa aniqlik yuqori bo'ladi",
+              ].map((t) => (
+                <p key={t} className="flex gap-2 text-[12px] leading-relaxed text-muted">
+                  <Check size={13} className="mt-0.5 shrink-0 text-neon" /> {t}
+                </p>
+              ))}
+            </div>
+          </Section>
+        </>
+      )}
+
+      {mode === "text" && !result && (
+        <>
+          <div className="card mb-3 px-4 py-3.5 focus-within:border-neon/50">
+            <textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              rows={3}
+              placeholder="Masalan: 150g tovuq ko'krak va 100g guruch"
+              className="w-full resize-none bg-transparent text-[14px] leading-relaxed text-ink outline-none placeholder:text-faint"
+            />
+          </div>
+          <Button full size="lg" loading={busy} disabled={text.trim().length < 2} onClick={askText}>
+            <Sparkles size={16} /> AI dan so'rash
+          </Button>
+        </>
+      )}
+
+      {preview && (
+        <div className="mb-4 overflow-hidden rounded-xl2 border border-borderSoft">
+          <img src={preview} alt="Skanerlangan taom" className="h-52 w-full object-cover" />
+        </div>
+      )}
+
+      {busy && (
+        <div className="card flex flex-col items-center gap-3 px-6 py-8">
+          <Loader2 size={26} className="animate-spin text-neon" />
+          <p className="font-display text-[14px] font-bold text-ink">AI tahlil qilmoqda…</p>
+          <p className="text-[12px] text-muted">Bu odatda 3-5 soniya oladi</p>
+        </div>
+      )}
+
+      {quotaHit && (
+        <div className="card card-lit flex flex-col items-center px-6 py-8 text-center">
+          <span className="mb-3 grid h-14 w-14 place-items-center rounded-2xl bg-amber/15">
+            <Crown size={24} className="text-amber" />
+          </span>
+          <p className="font-display text-[16px] font-bold text-ink">Bepul limit tugadi</p>
+          <p className="mt-1.5 max-w-[260px] text-[12.5px] leading-relaxed text-muted">
+            AI skanerdan cheksiz foydalanish uchun ZenFit Premium'ni faollashtiring.
+          </p>
+          <Button className="mt-4" full onClick={() => onNavigate("profile")}>
+            <Crown size={15} /> Premium haqida
+          </Button>
+        </div>
+      )}
+
+      {error && !busy && (
+        <div className="mb-3">
+          <ErrorNote onRetry={mode === "photo" ? () => cameraRef.current?.click() : askText}>{error}</ErrorNote>
+        </div>
+      )}
+
+      {result && !busy && (
+        <div className="animate-fade-up">
+          {result.name === "Aniqlanmadi" ? (
+            <EmptyState
+              Icon={Camera}
+              title="Taom aniqlanmadi"
+              desc="Rasmda ovqat aniq ko'rinmadi. Yaqinroq va yorug'roq holda qayta urinib ko'ring."
+              action={<Button full onClick={reset}><RotateCcw size={15} /> Qayta urinish</Button>}
+            />
+          ) : (
+            <>
+              <div className="card card-lit mb-3 px-5 py-5">
+                <div className="mb-3 flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h2 className="font-display text-[19px] font-bold leading-tight text-ink">{result.name}</h2>
+                    {result.servingDescription && (
+                      <p className="mt-0.5 text-[12px] text-muted">{result.servingDescription}</p>
+                    )}
+                  </div>
+                  {Number.isFinite(result.confidence) && (
+                    <span className="shrink-0 rounded-lg bg-surfaceAlt px-2 py-1 text-[10.5px] font-bold text-muted">
+                      {result.confidence}% ishonch
+                    </span>
+                  )}
+                </div>
+
+                <p className="tabular text-[38px] font-bold leading-none text-neon">
+                  {scaled.kcal}<span className="ml-1 text-[13px] font-semibold text-faint">kcal</span>
+                </p>
+
+                <div className="mt-4 grid grid-cols-3 gap-2">
+                  {[
+                    { l: "Uglevod", v: scaled.carbs, c: "text-cyan" },
+                    { l: "Oqsil", v: scaled.protein, c: "text-neon" },
+                    { l: "Yog'", v: scaled.fat, c: "text-amber" },
+                  ].map((m) => (
+                    <div key={m.l} className="rounded-xl bg-surfaceAlt px-2.5 py-2.5">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-faint">{m.l}</p>
+                      <p className={`tabular mt-0.5 text-[16px] font-bold ${m.c}`}>{m.v}<span className="text-[10px] text-faint">g</span></p>
+                    </div>
+                  ))}
+                </div>
+
+                {result.note && (
+                  <div className="mt-3 flex items-start gap-2 rounded-xl bg-amber/10 px-3 py-2.5">
+                    <Info size={13} className="mt-0.5 shrink-0 text-amber" />
+                    <p className="text-[11.5px] leading-relaxed text-amber">{result.note}</p>
+                  </div>
+                )}
+
+                <div className="mt-4">
+                  <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-faint">Porsiya</p>
+                  <div className="flex gap-2">
+                    {[0.5, 1, 1.5, 2].map((p) => (
+                      <button
+                        key={p}
+                        onClick={() => setPortion(p)}
+                        className={`flex-1 rounded-xl border py-2 text-[12px] font-bold ${
+                          portion === p ? "border-neon bg-neon/12 text-neon" : "border-borderSoft bg-surfaceAlt text-muted"
+                        }`}
+                      >
+                        {p}×
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-2.5">
+                <Button variant="ghost" onClick={reset}><RotateCcw size={15} /></Button>
+                <Button full size="lg" onClick={save}><Check size={17} /> Dietaga qo'shish</Button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </Screen>
+  );
+}

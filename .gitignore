@@ -1,0 +1,20 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+.vercel/
+
+# secrets — never commit
+.env
+.env.local
+.env.*.local
+
+# local database + backups
+*.sqlite
+*.sqlite.old-backup-*
+
+# os / editor
+.DS_Store
+Thumbs.db
+*.log

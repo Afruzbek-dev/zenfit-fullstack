@@ -1,0 +1,134 @@
+import { query, queryOne } from "../db.js";
+
+/**
+ * Day boundaries are computed in JS from a client-supplied local date so the
+ * "today" a user sees matches their timezone, not the server's. Comparing
+ * against an explicit [start, end) range also keeps the SQL portable between
+ * Postgres and SQLite.
+ */
+export function dayRange(dateStr, tzOffsetMinutes = 0) {
+  const base = dateStr ? new Date(`${dateStr}T00:00:00Z`) : new Date();
+  const day = dateStr ? dateStr : base.toISOString().slice(0, 10);
+  const startUtc = new Date(`${day}T00:00:00Z`);
+  startUtc.setMinutes(startUtc.getMinutes() + tzOffsetMinutes);
+  const endUtc = new Date(startUtc);
+  endUtc.setDate(endUtc.getDate() + 1);
+  return { day, start: startUtc.toISOString(), end: endUtc.toISOString() };
+}
+
+export async function getDayStats(userId, dateStr, tzOffsetMinutes = 0) {
+  const { day, start, end } = dayRange(dateStr, tzOffsetMinutes);
+
+  const meals = await query(
+    `SELECT kcal, carbs, protein, fat FROM meals
+      WHERE user_id = $1 AND logged_at >= $2 AND logged_at < $3`,
+    [userId, start, end]
+  );
+
+  const workouts = await query(
+    `SELECT kcal FROM workout_logs
+      WHERE user_id = $1 AND logged_at >= $2 AND logged_at < $3`,
+    [userId, start, end]
+  );
+
+  const water = await queryOne(
+    `SELECT COALESCE(SUM(ml), 0) AS total FROM water_logs
+      WHERE user_id = $1 AND logged_at >= $2 AND logged_at < $3`,
+    [userId, start, end]
+  );
+
+  const profile = await queryOne(`SELECT * FROM profiles WHERE user_id = $1`, [userId]);
+
+  const totals = meals.reduce(
+    (acc, m) => ({
+      kcal: acc.kcal + (m.kcal || 0),
+      carbs: acc.carbs + (m.carbs || 0),
+      protein: acc.protein + (m.protein || 0),
+      fat: acc.fat + (m.fat || 0),
+    }),
+    { kcal: 0, carbs: 0, protein: 0, fat: 0 }
+  );
+
+  const burned = workouts.reduce((sum, w) => sum + (w.kcal || 0), 0);
+  const target = profile?.daily_calorie_target || 2000;
+
+  return {
+    date: day,
+    ...totals,
+    burned,
+    waterMl: Number(water?.total || 0),
+    waterTargetMl: profile?.water_target_ml || 2500,
+    target,
+    remaining: target - totals.kcal + burned,
+    mealCount: meals.length,
+    workoutCount: workouts.length,
+  };
+}
+
+/**
+ * Consecutive days (ending today or yesterday) with at least one meal or
+ * workout logged. Yesterday still counts so the streak does not visibly break
+ * before the user has had a chance to log anything today.
+ */
+export async function getStreak(userId, tzOffsetMinutes = 0) {
+  const rows = await query(
+    `SELECT logged_at FROM meals WHERE user_id = $1
+     UNION ALL
+     SELECT logged_at FROM workout_logs WHERE user_id = $1
+     ORDER BY logged_at DESC`,
+    [userId]
+  );
+  if (!rows.length) return 0;
+
+  const localDay = (ts) => {
+    const d = new Date(ts);
+    d.setMinutes(d.getMinutes() - tzOffsetMinutes);
+    return d.toISOString().slice(0, 10);
+  };
+
+  const activeDays = new Set(rows.map((r) => localDay(r.logged_at)));
+
+  const today = new Date();
+  today.setMinutes(today.getMinutes() - tzOffsetMinutes);
+
+  let cursor = new Date(today);
+  if (!activeDays.has(cursor.toISOString().slice(0, 10))) {
+    cursor.setDate(cursor.getDate() - 1);
+    if (!activeDays.has(cursor.toISOString().slice(0, 10))) return 0;
+  }
+
+  let streak = 0;
+  while (activeDays.has(cursor.toISOString().slice(0, 10))) {
+    streak += 1;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return streak;
+}
+
+/** Everything the AI trainer needs to answer with real numbers. */
+export async function buildTrainerContext(userId, tzOffsetMinutes = 0) {
+  const profile = await queryOne(`SELECT * FROM profiles WHERE user_id = $1`, [userId]);
+  const todayStats = await getDayStats(userId, null, tzOffsetMinutes);
+  const recentWorkouts = await query(
+    `SELECT exercise_name, sets_completed, logged_at FROM workout_logs
+      WHERE user_id = $1 ORDER BY logged_at DESC LIMIT 10`,
+    [userId]
+  );
+  const planRow = await queryOne(
+    `SELECT plan_json FROM ai_plans
+      WHERE user_id = $1 AND plan_type = 'workout' AND is_active = true
+      ORDER BY created_at DESC LIMIT 1`,
+    [userId]
+  );
+
+  let activePlan = null;
+  if (planRow) {
+    try {
+      activePlan = typeof planRow.plan_json === "string" ? JSON.parse(planRow.plan_json) : planRow.plan_json;
+    } catch {
+      activePlan = null;
+    }
+  }
+
+  return { profile, todayStats, recentWorkouts, activePlan };
+}

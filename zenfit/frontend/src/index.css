@@ -1,0 +1,125 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --nav-h: 68px;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-bg text-ink font-sans antialiased;
+    overscroll-behavior-y: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Technical, slightly condensed numerals for the data the app is about. */
+  .tabular {
+    font-family: "Chakra Petch", system-ui, sans-serif;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+
+  button {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  input,
+  textarea {
+    font-size: 16px; /* stops iOS from zooming on focus */
+  }
+
+  ::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+}
+
+@layer components {
+  /* Faint grain + a lime aurora bleed, so the near-black never reads as flat. */
+  .app-atmosphere::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background:
+      radial-gradient(60% 38% at 78% -6%, rgba(204, 255, 0, 0.1), transparent 68%),
+      radial-gradient(48% 32% at 4% 8%, rgba(77, 255, 223, 0.06), transparent 70%);
+  }
+
+  .app-atmosphere::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .card {
+    @apply rounded-xl2 border border-borderSoft bg-surface;
+  }
+
+  .card-hi {
+    @apply rounded-xl2 border border-border bg-surfaceAlt;
+  }
+
+  /* Hairline top highlight — reads as a lit edge under the aurora. */
+  .card-lit {
+    position: relative;
+    overflow: hidden;
+  }
+  .card-lit::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(204, 255, 0, 0.35), transparent);
+  }
+
+  .btn-primary {
+    @apply rounded-2xl bg-neon font-bold text-neonOn transition-transform active:scale-[0.97] disabled:opacity-40;
+  }
+
+  .btn-ghost {
+    @apply rounded-2xl border border-borderSoft bg-surfaceAlt font-semibold text-ink transition-transform active:scale-[0.97];
+  }
+
+  .skeleton {
+    @apply relative overflow-hidden bg-surfaceAlt;
+  }
+  .skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+    animation: shimmer 1.6s infinite;
+  }
+
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
