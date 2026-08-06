@@ -1,0 +1,7 @@
+# Secrets and local state must never reach the deployment bundle —
+# configuration comes from Vercel environment variables instead.
+.env
+.env.*
+*.sqlite
+*.sqlite.old-backup-*
+node_modules

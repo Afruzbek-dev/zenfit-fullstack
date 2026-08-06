@@ -1,0 +1,6 @@
+# Local .env would shadow the VITE_API_URL configured in the Vercel project,
+# silently baking a localhost API address into the production bundle.
+.env
+.env.*
+node_modules
+dist

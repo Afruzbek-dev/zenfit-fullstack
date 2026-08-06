@@ -27,15 +27,18 @@ router.post("/webhook", async (req, res) => {
     return res.status(401).json({ error: "unauthorized" });
   }
 
-  // Telegram retries on any non-2xx, so acknowledge first and process after.
-  // A failed handler should not cause the same update to be replayed forever.
-  res.status(200).json({ ok: true });
-
+  // The update must be handled BEFORE responding: a serverless function can be
+  // frozen the moment the response is sent, so anything awaited afterwards may
+  // silently never run.
   try {
     await handleUpdate(req.body);
   } catch (err) {
     console.error("[telegram] update ishlov berishda xato:", err);
   }
+
+  // Always 200, even on failure — Telegram retries any non-2xx, so a single
+  // poison update would otherwise be replayed indefinitely.
+  res.status(200).json({ ok: true });
 });
 
 export default router;
