@@ -37,7 +37,7 @@ Vercel → **Add New → Project** → repoingizni tanlang.
 
 | Nomi | Qiymat |
 |---|---|
-| `DATABASE_URL` | Supabase → Project Settings → Database → Connection string (URI, **Session pooler**), `[YOUR-PASSWORD]` o'rniga parol |
+| `DATABASE_URL` | **Transaction pooler** URI (pastdagi izohga qarang) |
 | `BOT_TOKEN` | @BotFather'dan (lokal `.env` da bor) |
 | `JWT_SECRET` | lokal `.env` dagi qiymat |
 | `ADMIN_SECRET` | lokal `.env` dagi qiymat (64 belgi) |
@@ -48,6 +48,28 @@ Vercel → **Add New → Project** → repoingizni tanlang.
 | `ALLOW_DEV_LOGIN` | `0` ← **production'da albatta 0** |
 | `MINI_APP_URL` | hozircha bo'sh qoldiring, 3-bosqichda to'ldiriladi |
 | `CORS_ORIGIN` | hozircha bo'sh qoldiring, 3-bosqichda to'ldiriladi |
+
+### `DATABASE_URL` — qaysi ulanishni olish kerak
+
+Supabase uch xil ulanish satri beradi. **To'g'ridan-to'g'ri ulanish ishlamaydi**:
+
+| Ulanish | Host | Holat |
+|---|---|---|
+| To'g'ridan-to'g'ri | `db.<ref>.supabase.co:5432` | ❌ Faqat IPv6 — `ENOTFOUND` beradi |
+| Session pooler | `aws-0-<region>.pooler.supabase.com:5432` | ✅ Ishlaydi (uzoq yashovchi server uchun) |
+| **Transaction pooler** | `aws-0-<region>.pooler.supabase.com:6543` | ✅ **Vercel uchun shu** |
+
+Serverless har so'rovda yangi ulanish ochadi, shuning uchun transaction pooler
+to'g'ri tanlov. Ikkalasi ham sinab ko'rilgan va ishlaydi.
+
+Format:
+
+```
+postgresql://postgres.<ref>:<PAROL>@aws-0-eu-central-1.pooler.supabase.com:6543/postgres
+```
+
+> Foydalanuvchi nomi `postgres` emas, `postgres.<ref>` ekaniga e'tibor bering.
+> Parolda maxsus belgilar bo'lsa, URL-encode qiling (`@` → `%40` va h.k.).
 
 Deploy qiling va tekshiring:
 
