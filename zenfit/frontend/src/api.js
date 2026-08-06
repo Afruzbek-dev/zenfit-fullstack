@@ -125,5 +125,17 @@ export const api = {
 /** Telegram login when available, dev login as a local fallback. */
 export async function login() {
   if (isTelegram()) return api.loginTelegram();
-  return api.loginDev();
+
+  try {
+    return await api.loginDev();
+  } catch (err) {
+    // Dev login is disabled in production, which is what a plain browser hits
+    // when someone opens the shared link outside Telegram.
+    if (err.status === 404) {
+      throw new ApiError(404, {
+        message: "Bu ilova Telegram ichida ishlaydi. @zenfituz_bot ni oching va menyudagi tugma orqali kiring.",
+      });
+    }
+    throw err;
+  }
 }

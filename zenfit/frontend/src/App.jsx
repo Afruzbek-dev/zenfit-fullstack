@@ -134,8 +134,10 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
-  if (status === "loading" || inOnboarding === null) return <BootScreen />;
+  // Errors must be checked first: `inOnboarding` stays null when boot fails,
+  // so the loading guard would otherwise swallow the error and spin forever.
   if (status === "error") return <BootScreen error={error} onRetry={boot} />;
+  if (status === "loading" || inOnboarding === null) return <BootScreen />;
   if (inOnboarding) return <Onboarding onFinish={() => setInOnboarding(false)} />;
 
   const screens = {
