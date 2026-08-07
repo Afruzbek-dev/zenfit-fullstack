@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { CreditCard, Plus, ShieldCheck, Crown, Receipt, Trash2, Loader2 } from "lucide-react";
-import { Screen, ScreenHeader, Section, BackButton, EmptyState, ListRow, Button, ErrorNote } from "../../components/ui.jsx";
+import { Screen, ScreenHeader, Section, EmptyState, ListRow, Button, ErrorNote } from "../../components/ui.jsx";
 import { api } from "../../api.js";
 import { useApp } from "../../store.jsx";
 import { useBackButton } from "../../lib/useBackButton.js";
@@ -72,7 +72,7 @@ export default function Billing({ onBack, onOpenPremium }) {
 
   return (
     <Screen>
-      <ScreenHeader title={t("profile.billing")} right={<BackButton onBack={onBack} />} />
+      <ScreenHeader title={t("profile.billing")} onBack={onBack} />
 
       {/* Subscription state */}
       <Section title={t("profile.subscription")}>

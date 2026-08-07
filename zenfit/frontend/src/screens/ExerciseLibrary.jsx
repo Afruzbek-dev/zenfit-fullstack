@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Play, ChevronLeft, AlertTriangle, ListChecks, Dumbbell } from "lucide-react";
+import { Search, Play, AlertTriangle, ListChecks, Dumbbell } from "lucide-react";
 import { Screen, ScreenHeader, Chip, EmptyState, ListRow, Button } from "../components/ui.jsx";
 import { VideoPlayer } from "../components/ExerciseGuide.jsx";
 import { EXERCISES, MUSCLE_GROUPS, EQUIPMENT_LABELS, filterExercises, youtubeSearchUrl } from "../data/exercises.js";
@@ -11,11 +11,7 @@ export function ExerciseDetail({ exercise, onBack, onAdd }) {
       <ScreenHeader
         title={exercise.name}
         subtitle={`${exercise.muscle} • ${EQUIPMENT_LABELS[exercise.equipment] || exercise.equipment}`}
-        right={
-          <button onClick={onBack} aria-label="Orqaga" className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-surfaceAlt">
-            <ChevronLeft size={17} className="text-muted" />
-          </button>
-        }
+        onBack={onBack}
       />
 
       {/* Plays in place — the player only mounts once the poster is tapped. */}
@@ -87,13 +83,7 @@ export default function ExerciseLibrary({ onBack, onAdd }) {
       <ScreenHeader
         title="Mashqlar bazasi"
         subtitle={`${EXERCISES.length} ta mashq — texnika va video bilan`}
-        right={
-          onBack && (
-            <button onClick={onBack} aria-label="Orqaga" className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-surfaceAlt">
-              <ChevronLeft size={17} className="text-muted" />
-            </button>
-          )
-        }
+        onBack={onBack}
       />
 
       <div className="mb-3 flex items-center gap-2 rounded-2xl border border-borderSoft bg-surface px-3.5 py-3 focus-within:border-neon/50">

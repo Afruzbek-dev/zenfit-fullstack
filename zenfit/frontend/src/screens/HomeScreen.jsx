@@ -78,11 +78,11 @@ export default function HomeScreen({ onNavigate }) {
       <ScreenHeader
         title={greeting}
         subtitle={uzFullDate()}
-        right={
+        action={
           summary.streak > 0 && (
-            <span className="flex shrink-0 items-center gap-1.5 rounded-full border border-amber/30 bg-amber/12 px-3 py-1.5">
-              <Flame size={14} className="text-amber" />
-              <span className="tabular text-[13px] font-bold text-amber">{summary.streak}</span>
+            <span className="flex shrink-0 items-center gap-1 rounded-full border border-amber/30 bg-amber/12 px-2.5 py-1.5">
+              <Flame size={13} className="text-amber" />
+              <span className="tabular text-[12.5px] font-bold text-amber">{summary.streak}</span>
             </span>
           )
         }

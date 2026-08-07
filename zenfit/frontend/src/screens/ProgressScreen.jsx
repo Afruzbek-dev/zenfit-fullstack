@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Flame, TrendingUp, Award, Scale, Dumbbell, UtensilsCrossed, Target } from "lucide-react";
-import { Screen, ScreenHeader, Section, StatTile, Skeleton, EmptyState, Chip, BackButton } from "../components/ui.jsx";
+import { Flame, TrendingUp, Award, Scale, Dumbbell, Target } from "lucide-react";
+import { Screen, ScreenHeader, Section, StatTile, Skeleton, Chip } from "../components/ui.jsx";
 import { api } from "../api.js";
 import { useApp } from "../store.jsx";
 import { WEEKDAYS_SHORT as DAY_LABELS } from "../lib/format.js";
@@ -162,7 +162,7 @@ export default function ProgressScreen({ onBack }) {
 
   return (
     <Screen>
-      <ScreenHeader title="Progress" subtitle="Natijalaringiz va statistika" right={<BackButton onBack={onBack} />} />
+      <ScreenHeader title="Progress" subtitle="Natijalaringiz va statistika" onBack={onBack} />
 
       <Section title="Umumiy">
         <div className="mb-2.5 flex gap-2.5">

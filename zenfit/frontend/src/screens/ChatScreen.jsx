@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Send, Sparkles, Trash2, Crown, Loader2, Bot } from "lucide-react";
-import { Screen, ScreenHeader, Button, ErrorNote } from "../components/ui.jsx";
+import { ScreenHeader, Button, ErrorNote, IconButton } from "../components/ui.jsx";
 import { api } from "../api.js";
 import { haptic, showConfirm } from "../telegram.js";
 import { useApp } from "../store.jsx";
@@ -106,17 +106,15 @@ export default function ChatScreen({ onNavigate }) {
       <ScreenHeader
         title="AI Trener"
         subtitle="Rejangiz va statistikangizni ko'rib turadi"
-        right={
-          <div className="flex shrink-0 items-center gap-2">
+        action={
+          <div className="flex shrink-0 items-center gap-1.5">
             {freeLeft !== null && !subscription?.isPremium && (
-              <span className="rounded-full border border-borderSoft bg-surfaceAlt px-2.5 py-1.5 text-[11px] font-semibold text-muted">
+              <span className="tabular rounded-full border border-borderSoft bg-surfaceAlt px-2 py-1 text-[11px] font-semibold text-muted">
                 {freeLeft}
               </span>
             )}
             {messages.length > 0 && (
-              <button onClick={clearChat} aria-label="Tarixni tozalash" className="grid h-9 w-9 place-items-center rounded-full bg-surfaceAlt">
-                <Trash2 size={15} className="text-muted" />
-              </button>
+              <IconButton Icon={Trash2} label="Tarixni tozalash" onClick={clearChat} />
             )}
           </div>
         }

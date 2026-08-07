@@ -1,33 +1,12 @@
 import { useState } from "react";
 import { Languages, Moon, Sun, MonitorSmartphone, Bell, Dumbbell, UtensilsCrossed, Droplets, Sparkles, Info } from "lucide-react";
-import { Screen, ScreenHeader, Section, BackButton } from "../../components/ui.jsx";
+import { Screen, ScreenHeader, Section, Toggle } from "../../components/ui.jsx";
 import { LANGUAGES } from "../../lib/i18n.js";
 import { useApp } from "../../store.jsx";
 import { useBackButton } from "../../lib/useBackButton.js";
 import { haptic } from "../../telegram.js";
 
 const THEME_ICONS = { dark: Moon, light: Sun, system: MonitorSmartphone };
-
-function Toggle({ checked, onChange, label }) {
-  return (
-    <button
-      role="switch"
-      aria-checked={checked}
-      aria-label={label}
-      onClick={() => {
-        haptic("select");
-        onChange(!checked);
-      }}
-      className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${checked ? "bg-neon" : "bg-borderSoft"}`}
-    >
-      <span
-        className={`absolute top-1 h-5 w-5 rounded-full bg-surface shadow transition-transform ${
-          checked ? "translate-x-6" : "translate-x-1"
-        }`}
-      />
-    </button>
-  );
-}
 
 function ToggleRow({ Icon, title, desc, checked, onChange }) {
   return (
@@ -93,7 +72,7 @@ export default function Settings({ onBack }) {
 
   return (
     <Screen>
-      <ScreenHeader title={t("profile.settings")} right={<BackButton onBack={onBack} />} />
+      <ScreenHeader title={t("profile.settings")} onBack={onBack} />
 
       <Section title={t("profile.language")}>
         <SegmentedRow

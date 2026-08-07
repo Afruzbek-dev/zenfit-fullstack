@@ -123,10 +123,10 @@ export default function ScanScreen({ onNavigate }) {
       <ScreenHeader
         title="AI Skaner"
         subtitle="Taom rasmini oling — kaloriya avtomatik hisoblanadi"
-        right={
+        action={
           freeLeft !== null && !subscription?.isPremium ? (
-            <span className="shrink-0 rounded-full border border-borderSoft bg-surfaceAlt px-2.5 py-1.5 text-[11px] font-semibold text-muted">
-              {freeLeft} bepul
+            <span className="tabular shrink-0 rounded-full border border-borderSoft bg-surfaceAlt px-2.5 py-1.5 text-[11px] font-semibold text-muted">
+              {freeLeft}
             </span>
           ) : null
         }

@@ -3,21 +3,29 @@ import { createPortal } from "react-dom";
 import { X, ChevronRight, ChevronLeft, Loader2 } from "lucide-react";
 import { haptic } from "../telegram.js";
 
-/** Header back affordance for screens that are not in the tab bar. */
-export function BackButton({ onBack }) {
-  if (!onBack) return null;
+/** Round 36px header control. Both header slots use this so they stay aligned. */
+export function IconButton({ Icon, label, onClick, tone = "muted", active }) {
+  const tones = { muted: "text-muted", neon: "text-neon", amber: "text-amber", rose: "text-rose" };
   return (
     <button
       onClick={() => {
         haptic("light");
-        onBack();
+        onClick?.();
       }}
-      aria-label="Orqaga"
-      className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-surfaceAlt active:scale-95"
+      aria-label={label}
+      className={`grid h-9 w-9 shrink-0 place-items-center rounded-full active:scale-95 ${
+        active ? "bg-neon/15" : "bg-surfaceAlt"
+      }`}
     >
-      <ChevronLeft size={17} className="text-muted" />
+      <Icon size={17} className={tones[tone]} />
     </button>
   );
+}
+
+/** Header back affordance for screens that are not in the tab bar. */
+export function BackButton({ onBack }) {
+  if (!onBack) return null;
+  return <IconButton Icon={ChevronLeft} label="Orqaga" onClick={onBack} />;
 }
 
 /* ------------------------------- layout ------------------------------- */
@@ -30,18 +38,32 @@ export function Screen({ children, className = "" }) {
   );
 }
 
-export function ScreenHeader({ title, subtitle, right, sticky = true }) {
+/**
+ * App bar: title centred, optional icon in each corner.
+ *
+ * The side slots are absolutely positioned so the title stays optically centred
+ * no matter how wide the actions are, and the title area is padded past them so
+ * a long title truncates rather than sliding underneath.
+ */
+export function ScreenHeader({ title, subtitle, onBack, action, sticky = true }) {
   return (
     <header
-      className={`${sticky ? "sticky top-0 z-20" : ""} -mx-5 mb-4 bg-bg/85 px-5 pb-3 backdrop-blur-xl`}
-      style={{ paddingTop: "calc(var(--safe-top) + 16px)" }}
+      className={`${sticky ? "sticky top-0 z-20" : ""} -mx-5 mb-4 border-b border-borderSoft/60 bg-bg/85 px-5 pb-3 backdrop-blur-xl`}
+      style={{ paddingTop: "calc(var(--safe-top) + 12px)" }}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="font-display text-[26px] font-bold leading-tight tracking-tight text-ink">{title}</h1>
-          {subtitle && <p className="mt-0.5 text-[13px] text-muted">{subtitle}</p>}
+      <div className="relative flex min-h-9 items-center justify-center">
+        {onBack && (
+          <div className="absolute left-0 top-1/2 -translate-y-1/2">
+            <BackButton onBack={onBack} />
+          </div>
+        )}
+
+        <div className="min-w-0 px-12 text-center">
+          <h1 className="truncate font-display text-[17px] font-bold leading-tight tracking-tight text-ink">{title}</h1>
+          {subtitle && <p className="mt-0.5 truncate text-[11.5px] leading-snug text-muted">{subtitle}</p>}
         </div>
-        {right}
+
+        {action && <div className="absolute right-0 top-1/2 -translate-y-1/2">{action}</div>}
       </div>
     </header>
   );
@@ -126,6 +148,38 @@ export function OptionCard({ active, Icon, title, desc, onClick, badge }) {
         {desc && <span className="mt-0.5 block text-xs text-muted">{desc}</span>}
       </span>
       {active && <span className="h-2 w-2 shrink-0 rounded-full bg-neon" />}
+    </button>
+  );
+}
+
+/**
+ * On/off switch.
+ *
+ * The knob needs an explicit `left`: an absolutely positioned child with
+ * `left: auto` falls back to its static position, and a button centres its
+ * content, which parked the knob in the middle of the track instead of at
+ * either end. Knob colours are chosen to stay legible on both the lime "on"
+ * track and the muted "off" track, in both themes.
+ */
+export function Toggle({ checked, onChange, label }) {
+  return (
+    <button
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      onClick={() => {
+        haptic("select");
+        onChange(!checked);
+      }}
+      className={`relative h-7 w-12 shrink-0 rounded-full transition-colors duration-200 ${
+        checked ? "bg-neon" : "bg-borderSoft"
+      }`}
+    >
+      <span
+        className={`absolute left-1 top-1 h-5 w-5 rounded-full shadow-sm transition-transform duration-200 ${
+          checked ? "translate-x-5 bg-neonOn" : "translate-x-0 bg-muted"
+        }`}
+      />
     </button>
   );
 }

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Check, User2, Ruler, Scale, ShieldAlert, Droplets } from "lucide-react";
-import { Screen, ScreenHeader, Section, Button, Chip, BackButton, ErrorNote } from "../../components/ui.jsx";
+import { Screen, ScreenHeader, Section, Button, Chip, ErrorNote } from "../../components/ui.jsx";
 import Avatar from "../../components/Avatar.jsx";
 import { useApp } from "../../store.jsx";
 import { useBackButton } from "../../lib/useBackButton.js";
@@ -91,7 +91,7 @@ export default function EditProfile({ onBack }) {
 
   return (
     <Screen>
-      <ScreenHeader title={t("profile.editProfile")} right={<BackButton onBack={onBack} />} />
+      <ScreenHeader title={t("profile.editProfile")} onBack={onBack} />
 
       <div className="mb-6 flex flex-col items-center">
         <Avatar size={104} editable />

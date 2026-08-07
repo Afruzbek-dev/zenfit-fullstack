@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Search, Clock, Flame, Plus, Info, Sparkles, Loader2, UtensilsCrossed } from "lucide-react";
-import { Screen, ScreenHeader, Section, Chip, Sheet, Button, EmptyState, ErrorNote, BackButton } from "../components/ui.jsx";
-import { RECIPES, RECIPE_TAGS, filterRecipes } from "../data/recipes.js";
+import { Screen, ScreenHeader, Section, Chip, Sheet, Button, EmptyState, ErrorNote } from "../components/ui.jsx";
+import { RECIPE_TAGS, filterRecipes } from "../data/recipes.js";
 import { api } from "../api.js";
 import { haptic } from "../telegram.js";
 import { useApp } from "../store.jsx";
@@ -144,7 +144,7 @@ export default function RecipesScreen({ onBack }) {
       <ScreenHeader
         title="Retseptlar"
         subtitle="Milliy taomlar va sodda fit taomlar"
-        right={<BackButton onBack={onBack} />}
+        onBack={onBack}
       />
 
       <Section title="AI ovqat rejasi">

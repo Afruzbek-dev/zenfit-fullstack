@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ChevronDown, MessageCircle, Check, FileText, Send, Info } from "lucide-react";
-import { Screen, ScreenHeader, Section, BackButton } from "../../components/ui.jsx";
+import { Screen, ScreenHeader, Section } from "../../components/ui.jsx";
 import { useApp } from "../../store.jsx";
 import { useBackButton } from "../../lib/useBackButton.js";
 import { haptic, openLink } from "../../telegram.js";
@@ -41,7 +41,7 @@ export function HelpScreen({ onBack }) {
 
   return (
     <Screen>
-      <ScreenHeader title={t("help.title")} right={<BackButton onBack={onBack} />} />
+      <ScreenHeader title={t("help.title")} onBack={onBack} />
 
       <div className="mb-5 flex flex-col gap-2">
         {(Array.isArray(faq) ? faq : []).map((item, i) => (
@@ -75,7 +75,7 @@ export function AboutScreen({ onBack }) {
 
   return (
     <Screen>
-      <ScreenHeader title={t("about.title")} right={<BackButton onBack={onBack} />} />
+      <ScreenHeader title={t("about.title")} onBack={onBack} />
 
       <div className="card card-lit mb-5 px-5 py-6 text-center">
         <p className="font-display text-[28px] font-bold tracking-tight text-neon">ZenFit</p>
@@ -130,7 +130,7 @@ export function OfferScreen({ onBack }) {
 
   return (
     <Screen>
-      <ScreenHeader title={t("offer.title")} right={<BackButton onBack={onBack} />} />
+      <ScreenHeader title={t("offer.title")} onBack={onBack} />
 
       <div className="mb-5 flex items-start gap-3 rounded-2xl border border-borderSoft bg-surfaceAlt px-4 py-3.5">
         <FileText size={16} className="mt-0.5 shrink-0 text-faint" />

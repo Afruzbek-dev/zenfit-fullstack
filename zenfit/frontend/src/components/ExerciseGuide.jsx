@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Play, AlertTriangle, ListChecks, Dumbbell, Target, ExternalLink } from "lucide-react";
-import { Sheet } from "./ui.jsx";
+import { Screen, ScreenHeader } from "./ui.jsx";
 import { EX_BY_ID, EQUIPMENT_LABELS, youtubeSearchUrl } from "../data/exercises.js";
 import { openLink } from "../telegram.js";
+import { useBackButton } from "../lib/useBackButton.js";
 import { useApp } from "../store.jsx";
 
 /**
@@ -66,7 +67,7 @@ export function VideoPlayer({ videoId, title, searchUrl }) {
   );
 }
 
-function Chip({ Icon, children }) {
+function Tag({ Icon, children }) {
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full border border-borderSoft bg-surfaceAlt px-3 py-1.5 text-[11.5px] font-semibold text-muted">
       <Icon size={12} className="shrink-0 text-faint" />
@@ -75,15 +76,17 @@ function Chip({ Icon, children }) {
   );
 }
 
-/** How-to sheet: video, ordered steps and the mistakes that cause injuries. */
-export default function ExerciseGuide({ exerciseId, open, onClose }) {
+/** Full-screen how-to: video, ordered steps and the mistakes that cause injuries. */
+export default function ExerciseGuide({ exerciseId, onBack }) {
   const { t } = useApp();
+  useBackButton(onBack);
+
   const exercise = exerciseId ? EX_BY_ID[exerciseId] : null;
   if (!exercise) return null;
 
   return (
-    <Sheet open={open} onClose={onClose} title={exercise.name} maxHeight="92vh">
-      <p className="-mt-1 mb-3 text-[12px] text-faint">{exercise.nameEn}</p>
+    <Screen>
+      <ScreenHeader title={t("workout.guide")} subtitle={exercise.name} onBack={onBack} />
 
       <div className="mb-4">
         <VideoPlayer
@@ -93,19 +96,24 @@ export default function ExerciseGuide({ exerciseId, open, onClose }) {
         />
       </div>
 
-      <div className="mb-5 flex flex-wrap gap-2">
-        <Chip Icon={Target}>{exercise.muscle}</Chip>
-        <Chip Icon={Dumbbell}>{EQUIPMENT_LABELS[exercise.equipment] || exercise.equipment}</Chip>
+      <div className="mb-1">
+        <h2 className="font-display text-[19px] font-bold leading-tight text-ink">{exercise.name}</h2>
+        <p className="mt-0.5 text-[12px] text-faint">{exercise.nameEn}</p>
+      </div>
+
+      <div className="mb-5 mt-3 flex flex-wrap gap-2">
+        <Tag Icon={Target}>{exercise.muscle}</Tag>
+        <Tag Icon={Dumbbell}>{EQUIPMENT_LABELS[exercise.equipment] || exercise.equipment}</Tag>
       </div>
 
       <section className="mb-5">
         <div className="mb-2.5 flex items-center gap-2">
           <ListChecks size={14} className="text-neon" />
-          <h4 className="text-[11px] font-bold uppercase tracking-[0.14em] text-faint">{t("workout.howTo")}</h4>
+          <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-faint">{t("workout.howTo")}</h3>
         </div>
         <ol className="flex flex-col gap-2">
           {exercise.steps.map((s, i) => (
-            <li key={i} className="flex gap-3 rounded-2xl border border-borderSoft bg-surfaceAlt px-3.5 py-3">
+            <li key={i} className="flex gap-3 rounded-2xl border border-borderSoft bg-surface px-3.5 py-3">
               <span className="tabular grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-neon/15 text-[11px] font-bold text-neon">
                 {i + 1}
               </span>
@@ -115,10 +123,10 @@ export default function ExerciseGuide({ exerciseId, open, onClose }) {
         </ol>
       </section>
 
-      <section className="mb-2">
+      <section>
         <div className="mb-2.5 flex items-center gap-2">
           <AlertTriangle size={14} className="text-amber" />
-          <h4 className="text-[11px] font-bold uppercase tracking-[0.14em] text-faint">{t("workout.mistakes")}</h4>
+          <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-faint">{t("workout.mistakes")}</h3>
         </div>
         <div className="rounded-2xl border border-amber/20 bg-amber/[0.07] px-4 py-3">
           <ul className="flex flex-col gap-2">
@@ -131,6 +139,6 @@ export default function ExerciseGuide({ exerciseId, open, onClose }) {
           </ul>
         </div>
       </section>
-    </Sheet>
+    </Screen>
   );
 }

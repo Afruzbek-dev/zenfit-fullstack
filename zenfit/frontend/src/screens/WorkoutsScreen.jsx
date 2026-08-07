@@ -1,9 +1,6 @@
 import { useMemo, useState } from "react";
-import {
-  Sparkles, Dumbbell, Coffee, Check, Play, RefreshCw, BookOpen, ShieldAlert,
-  ChevronRight, Award, Lightbulb,
-} from "lucide-react";
-import { Screen, ScreenHeader, Section, Button, Sheet, EmptyState, ListRow, ErrorNote } from "../components/ui.jsx";
+import { Sparkles, Dumbbell, Coffee, Check, Play, RefreshCw, BookOpen, ShieldAlert, Lightbulb } from "lucide-react";
+import { Screen, ScreenHeader, Section, Button, Sheet, EmptyState, ListRow, ErrorNote, IconButton } from "../components/ui.jsx";
 import WorkoutSession from "./WorkoutSession.jsx";
 import ExerciseLibrary from "./ExerciseLibrary.jsx";
 import { generateWorkoutPlan } from "../lib/aiPlanEngine.js";
@@ -227,15 +224,7 @@ export default function WorkoutsScreen() {
       <ScreenHeader
         title="Mashqlar"
         subtitle={workoutPlan ? "AI shaxsiy dasturingiz" : "Rejangizni tanlang"}
-        right={
-          <button
-            onClick={() => setView("library")}
-            className="flex shrink-0 items-center gap-1.5 rounded-full border border-borderSoft bg-surfaceAlt px-3 py-1.5"
-          >
-            <BookOpen size={13} className="text-muted" />
-            <span className="text-[11.5px] font-semibold text-muted">Baza</span>
-          </button>
-        }
+        action={<IconButton Icon={BookOpen} label="Mashqlar bazasi" onClick={() => setView("library")} />}
       />
 
       {!workoutPlan ? (

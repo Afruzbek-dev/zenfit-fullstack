@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Target, Dumbbell, UtensilsCrossed, Info, ShieldAlert, Sparkles } from "lucide-react";
-import { Screen, ScreenHeader, Section, BackButton, OptionCard, ListRow, EmptyState, Button } from "../../components/ui.jsx";
+import { Screen, ScreenHeader, Section, OptionCard, ListRow, EmptyState, Button } from "../../components/ui.jsx";
 import { useApp } from "../../store.jsx";
 import { useBackButton } from "../../lib/useBackButton.js";
 import { haptic } from "../../telegram.js";
@@ -81,7 +81,7 @@ export default function HealthData({ onBack, onNavigate }) {
 
   return (
     <Screen>
-      <ScreenHeader title={t("profile.health")} right={<BackButton onBack={onBack} />} />
+      <ScreenHeader title={t("profile.health")} onBack={onBack} />
 
       {/* BMI */}
       <Section title={t("profile.bmi")}>

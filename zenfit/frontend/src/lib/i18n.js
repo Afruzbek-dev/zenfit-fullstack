@@ -61,7 +61,8 @@ const uz = {
 
   workout: {
     set: "Set", sets: "set", reps: "takror", weight: "og'irlik",
-    rest: "Dam olish", restNow: "Dam oling", skipRest: "O'tkazib yuborish", addTime: "+15s",
+    rest: "Dam olish", restNow: "Dam oling", restDone: "Dam tugadi", skipRest: "O'tkazib yuborish", addTime: "+15s",
+    target: "Maqsad", setsTitle: "Setlar", guideDesc: "Video va bajarish texnikasi",
     startSet: "Setni boshlash", setDone: "Set bajarildi", finish: "Mashqni yakunlash",
     dayProgress: "Kunlik progress", dayDone: "Kun yakunlandi 🎉",
     lastTime: "O'tgan safar", progressed: "Og'irlik oshirildi",
@@ -216,7 +217,8 @@ const ru = {
 
   workout: {
     set: "Подход", sets: "подх.", reps: "повт.", weight: "вес",
-    rest: "Отдых", restNow: "Отдыхайте", skipRest: "Пропустить", addTime: "+15с",
+    rest: "Отдых", restNow: "Отдыхайте", restDone: "Отдых окончен", skipRest: "Пропустить", addTime: "+15с",
+    target: "Цель", setsTitle: "Подходы", guideDesc: "Видео и техника выполнения",
     startSet: "Начать подход", setDone: "Подход выполнен", finish: "Завершить упражнение",
     dayProgress: "Прогресс дня", dayDone: "День завершён 🎉",
     lastTime: "В прошлый раз", progressed: "Вес увеличен",
