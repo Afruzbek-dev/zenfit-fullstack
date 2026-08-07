@@ -50,6 +50,22 @@ Vercel → **Add New → Project** → repoingizni tanlang.
 | `MINI_APP_URL` | hozircha bo'sh qoldiring, 3-bosqichda to'ldiriladi |
 | `CORS_ORIGIN` | hozircha bo'sh qoldiring, 3-bosqichda to'ldiriladi |
 
+### Region — Supabase yonida bo'lishi shart
+
+`vercel.json` da `"regions": ["fra1"]` turibdi. Sababi: Supabase
+`eu-central-1` (Frankfurt) da. Vercel'ning standart regioni `iad1` (AQSh),
+u holda har bir SQL so'rov Atlantika okeanini kesib o'tadi — ilova ochilishi
+10 soniyagacha cho'zilgan edi. Bazani boshqa regionga ko'chirsangiz, bu
+qatorni ham o'zgartiring.
+
+Tekshirish:
+
+```bash
+curl -sI https://zenfit-backend.vercel.app/api/health | grep -i x-vercel-id
+```
+
+Javobda `::fra1::` ko'rinishi kerak.
+
 ### `DATABASE_URL` — qaysi ulanishni olish kerak
 
 Supabase uch xil ulanish satri beradi. **To'g'ridan-to'g'ri ulanish ishlamaydi**:

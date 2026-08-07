@@ -1,6 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "//": "Frankfurt, because Supabase lives in eu-central-1. Running in the default iad1 put the Atlantic between the function and every query.",
   "regions": ["fra1"],
   "functions": {
     "api/index.js": {
