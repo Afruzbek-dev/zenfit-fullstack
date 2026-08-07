@@ -1,17 +1,64 @@
 /**
  * Exercise library.
  *
- * `youtubeId` is intentionally null: embedding requires a verified video ID and
- * guessing one produces a dead player. Until real IDs are filled in, the UI
- * opens a YouTube search built from `youtubeQuery`, which always resolves.
- * Set `youtubeId` on any entry and the detail screen switches to an inline
- * embed automatically.
+ * Every `youtubeId` below was verified against YouTube's oEmbed endpoint (video
+ * exists, title matches the movement) and checked for `playableInEmbed`, so the
+ * in-app player never lands on a dead or embed-blocked video. An exercise with
+ * no id falls back to a YouTube search built from `youtubeQuery`.
  *
  * `bw` = fraction of bodyweight used as the beginner starting load, per the
  * AI trainer spec. Intermediate/advanced multipliers are applied in the engine.
  */
 
-const ex = (o) => ({ youtubeId: null, type: "isolation", ...o });
+const YOUTUBE_IDS = {
+  "barbell-back-squat": "iZTxa8NJH2g",
+  "leg-press": "nDh_BlnLCGc",
+  "goblet-squat": "MxsFDhcyFyE",
+  "bodyweight-squat": "PNKgSbWA8g8",
+  "bulgarian-split-squat": "bwhl_9jN_3o",
+  "walking-lunge": "DlhojghkaQ0",
+  "barbell-deadlift": "ZaTM37cfiDs",
+  "romanian-deadlift": "_oyxCn2iSjU",
+  "glute-bridge": "PhTDzR0TpZs",
+  "db-romanian-deadlift": "hu3jRvTc_po",
+  "barbell-bench-press": "hWbUlkb5Ms4",
+  "incline-db-press": "8iPEnn-ltC8",
+  "push-up": "14D-2c9kvVw",
+  "db-floor-press": "k8fvMnz42-g",
+  "barbell-row": "phVtqawIgbk",
+  "seated-cable-row": "7o2oolbmzeI",
+  "db-one-arm-row": "q65uDGJ9ZPs",
+  "inverted-row": "KOaCM1HMwU0",
+  "overhead-press": "_RlRDWO2jfg",
+  "db-shoulder-press": "qEwKCR5JCog",
+  "pike-push-up": "XckEEwa1BPI",
+  "lat-pulldown": "SALxEARiMkw",
+  "doorway-row": "Ow4KlswOrhU",
+  plank: "v25dawSzRTM",
+  "mountain-climber": "fpmWW6iXfes",
+  "bicycle-crunch": "Iwyvozckjak",
+  "barbell-curl": "QZEqB6wUPxQ",
+  "db-curl": "ICAXJVmOJik",
+  "triceps-pushdown": "vB5OHsJ3EME",
+  "bench-dip": "4ua3MzaU0QU",
+  "lateral-raise": "3VcKaXpzqRo",
+  "face-pull": "8686PLZB_1Q",
+  "standing-calf-raise": "n-5T_oYc1oU",
+  "machine-shoulder-press": "Gkk-6q7Rq-s",
+  "preacher-curl": "xjqBJexFDcw",
+  "overhead-triceps-extension": "b_r_LW4HEcM",
+  "cable-lateral-raise": "xrBcuPNTxLg",
+  "cable-crunch": "dkGwcfo9zto",
+  "seated-calf-raise": "FsqE-g1C5fk",
+};
+
+/** Technique videos for the cardio activities on the home screen. */
+export const ACTIVITY_VIDEOS = {
+  running: "_kGESn8ArrU",
+  "jump-rope": "kDOGb9C5kp0",
+};
+
+const ex = (o) => ({ type: "isolation", ...o, youtubeId: YOUTUBE_IDS[o.id] ?? null });
 
 export const EXERCISES = [
   /* ---------------- squat pattern ---------------- */

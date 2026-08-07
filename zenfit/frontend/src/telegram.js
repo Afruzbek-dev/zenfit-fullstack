@@ -13,8 +13,8 @@ export function initTelegram() {
   try {
     w.ready();
     w.expand();
-    w.setHeaderColor?.("#0A0B07");
-    w.setBackgroundColor?.("#0A0B07");
+    // Header/background colours are owned by lib/theme.js so they follow the
+    // user's light/dark choice instead of being pinned to the dark palette.
     w.disableVerticalSwipes?.();
   } catch {
     /* older clients lack some of these */

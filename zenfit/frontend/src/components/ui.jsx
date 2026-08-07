@@ -180,7 +180,11 @@ export function Sheet({ open, onClose, title, children, maxHeight = "88vh" }) {
   // Portalled to <body>: screens render inside a `z-10` wrapper, so a nested
   // z-50 would still lose to the root-level bottom nav.
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/65 backdrop-blur-sm" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center backdrop-blur-sm"
+      style={{ background: "var(--scrim)" }}
+      onClick={onClose}
+    >
       <div
         ref={ref}
         role="dialog"
@@ -275,18 +279,21 @@ export function ProgressRing({ value, max, size = 168, stroke = 12, children }) 
   return (
     <div className="relative grid place-items-center" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#1D2013" strokeWidth={stroke} />
+        {/* Themed via inline style: SVG presentation attributes do not accept var(). */}
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={stroke} style={{ stroke: "rgb(var(--c-borderSoft))" }} />
         <circle
           cx={size / 2}
           cy={size / 2}
           r={r}
           fill="none"
-          stroke={over ? "#FF5C5C" : "#CCFF00"}
           strokeWidth={stroke}
           strokeLinecap="round"
           strokeDasharray={c}
           strokeDashoffset={c - pct * c}
-          style={{ transition: "stroke-dashoffset 0.7s cubic-bezier(0.22,1,0.36,1)" }}
+          style={{
+            stroke: over ? "rgb(var(--c-rose))" : "rgb(var(--c-neon))",
+            transition: "stroke-dashoffset 0.7s cubic-bezier(0.22,1,0.36,1)",
+          }}
         />
       </svg>
       <div className="absolute inset-0 grid place-items-center text-center">{children}</div>

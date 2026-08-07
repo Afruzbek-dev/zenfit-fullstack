@@ -8,6 +8,9 @@
   },
   "scripts": {
     "dev": "node --watch --env-file=.env src/server.js",
+    "dev:local": "node --watch --env-file=.env.local src/server.js",
+    "migrate": "node --env-file=.env scripts/migrate.js",
+    "migrate:local": "node --env-file=.env.local scripts/migrate.js",
     "start": "node --env-file=.env src/server.js"
   },
   "dependencies": {

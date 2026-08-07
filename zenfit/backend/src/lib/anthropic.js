@@ -86,9 +86,15 @@ Savol: ${query}`;
 function buildTrainerSystemPrompt(ctx) {
   const { profile, todayStats, recentWorkouts, activePlan } = ctx;
 
+  // The trainer answers in whatever language the user picked in settings.
+  const langInstruction = {
+    ru: "Всегда отвечай НА РУССКОМ ЯЗЫКЕ, дружелюбно и кратко (2-5 предложений, при необходимости список).",
+    en: "Always answer IN ENGLISH, friendly and concise (2-5 sentences, a list where useful).",
+  }[profile?.language] || "Doim O'ZBEK TILIDA, samimiy va qisqa javob ber (2-5 gap, kerak bo'lsa ro'yxat).";
+
   const lines = [
     "Sen ZenFit ilovasining shaxsiy AI treneri va nutritsiologisisan.",
-    "Doim O'ZBEK TILIDA, samimiy va qisqa javob ber (2-5 gap, kerak bo'lsa ro'yxat).",
+    langInstruction,
     "Sen foydalanuvchining real ma'lumotlarini ko'rib turibsan — javoblaringda aniq raqamlarga tayan.",
     "",
     "MUHIM QOIDALAR:",

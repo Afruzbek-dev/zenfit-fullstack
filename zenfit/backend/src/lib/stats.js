@@ -31,6 +31,12 @@ export async function getDayStats(userId, dateStr, tzOffsetMinutes = 0) {
     [userId, start, end]
   );
 
+  const activities = await query(
+    `SELECT kcal, duration_min FROM activities
+      WHERE user_id = $1 AND logged_at >= $2 AND logged_at < $3`,
+    [userId, start, end]
+  );
+
   const water = await queryOne(
     `SELECT COALESCE(SUM(ml), 0) AS total FROM water_logs
       WHERE user_id = $1 AND logged_at >= $2 AND logged_at < $3`,
@@ -49,19 +55,25 @@ export async function getDayStats(userId, dateStr, tzOffsetMinutes = 0) {
     { kcal: 0, carbs: 0, protein: 0, fat: 0 }
   );
 
-  const burned = workouts.reduce((sum, w) => sum + (w.kcal || 0), 0);
+  // Strength sets and free activities both burn into the same daily budget.
+  const workoutKcal = workouts.reduce((sum, w) => sum + (w.kcal || 0), 0);
+  const activityKcal = activities.reduce((sum, a) => sum + (a.kcal || 0), 0);
+  const burned = workoutKcal + activityKcal;
   const target = profile?.daily_calorie_target || 2000;
 
   return {
     date: day,
     ...totals,
     burned,
+    activityKcal,
+    activityMinutes: activities.reduce((sum, a) => sum + (a.duration_min || 0), 0),
     waterMl: Number(water?.total || 0),
     waterTargetMl: profile?.water_target_ml || 2500,
     target,
     remaining: target - totals.kcal + burned,
     mealCount: meals.length,
     workoutCount: workouts.length,
+    activityCount: activities.length,
   };
 }
 
@@ -75,6 +87,8 @@ export async function getStreak(userId, tzOffsetMinutes = 0) {
     `SELECT logged_at FROM meals WHERE user_id = $1
      UNION ALL
      SELECT logged_at FROM workout_logs WHERE user_id = $1
+     UNION ALL
+     SELECT logged_at FROM activities WHERE user_id = $1
      ORDER BY logged_at DESC`,
     [userId]
   );

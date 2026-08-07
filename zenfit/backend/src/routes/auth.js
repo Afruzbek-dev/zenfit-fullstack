@@ -7,7 +7,7 @@ import { mapProfile, mapSubscription } from "../lib/mappers.js";
 const router = Router();
 
 /** Creates the user row (and empty profile/subscription) on first sight. */
-async function upsertUser({ id, first_name, username, language_code }) {
+async function upsertUser({ id, first_name, username, language_code, photo_url }) {
   const telegramId = String(id);
 
   await query(
@@ -17,6 +17,15 @@ async function upsertUser({ id, first_name, username, language_code }) {
        SET first_name = $2, username = $3, last_seen_at = now()`,
     [telegramId, first_name || null, username || null, language_code || "uz"]
   );
+
+  // Telegram's avatar seeds the profile picture, but never overwrites one the
+  // user uploaded themselves.
+  if (photo_url) {
+    await query(
+      "UPDATE users SET avatar_url = $1 WHERE telegram_id = $2 AND avatar_url IS NULL",
+      [photo_url, telegramId]
+    );
+  }
 
   const user = await queryOne("SELECT * FROM users WHERE telegram_id = $1", [telegramId]);
 
@@ -41,7 +50,7 @@ async function sessionPayload(user) {
   const subscription = await queryOne("SELECT * FROM subscriptions WHERE user_id = $1", [user.id]);
   return {
     token: signToken({ sub: user.id }),
-    user: { id: user.id, firstName: user.first_name, username: user.username },
+    user: { id: user.id, firstName: user.first_name, username: user.username, avatarUrl: user.avatar_url },
     profile: mapProfile(profile),
     subscription: mapSubscription(subscription),
   };

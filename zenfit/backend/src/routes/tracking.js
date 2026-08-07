@@ -26,13 +26,17 @@ router.get("/weekly", requireAuth, async (req, res, next) => {
     const tz = Number(req.query.tz) || 0;
     const since = daysAgoIso(days);
 
-    const [meals, workouts] = await Promise.all([
+    const [meals, workouts, activities] = await Promise.all([
       query(
         `SELECT kcal, logged_at FROM meals WHERE user_id = $1 AND logged_at >= $2`,
         [req.userId, since]
       ),
       query(
         `SELECT kcal, logged_at FROM workout_logs WHERE user_id = $1 AND logged_at >= $2`,
+        [req.userId, since]
+      ),
+      query(
+        `SELECT kcal, logged_at FROM activities WHERE user_id = $1 AND logged_at >= $2`,
         [req.userId, since]
       ),
     ]);
@@ -57,6 +61,10 @@ router.get("/weekly", requireAuth, async (req, res, next) => {
     workouts.forEach((w) => {
       const b = buckets.get(localDay(w.logged_at));
       if (b) b.burned += w.kcal || 0;
+    });
+    activities.forEach((a) => {
+      const b = buckets.get(localDay(a.logged_at));
+      if (b) b.burned += a.kcal || 0;
     });
 
     res.json({ days: [...buckets.values()] });

@@ -7,12 +7,14 @@ import profileRoutes from "./routes/profile.js";
 import mealsRoutes from "./routes/meals.js";
 import workoutLogsRoutes from "./routes/workoutLogs.js";
 import trackingRoutes from "./routes/tracking.js";
+import activitiesRoutes from "./routes/activities.js";
 import plansRoutes from "./routes/plans.js";
 import aiRoutes from "./routes/ai.js";
 import notificationsRoutes from "./routes/notifications.js";
 import adminRoutes from "./routes/admin.js";
 import paymentRoutes from "./routes/payment.js";
 import telegramRoutes from "./routes/telegram.js";
+import cronRoutes from "./routes/cron.js";
 import { startBotPolling } from "./bot.js";
 
 const app = express();
@@ -57,12 +59,14 @@ app.use("/api/profile", profileRoutes);
 app.use("/api/meals", mealsRoutes);
 app.use("/api/workout-logs", workoutLogsRoutes);
 app.use("/api/tracking", trackingRoutes);
+app.use("/api/activities", activitiesRoutes);
 app.use("/api/plans", plansRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/notifications", notificationsRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/telegram", telegramRoutes);
+app.use("/api/cron", cronRoutes);
 
 app.use((req, res) => res.status(404).json({ error: "not_found" }));
 

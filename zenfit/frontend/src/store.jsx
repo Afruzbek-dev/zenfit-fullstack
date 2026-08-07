@@ -1,5 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { api, login, setToken, getToken } from "./api.js";
+import { translator, storedLanguage, persistLanguage, DICTS } from "./lib/i18n.js";
+import { applyTheme, storedTheme, watchSystemTheme } from "./lib/theme.js";
 
 const Ctx = createContext(null);
 export const useApp = () => useContext(Ctx);
@@ -12,10 +14,22 @@ export function AppProvider({ children }) {
   const [subscription, setSubscription] = useState({ isPremium: false, plan: "free" });
   const [summary, setSummary] = useState(null);
   const [meals, setMeals] = useState([]);
+  const [activities, setActivities] = useState([]);
   const [workoutPlan, setWorkoutPlan] = useState(null);
   const [dietPlan, setDietPlan] = useState(null);
   const [workoutHistory, setWorkoutHistory] = useState([]);
   const [toast, setToast] = useState(null);
+
+  // Both are seeded from localStorage so the very first paint is already in the
+  // right language and theme, then reconciled with the server profile on boot.
+  const [lang, setLang] = useState(storedLanguage);
+  const [theme, setThemeState] = useState(storedTheme);
+
+  const t = useMemo(() => translator(lang), [lang]);
+
+  const themeRef = useRef(theme);
+  themeRef.current = theme;
+  useEffect(() => watchSystemTheme(() => themeRef.current), []);
 
   const toastTimer = useRef(null);
   const showToast = useCallback((message, tone = "neutral") => {
@@ -27,11 +41,12 @@ export function AppProvider({ children }) {
 
   /** Refetches everything the shell renders from. */
   const refresh = useCallback(async () => {
-    const [s, m, p, w] = await Promise.allSettled([
+    const [s, m, p, w, a] = await Promise.allSettled([
       api.getSummary(),
       api.getMeals(),
       api.getPlans(),
       api.getWorkoutHistory(),
+      api.getActivities(),
     ]);
     if (s.status === "fulfilled") setSummary(s.value);
     if (m.status === "fulfilled") setMeals(m.value.meals || []);
@@ -40,6 +55,20 @@ export function AppProvider({ children }) {
       setDietPlan(p.value.dietPlan?.plan || null);
     }
     if (w.status === "fulfilled") setWorkoutHistory(w.value.workoutLogs || []);
+    if (a.status === "fulfilled") setActivities(a.value.activities || []);
+  }, []);
+
+  /** Server preferences win once the profile arrives; local storage is the seed. */
+  const adoptPreferences = useCallback((p) => {
+    if (!p) return;
+    if (p.language && DICTS[p.language]) {
+      setLang(p.language);
+      persistLanguage(p.language);
+    }
+    if (p.theme) {
+      setThemeState(p.theme);
+      applyTheme(p.theme);
+    }
   }, []);
 
   const boot = useCallback(async () => {
@@ -65,6 +94,7 @@ export function AppProvider({ children }) {
       }
       setProfile(session.profile);
       setSubscription(session.subscription || { isPremium: false, plan: "free" });
+      adoptPreferences(session.profile);
 
       if (session.profile?.onboardingCompleted) await refresh();
       setStatus("ready");
@@ -72,7 +102,7 @@ export function AppProvider({ children }) {
       setError(e);
       setStatus("error");
     }
-  }, [refresh]);
+  }, [refresh, adoptPreferences]);
 
   useEffect(() => {
     boot();
@@ -146,6 +176,80 @@ export function AppProvider({ children }) {
     return res.workoutLog;
   }, []);
 
+  const addActivity = useCallback(async (payload) => {
+    const res = await api.addActivity(payload);
+    const a = res.activity;
+    setActivities((prev) => [a, ...prev]);
+    setSummary((prev) =>
+      prev
+        ? {
+            ...prev,
+            burned: prev.burned + (a.kcal || 0),
+            activityKcal: (prev.activityKcal || 0) + (a.kcal || 0),
+            activityCount: (prev.activityCount || 0) + 1,
+            activityMinutes: (prev.activityMinutes || 0) + (a.durationMin || 0),
+            remaining: prev.remaining + (a.kcal || 0),
+          }
+        : prev
+    );
+    return a;
+  }, []);
+
+  const removeActivity = useCallback(async (id) => {
+    const removed = activities.find((a) => a.id === id);
+    setActivities((prev) => prev.filter((a) => a.id !== id));
+    try {
+      await api.deleteActivity(id);
+      setSummary((prev) =>
+        prev && removed
+          ? {
+              ...prev,
+              burned: Math.max(0, prev.burned - (removed.kcal || 0)),
+              activityKcal: Math.max(0, (prev.activityKcal || 0) - (removed.kcal || 0)),
+              activityCount: Math.max(0, (prev.activityCount || 0) - 1),
+              activityMinutes: Math.max(0, (prev.activityMinutes || 0) - (removed.durationMin || 0)),
+              remaining: prev.remaining - (removed.kcal || 0),
+            }
+          : prev
+      );
+    } catch (e) {
+      if (removed) setActivities((prev) => [removed, ...prev]);
+      throw e;
+    }
+  }, [activities]);
+
+  /** Single entry point for profile edits — keeps profile and user in sync. */
+  const updateProfile = useCallback(async (patch) => {
+    const res = await api.patchProfile(patch);
+    setProfile(res.profile);
+    if (res.user) setUser(res.user);
+    adoptPreferences(res.profile);
+    return res.profile;
+  }, [adoptPreferences]);
+
+  const setLanguage = useCallback(async (next) => {
+    setLang(next);
+    persistLanguage(next);
+    // Written through so the AI trainer and the bot answer in the same language.
+    try {
+      const res = await api.patchProfile({ language: next });
+      setProfile(res.profile);
+    } catch {
+      /* the local switch already took effect */
+    }
+  }, []);
+
+  const setTheme = useCallback(async (next) => {
+    setThemeState(next);
+    applyTheme(next);
+    try {
+      const res = await api.patchProfile({ theme: next });
+      setProfile(res.profile);
+    } catch {
+      /* the local switch already took effect */
+    }
+  }, []);
+
   const saveWorkoutPlan = useCallback(async (plan) => {
     await api.savePlan("workout", plan);
     setWorkoutPlan(plan);
@@ -162,14 +266,17 @@ export function AppProvider({ children }) {
     () => ({
       status, error, boot, refresh,
       user, profile, setProfile, subscription, setSubscription,
-      summary, meals, workoutPlan, dietPlan, setDietPlan, workoutHistory,
+      summary, meals, activities, workoutPlan, dietPlan, setDietPlan, workoutHistory,
       addMeal, removeMeal, addWater, logWorkout, saveWorkoutPlan, completeOnboarding,
+      addActivity, removeActivity, updateProfile,
+      lang, setLanguage, theme, setTheme, t,
       toast, showToast,
     }),
     [
       status, error, boot, refresh, user, profile, subscription, summary, meals,
-      workoutPlan, dietPlan, workoutHistory, addMeal, removeMeal, addWater,
-      logWorkout, saveWorkoutPlan, completeOnboarding, toast, showToast,
+      activities, workoutPlan, dietPlan, workoutHistory, addMeal, removeMeal, addWater,
+      logWorkout, saveWorkoutPlan, completeOnboarding, addActivity, removeActivity,
+      updateProfile, lang, setLanguage, theme, setTheme, t, toast, showToast,
     ]
   );
 

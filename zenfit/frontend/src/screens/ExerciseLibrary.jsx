@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Search, Play, ChevronLeft, AlertTriangle, ListChecks, Dumbbell } from "lucide-react";
 import { Screen, ScreenHeader, Chip, EmptyState, ListRow, Button } from "../components/ui.jsx";
+import { VideoPlayer } from "../components/ExerciseGuide.jsx";
 import { EXERCISES, MUSCLE_GROUPS, EQUIPMENT_LABELS, filterExercises, youtubeSearchUrl } from "../data/exercises.js";
-import { openLink } from "../telegram.js";
 
 /** Detail view: how to perform the movement, plus video. */
 export function ExerciseDetail({ exercise, onBack, onAdd }) {
@@ -18,34 +18,14 @@ export function ExerciseDetail({ exercise, onBack, onAdd }) {
         }
       />
 
-      {/* Video: an inline embed once a verified id exists, otherwise a search link. */}
-      {exercise.youtubeId ? (
-        <div className="mb-5 overflow-hidden rounded-xl2 border border-borderSoft bg-black">
-          <div className="relative w-full" style={{ paddingTop: "56.25%" }}>
-            <iframe
-              className="absolute inset-0 h-full w-full"
-              src={`https://www.youtube-nocookie.com/embed/${exercise.youtubeId}`}
-              title={`${exercise.name} — bajarish texnikasi`}
-              allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              loading="lazy"
-            />
-          </div>
-        </div>
-      ) : (
-        <button
-          onClick={() => openLink(youtubeSearchUrl(exercise))}
-          className="card card-lit mb-5 flex w-full items-center gap-3 px-4 py-4 text-left active:scale-[0.99]"
-        >
-          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-rose/12">
-            <Play size={20} fill="currentColor" className="text-rose" />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-[13.5px] font-bold text-ink">Videoni ko'rish</span>
-            <span className="mt-0.5 block text-[11.5px] text-muted">YouTube'da “{exercise.nameEn}” bo'yicha ochiladi</span>
-          </span>
-        </button>
-      )}
+      {/* Plays in place — the player only mounts once the poster is tapped. */}
+      <div className="mb-5">
+        <VideoPlayer
+          videoId={exercise.youtubeId}
+          title={`${exercise.name} — bajarish texnikasi`}
+          searchUrl={youtubeSearchUrl(exercise)}
+        />
+      </div>
 
       <section className="mb-5">
         <div className="mb-2.5 flex items-center gap-2">

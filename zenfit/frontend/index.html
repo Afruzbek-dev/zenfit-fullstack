@@ -19,9 +19,31 @@
     />
 
     <style>
-      html, body, #root { height: 100%; margin: 0; background: #0A0B07; }
+      /* Only html/body carry the colour — a background on #root would sit above
+         the themed body and stay dark when the light theme is applied. */
+      html, body, #root { height: 100%; margin: 0; }
+      html, body { background: #0A0B07; }
+      html[data-theme="light"], html[data-theme="light"] body { background: #F5F6F0; }
       body { overscroll-behavior-y: none; -webkit-tap-highlight-color: transparent; }
     </style>
+
+    <!-- Applied before first paint so a light-theme user never sees a dark flash. -->
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem("zenfit_theme") || "dark";
+          var resolved = saved;
+          if (saved === "system") {
+            var tgScheme = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.colorScheme;
+            resolved = tgScheme || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+          }
+          document.documentElement.setAttribute("data-theme", resolved);
+          document.querySelector('meta[name="theme-color"]').setAttribute("content", resolved === "light" ? "#F5F6F0" : "#0A0B07");
+        } catch (e) {
+          document.documentElement.setAttribute("data-theme", "dark");
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

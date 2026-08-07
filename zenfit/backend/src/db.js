@@ -48,6 +48,7 @@ CREATE TABLE IF NOT EXISTS users (
   telegram_id   TEXT UNIQUE NOT NULL,
   first_name    TEXT,
   username      TEXT,
+  avatar_url    TEXT,
   language_code TEXT DEFAULT 'uz',
   created_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
   last_seen_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
@@ -72,6 +73,13 @@ CREATE TABLE IF NOT EXISTS profiles (
   session_duration     TEXT,
   injuries             TEXT,
   water_target_ml      INTEGER DEFAULT 2500,
+  display_name         TEXT,
+  language             TEXT DEFAULT 'uz',
+  theme                TEXT DEFAULT 'dark',
+  notif_workout        INTEGER NOT NULL DEFAULT 1,
+  notif_meal           INTEGER NOT NULL DEFAULT 1,
+  notif_water          INTEGER NOT NULL DEFAULT 0,
+  notif_tips           INTEGER NOT NULL DEFAULT 1,
   onboarding_completed INTEGER NOT NULL DEFAULT 0,
   updated_at           TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
 );
@@ -154,6 +162,47 @@ CREATE TABLE IF NOT EXISTS subscriptions (
   updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
 );
 
+CREATE TABLE IF NOT EXISTS activities (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  activity_id  TEXT NOT NULL,
+  name         TEXT NOT NULL,
+  emoji        TEXT,
+  duration_min INTEGER NOT NULL,
+  distance_km  REAL,
+  intensity    TEXT,
+  kcal         INTEGER NOT NULL DEFAULT 0,
+  note         TEXT,
+  logged_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
+);
+
+CREATE TABLE IF NOT EXISTS payments (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  provider    TEXT NOT NULL,
+  plan_id     TEXT NOT NULL,
+  plan_title  TEXT,
+  amount_uzs  INTEGER NOT NULL,
+  status      TEXT NOT NULL DEFAULT 'pending',
+  external_id TEXT,
+  card_last4  TEXT,
+  created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
+  paid_at     TEXT
+);
+
+-- Only the provider's token and the masked tail are ever stored here.
+CREATE TABLE IF NOT EXISTS payment_cards (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  provider   TEXT NOT NULL,
+  token      TEXT NOT NULL,
+  brand      TEXT,
+  last4      TEXT,
+  expiry     TEXT,
+  is_default INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
+);
+
 CREATE TABLE IF NOT EXISTS ai_usage (
   id      INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -169,6 +218,9 @@ CREATE INDEX IF NOT EXISTS idx_water_user_date        ON water_logs(user_id, log
 CREATE INDEX IF NOT EXISTS idx_weight_user_date       ON weight_history(user_id, recorded_at DESC);
 CREATE INDEX IF NOT EXISTS idx_ai_plans_user_active   ON ai_plans(user_id, plan_type, is_active);
 CREATE INDEX IF NOT EXISTS idx_ai_usage_user_feature  ON ai_usage(user_id, feature, used_at DESC);
+CREATE INDEX IF NOT EXISTS idx_activities_user_date   ON activities(user_id, logged_at DESC);
+CREATE INDEX IF NOT EXISTS idx_payments_user_date     ON payments(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_cards_user             ON payment_cards(user_id, created_at DESC);
 `;
 
 async function initSqlite() {
@@ -240,7 +292,7 @@ export async function query(sql, params = []) {
   const { text, params: p } = toSqlite(sql, params);
   const stmt = sqliteDb.prepare(text);
   // node:sqlite throws on .all() for statements that return nothing.
-  if (/^\s*(select|with)/i.test(text) || /returning/i.test(text)) {
+  if (/^\s*(select|with|pragma)/i.test(text) || /returning/i.test(text)) {
     return stmt.all(...p);
   }
   stmt.run(...p);

@@ -46,6 +46,7 @@ Vercel → **Add New → Project** → repoingizni tanlang.
 | `ANTHROPIC_MODEL` | `claude-sonnet-5` |
 | `USE_TELEGRAM_WEBHOOK` | `1` |
 | `ALLOW_DEV_LOGIN` | `0` ← **production'da albatta 0** |
+| `CRON_SECRET` | lokal `.env` dagi qiymat (48 belgi) — kunlik eslatmalar uchun |
 | `MINI_APP_URL` | hozircha bo'sh qoldiring, 3-bosqichda to'ldiriladi |
 | `CORS_ORIGIN` | hozircha bo'sh qoldiring, 3-bosqichda to'ldiriladi |
 
@@ -165,10 +166,43 @@ va `.env` da `USE_TELEGRAM_WEBHOOK=0` qiling.
 
 ---
 
+## Baza migratsiyasi
+
+Sxema o'zgarganda (yangi jadval yoki ustun) migratsiyani ishga tushiring.
+Har bir amal idempotent, shuning uchun qayta ishlatish xavfsiz:
+
+```bash
+cd zenfit/backend
+npm run migrate          # .env — production Supabase
+npm run migrate:local    # .env.local — lokal SQLite
+```
+
+---
+
+## Kunlik eslatmalar (Vercel Cron)
+
+`vercel.json` da `/api/cron/reminders` har kuni 14:00 UTC (Toshkent bo'yicha
+19:00) ishga tushadi. Vercel `Authorization: Bearer $CRON_SECRET` sarlavhasini
+o'zi qo'shadi — `CRON_SECRET` o'rnatilmagan bo'lsa endpoint 401 qaytaradi va
+hech kimga xabar ketmaydi.
+
+Kimga xabar ketishini **yubormasdan** ko'rish:
+
+```bash
+curl -H "authorization: Bearer $CRON_SECRET" \
+  "https://zenfit-backend.vercel.app/api/cron/reminders?dry=1"
+```
+
+Eslatma turi profil sozlamalaridan olinadi (ovqat / mashq / suv) va o'sha kuni
+allaqachon belgilagan foydalanuvchiga xabar bormaydi.
+
+---
+
 ## Nima ishlamaydi (kutilgan holat)
 
-- **To'lov** — `/api/payment/checkout` merchant sozlanmaguncha 503 qaytaradi.
-  Payme/Click webhook'lari imzoni tekshiradi, lekin tranzaksiya holat mashinasi
-  hali yozilmagan.
-- **Mashq videolari** — `youtubeId` hali `null`, tugma YouTube qidiruvini
-  ochadi.
+- **To'lov** — `/api/payment/checkout` va `/api/payment/cards/bind` merchant
+  sozlanmaguncha 503 qaytaradi. Payme/Click webhook'lari imzoni tekshiradi,
+  lekin tranzaksiya holat mashinasi hali yozilmagan. Karta biriktirish
+  provayder sahifasida bo'ladi — karta raqami hech qachon backendga kelmaydi.
+- **Mashqlar matni** — mashq nomlari, qadamlar va xatolar hozircha faqat
+  o'zbek tilida. Ilova interfeysi o'zbek/rus tilida ishlaydi.

@@ -23,7 +23,57 @@ export function mapProfile(p) {
     sessionDuration: p.session_duration,
     injuries: p.injuries,
     waterTargetMl: p.water_target_ml ?? 2500,
+    displayName: p.display_name,
+    language: p.language || "uz",
+    theme: p.theme || "dark",
+    notifications: {
+      workout: bool(p.notif_workout),
+      meal: bool(p.notif_meal),
+      water: bool(p.notif_water),
+      tips: bool(p.notif_tips),
+    },
     onboardingCompleted: bool(p.onboarding_completed),
+  };
+}
+
+export function mapActivity(a) {
+  return {
+    id: a.id,
+    activityId: a.activity_id,
+    name: a.name,
+    emoji: a.emoji,
+    durationMin: a.duration_min,
+    distanceKm: a.distance_km,
+    intensity: a.intensity,
+    kcal: a.kcal,
+    note: a.note,
+    loggedAt: a.logged_at,
+  };
+}
+
+export function mapPayment(p) {
+  return {
+    id: p.id,
+    provider: p.provider,
+    planId: p.plan_id,
+    planTitle: p.plan_title,
+    amountUzs: p.amount_uzs,
+    status: p.status,
+    cardLast4: p.card_last4,
+    createdAt: p.created_at,
+    paidAt: p.paid_at,
+  };
+}
+
+export function mapCard(c) {
+  return {
+    id: c.id,
+    provider: c.provider,
+    brand: c.brand,
+    last4: c.last4,
+    expiry: c.expiry,
+    isDefault: bool(c.is_default),
+    createdAt: c.created_at,
   };
 }
 

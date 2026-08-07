@@ -90,6 +90,12 @@ export const api = {
   getLastSets: (exerciseId) => request("GET", `/api/workout-logs/last-sets/${encodeURIComponent(exerciseId)}`),
   getAllLastSets: () => request("GET", "/api/workout-logs/last-sets"),
 
+  /* activities (cardio / free workouts) */
+  getActivities: (date) => request("GET", `/api/activities?tz=${tz()}${date ? `&date=${date}` : ""}`),
+  getActivityHistory: () => request("GET", "/api/activities/history"),
+  addActivity: (body) => request("POST", "/api/activities", { body }),
+  deleteActivity: (id) => request("DELETE", `/api/activities/${id}`),
+
   /* tracking */
   getSummary: () => request("GET", `/api/tracking/summary?tz=${tz()}`),
   getWeekly: (days = 7) => request("GET", `/api/tracking/weekly?days=${days}&tz=${tz()}`),
@@ -120,6 +126,10 @@ export const api = {
   getPaymentPlans: () => request("GET", "/api/payment/plans"),
   checkout: (planId) => request("POST", "/api/payment/checkout", { body: { planId } }),
   devActivate: (planId) => request("POST", "/api/payment/dev-activate", { body: { planId } }),
+  getPaymentHistory: () => request("GET", "/api/payment/history"),
+  getCards: () => request("GET", "/api/payment/cards"),
+  bindCard: () => request("POST", "/api/payment/cards/bind", { body: {} }),
+  deleteCard: (id) => request("DELETE", `/api/payment/cards/${id}`),
 };
 
 /** Telegram login when available, dev login as a local fallback. */

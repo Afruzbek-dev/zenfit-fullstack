@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Home, Dumbbell, Camera, User2, MessageSquare, Loader2, WifiOff } from "lucide-react";
 import { useApp } from "./store.jsx";
 import { initTelegram, haptic, setBackButton } from "./telegram.js";
+import { applyTheme } from "./lib/theme.js";
 import { Toast, Button } from "./components/ui.jsx";
 import Onboarding from "./screens/Onboarding.jsx";
 import HomeScreen from "./screens/HomeScreen.jsx";
@@ -13,34 +14,35 @@ import ProgressScreen from "./screens/ProgressScreen.jsx";
 import ProfileScreen from "./screens/ProfileScreen.jsx";
 
 const TABS = [
-  { id: "home", label: "Bosh", Icon: Home },
-  { id: "workouts", label: "Mashq", Icon: Dumbbell },
-  { id: "scan", label: "Skan", Icon: Camera, primary: true },
-  { id: "chat", label: "Trener", Icon: MessageSquare },
-  { id: "profile", label: "Profil", Icon: User2 },
+  { id: "home", key: "nav.home", Icon: Home },
+  { id: "workouts", key: "nav.workouts", Icon: Dumbbell },
+  { id: "scan", key: "nav.scan", Icon: Camera, primary: true },
+  { id: "chat", key: "nav.trainer", Icon: MessageSquare },
+  { id: "profile", key: "nav.profile", Icon: User2 },
 ];
 
 const SECONDARY = ["recipes", "progress"];
 
-function BottomNav({ active, onChange }) {
+function BottomNav({ active, onChange, t }) {
   return (
     <nav
       className="fixed inset-x-0 bottom-0 z-40 border-t border-borderSoft bg-bg/92 backdrop-blur-xl"
       style={{ paddingBottom: "var(--safe-bottom)" }}
     >
       <div className="mx-auto flex h-[68px] w-full max-w-lg items-center justify-around px-2">
-        {TABS.map((t) => {
-          const on = active === t.id;
+        {TABS.map((tab) => {
+          const on = active === tab.id;
+          const label = t(tab.key);
 
-          if (t.primary) {
+          if (tab.primary) {
             return (
               <button
-                key={t.id}
+                key={tab.id}
                 onClick={() => {
                   haptic("light");
-                  onChange(t.id);
+                  onChange(tab.id);
                 }}
-                aria-label={t.label}
+                aria-label={label}
                 aria-current={on ? "page" : undefined}
                 className="-mt-6 flex flex-col items-center gap-1"
               >
@@ -49,26 +51,26 @@ function BottomNav({ active, onChange }) {
                     on ? "bg-neon shadow-neon/25" : "bg-neon/90"
                   }`}
                 >
-                  <t.Icon size={23} className="text-neonOn" />
+                  <tab.Icon size={23} className="text-neonOn" />
                 </span>
-                <span className={`text-[10px] font-bold ${on ? "text-neon" : "text-muted"}`}>{t.label}</span>
+                <span className={`text-[10px] font-bold ${on ? "text-neon" : "text-muted"}`}>{label}</span>
               </button>
             );
           }
 
           return (
             <button
-              key={t.id}
+              key={tab.id}
               onClick={() => {
                 haptic("light");
-                onChange(t.id);
+                onChange(tab.id);
               }}
-              aria-label={t.label}
+              aria-label={label}
               aria-current={on ? "page" : undefined}
               className="flex flex-1 flex-col items-center gap-1 py-2"
             >
-              <t.Icon size={20} className={on ? "text-neon" : "text-faint"} />
-              <span className={`text-[10px] font-semibold ${on ? "text-neon" : "text-faint"}`}>{t.label}</span>
+              <tab.Icon size={20} className={on ? "text-neon" : "text-faint"} />
+              <span className={`text-[10px] font-semibold ${on ? "text-neon" : "text-faint"}`}>{label}</span>
             </button>
           );
         })}
@@ -105,7 +107,7 @@ function BootScreen({ error, onRetry }) {
 }
 
 export default function App() {
-  const { status, error, profile, boot, toast, refresh } = useApp();
+  const { status, error, profile, boot, toast, refresh, theme, t } = useApp();
   const [tab, setTab] = useState("home");
   // Decided once when the session first loads. Onboarding saves the profile
   // partway through (to compute targets), so this must not be derived from
@@ -114,6 +116,10 @@ export default function App() {
 
   useEffect(() => {
     initTelegram();
+    // index.html already painted the stored theme; this re-applies it so the
+    // Telegram chrome matches once the WebApp SDK is available.
+    applyTheme(theme);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -145,7 +151,7 @@ export default function App() {
     workouts: <WorkoutsScreen />,
     scan: <ScanScreen onNavigate={setTab} />,
     chat: <ChatScreen onNavigate={setTab} />,
-    profile: <ProfileScreen />,
+    profile: <ProfileScreen onNavigate={setTab} />,
     recipes: <RecipesScreen onBack={() => setTab("home")} />,
     progress: <ProgressScreen onBack={() => setTab("home")} />,
   };
@@ -155,7 +161,7 @@ export default function App() {
       {screens[tab] ?? screens.home}
 
       <Toast message={toast?.message} tone={toast?.tone} />
-      <BottomNav active={tab} onChange={setTab} />
+      <BottomNav active={tab} onChange={setTab} t={t} />
     </div>
   );
 }

@@ -3,21 +3,24 @@ export default {
   content: ["./index.html", "./src/**/*.{js,jsx}"],
   theme: {
     extend: {
+      // Every colour resolves through a CSS variable (defined in index.css) so
+      // the light/dark switch is a single data-theme attribute, while the
+      // `/opacity` modifiers used throughout the UI keep working.
       colors: {
-        bg: "#0A0B07",
-        surface: "#14160F",
-        surfaceAlt: "#181B11",
-        surfaceHi: "#1E2216",
-        border: "#242819",
-        borderSoft: "#1D2013",
-        neon: "#CCFF00",
-        neonOn: "#0A0B07",
-        cyan: "#4DFFDF",
-        amber: "#FFB020",
-        rose: "#FF5C5C",
-        ink: "#F4F6EA",
-        muted: "#8B9080",
-        faint: "#565B49",
+        bg: "rgb(var(--c-bg) / <alpha-value>)",
+        surface: "rgb(var(--c-surface) / <alpha-value>)",
+        surfaceAlt: "rgb(var(--c-surfaceAlt) / <alpha-value>)",
+        surfaceHi: "rgb(var(--c-surfaceHi) / <alpha-value>)",
+        border: "rgb(var(--c-border) / <alpha-value>)",
+        borderSoft: "rgb(var(--c-borderSoft) / <alpha-value>)",
+        neon: "rgb(var(--c-neon) / <alpha-value>)",
+        neonOn: "rgb(var(--c-neonOn) / <alpha-value>)",
+        cyan: "rgb(var(--c-cyan) / <alpha-value>)",
+        amber: "rgb(var(--c-amber) / <alpha-value>)",
+        rose: "rgb(var(--c-rose) / <alpha-value>)",
+        ink: "rgb(var(--c-ink) / <alpha-value>)",
+        muted: "rgb(var(--c-muted) / <alpha-value>)",
+        faint: "rgb(var(--c-faint) / <alpha-value>)",
       },
       fontFamily: {
         display: ['"Chakra Petch"', "system-ui", "sans-serif"],
