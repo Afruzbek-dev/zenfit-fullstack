@@ -73,6 +73,13 @@ export const api = {
   loginTelegram: () => request("POST", "/api/auth/telegram", { body: { initData: getInitData() }, auth: false }),
   loginDev: () => request("POST", "/api/auth/dev", { body: {}, auth: false }),
 
+  /**
+   * Session plus every dashboard collection in one round trip. Sends initData
+   * so a first-time user is logged in by the same request; an existing token is
+   * picked up from the Authorization header.
+   */
+  bootstrap: () => request("POST", "/api/bootstrap", { body: { initData: getInitData(), tz: tz() } }),
+
   /* profile */
   getProfile: () => request("GET", "/api/profile"),
   patchProfile: (body) => request("PATCH", "/api/profile", { body }),
@@ -127,6 +134,13 @@ export const api = {
   checkout: (planId) => request("POST", "/api/payment/checkout", { body: { planId } }),
   devActivate: (planId) => request("POST", "/api/payment/dev-activate", { body: { planId } }),
   getPaymentHistory: () => request("GET", "/api/payment/history"),
+  startManualPayment: (planId) => request("POST", "/api/payment/manual/start", { body: { planId } }),
+  uploadReceipt: (paymentId, file, note) => {
+    const fd = new FormData();
+    fd.append("receipt", file);
+    if (note) fd.append("note", note);
+    return request("POST", `/api/payment/manual/${paymentId}/receipt`, { body: fd, isForm: true });
+  },
   getCards: () => request("GET", "/api/payment/cards"),
   bindCard: () => request("POST", "/api/payment/cards/bind", { body: {} }),
   deleteCard: (id) => request("DELETE", `/api/payment/cards/${id}`),

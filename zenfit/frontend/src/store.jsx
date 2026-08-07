@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { api, login, setToken, getToken } from "./api.js";
+import { api, login, setToken } from "./api.js";
 import { translator, storedLanguage, persistLanguage, DICTS } from "./lib/i18n.js";
 import { applyTheme, storedTheme, watchSystemTheme } from "./lib/theme.js";
 
@@ -71,32 +71,48 @@ export function AppProvider({ children }) {
     }
   }, []);
 
+  /**
+   * One request brings back the session and every collection the shell renders.
+   * Falls back to the older login + fan-out path only when bootstrap is not
+   * usable — outside Telegram, where dev login is the way in.
+   */
   const boot = useCallback(async () => {
     setStatus("loading");
     setError(null);
     try {
-      let session;
-      if (getToken()) {
-        // Reuse the stored session; fall back to a fresh login if it expired.
-        try {
-          const me = await api.getProfile();
-          session = { profile: me.profile, subscription: me.subscription };
-          if (me.user) setUser(me.user);
-        } catch {
+      let data;
+      try {
+        data = await api.bootstrap();
+      } catch (e) {
+        // A stale token makes bootstrap reject; clear it and log in fresh.
+        if (e.status === 401) {
           setToken("");
+          const fresh = await login();
+          setToken(fresh.token);
+          data = { ...fresh, onboarding: !fresh.profile?.onboardingCompleted };
+        } else {
+          throw e;
         }
       }
-      if (!session) {
-        const fresh = await login();
-        setToken(fresh.token);
-        setUser(fresh.user);
-        session = fresh;
-      }
-      setProfile(session.profile);
-      setSubscription(session.subscription || { isPremium: false, plan: "free" });
-      adoptPreferences(session.profile);
 
-      if (session.profile?.onboardingCompleted) await refresh();
+      if (data.token) setToken(data.token);
+      if (data.user) setUser(data.user);
+      setProfile(data.profile);
+      setSubscription(data.subscription || { isPremium: false, plan: "free" });
+      adoptPreferences(data.profile);
+
+      if (data.onboarding === false) {
+        setSummary(data.summary ?? null);
+        setMeals(data.meals || []);
+        setWorkoutPlan(data.workoutPlan || null);
+        setDietPlan(data.dietPlan || null);
+        setWorkoutHistory(data.workoutLogs || []);
+        setActivities(data.activities || []);
+      } else if (data.profile?.onboardingCompleted) {
+        // The fallback path returns a session only.
+        await refresh();
+      }
+
       setStatus("ready");
     } catch (e) {
       setError(e);

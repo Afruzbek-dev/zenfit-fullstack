@@ -5,14 +5,19 @@
  * back to Uzbek rather than showing the raw key, so a gap degrades to a real
  * sentence. Look-ups take a dotted path — t("profile.healthData").
  *
- * Coverage note: the screens rebuilt for the profile/workout/activity work are
- * fully translated. Onboarding, scan, recipes, chat and progress are still
- * Uzbek-only and are the next batch to move over.
+ * Coverage: navigation, home, activity logging, the workout flow, the whole
+ * profile area and premium/payment are translated into all three languages,
+ * and every exercise's name, steps and mistakes live in data/exerciseText.js.
+ * Onboarding, scan, recipes, chat and progress still render Uzbek strings and
+ * are the next batch to move over.
  */
 
+import en from "./i18n.en.js";
+
 export const LANGUAGES = [
-  { id: "uz", label: "O'zbekcha", native: "O'zbekcha" },
+  { id: "uz", label: "O'zbekcha", native: "O'zbek" },
   { id: "ru", label: "Ruscha", native: "Русский" },
+  { id: "en", label: "Inglizcha", native: "English" },
 ];
 
 const uz = {
@@ -57,6 +62,13 @@ const uz = {
       yoga: "Yoga", stretching: "Cho'zilish", stairs: "Zinapoya", hiking: "Tog' yurish",
       gym: "Zalda mashq", custom: "Boshqa",
     },
+  },
+
+  equipment: {
+    any: "Har qanday jihoz", gym: "Sport zali", "home-dumbbell": "Gantel", "home-none": "Jihozsiz", outdoor: "Ochiq havo",
+  },
+  muscleGroups: {
+    all: "Barchasi", squat: "Oyoq", pushH: "Ko'krak", pullH: "Orqa", pushV: "Yelka", biceps: "Qo'l", core: "Qorin",
   },
 
   workout: {
@@ -128,6 +140,26 @@ const uz = {
     notifTips: "Maslahat va yangiliklar", notifTipsDesc: "Haftalik maslahatlar va yangi imkoniyatlar",
     notifHint: "Bildirishnomalar Telegram bot orqali yuboriladi.",
     version: "Versiya",
+  },
+
+  premium: {
+    choosePlan: "Rejani tanlang", payByCard: "Karta orqali to'lash", payTitle: "To'lov",
+    card: "Karta", copyCard: "Karta raqamini nusxalash", copied: "Nusxalandi ✓",
+    step1: "Yuqoridagi kartaga ko'rsatilgan summani o'tkazing.",
+    step2: "To'lov chekining rasmini oling yoki skrinshot qiling.",
+    step3: "Pastdagi tugma orqali chekni yuboring — admin tekshirib tasdiqlaydi.",
+    sendReceipt: "Chek rasmini yuborish",
+    sentTitle: "Chek yuborildi!",
+    sentDesc: "Admin tekshirgach premium avtomatik faollashadi va sizga Telegram orqali xabar keladi. Odatda bu 1-2 soat ichida bo'ladi.",
+    manualHint: "To'lov karta orqali amalga oshiriladi. Karta ma'lumotlaringiz ilovaga kiritilmaydi.",
+    notReady: "To'lov hali sozlanmagan. Iltimos, keyinroq urinib ko'ring.",
+    features: {
+      unlimitedScan: { title: "Cheksiz AI skaner", desc: "Taom rasmini istagancha skanerlang" },
+      unlimitedTrainer: { title: "Cheksiz AI trener", desc: "Suhbat limitisiz, istalgan vaqtda savol bering" },
+      allPrograms: { title: "Barcha trener dasturlari", desc: "Top murabbiylarning tayyor rejalari" },
+      analytics: { title: "Kengaytirilgan tahlil", desc: "Oylik progress va batafsil hisobotlar" },
+      noAds: { title: "Reklamasiz tajriba", desc: "Yangi imkoniyatlardan birinchi bo'lib foydalanish" },
+    },
   },
 
   help: {
@@ -215,6 +247,13 @@ const ru = {
     },
   },
 
+  equipment: {
+    any: "Любое оборудование", gym: "Спортзал", "home-dumbbell": "Гантели", "home-none": "Без оборудования", outdoor: "На улице",
+  },
+  muscleGroups: {
+    all: "Все", squat: "Ноги", pushH: "Грудь", pullH: "Спина", pushV: "Плечи", biceps: "Руки", core: "Пресс",
+  },
+
   workout: {
     set: "Подход", sets: "подх.", reps: "повт.", weight: "вес",
     rest: "Отдых", restNow: "Отдыхайте", restDone: "Отдых окончен", skipRest: "Пропустить", addTime: "+15с",
@@ -286,6 +325,26 @@ const ru = {
     version: "Версия",
   },
 
+  premium: {
+    choosePlan: "Выберите план", payByCard: "Оплатить картой", payTitle: "Оплата",
+    card: "Карта", copyCard: "Скопировать номер карты", copied: "Скопировано ✓",
+    step1: "Переведите указанную сумму на карту выше.",
+    step2: "Сфотографируйте чек или сделайте скриншот.",
+    step3: "Отправьте чек кнопкой ниже — администратор проверит и подтвердит.",
+    sendReceipt: "Отправить чек",
+    sentTitle: "Чек отправлен!",
+    sentDesc: "После проверки премиум активируется автоматически, и вы получите уведомление в Telegram. Обычно это занимает 1–2 часа.",
+    manualHint: "Оплата проходит переводом на карту. Данные вашей карты в приложение не вводятся.",
+    notReady: "Оплата пока не настроена. Попробуйте позже.",
+    features: {
+      unlimitedScan: { title: "Безлимитный AI сканер", desc: "Сканируйте блюда без ограничений" },
+      unlimitedTrainer: { title: "Безлимитный AI тренер", desc: "Задавайте вопросы в любое время без лимита" },
+      allPrograms: { title: "Все программы тренировок", desc: "Готовые планы от топовых тренеров" },
+      analytics: { title: "Расширенная аналитика", desc: "Месячный прогресс и подробные отчёты" },
+      noAds: { title: "Без рекламы", desc: "Новые возможности раньше всех" },
+    },
+  },
+
   help: {
     title: "Помощь",
     contact: "Остались вопросы?", contactDesc: "Напишите нам в Telegram",
@@ -327,7 +386,7 @@ const ru = {
   },
 };
 
-export const DICTS = { uz, ru };
+export const DICTS = { uz, ru, en };
 
 function lookup(dict, path) {
   return path.split(".").reduce((acc, key) => (acc == null ? undefined : acc[key]), dict);
@@ -355,7 +414,9 @@ export function storedLanguage() {
   }
   // Telegram tells us the client language before the profile has loaded.
   const tgLang = typeof window !== "undefined" ? window.Telegram?.WebApp?.initDataUnsafe?.user?.language_code : null;
-  return tgLang === "ru" ? "ru" : "uz";
+  if (tgLang === "ru") return "ru";
+  if (tgLang && tgLang.startsWith("en")) return "en";
+  return "uz";
 }
 
 export function persistLanguage(lang) {

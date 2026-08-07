@@ -99,6 +99,31 @@ async function run() {
   `);
   await query(`CREATE INDEX IF NOT EXISTS idx_cards_user ON payment_cards(user_id, created_at DESC)`);
 
+  /* ----- admin-editable settings ---------------------------------------- *
+   * Key/value rather than columns: the payment card details change without a
+   * deploy, and adding a new setting should not mean another migration.
+   * ---------------------------------------------------------------------- */
+  await query(`
+    CREATE TABLE IF NOT EXISTS app_settings (
+      key        TEXT PRIMARY KEY,
+      value      TEXT,
+      updated_at ${TS()}
+    )
+  `);
+
+  /* ----- manual (card transfer) payments -------------------------------- *
+   * Until a payment provider is live, users transfer to a card and upload a
+   * receipt. The screenshot is pushed to the admin's Telegram chat and only
+   * its file_id is stored, so no object storage is involved.
+   * ---------------------------------------------------------------------- */
+  await addColumn("payments", "method", "TEXT DEFAULT 'provider'", "TEXT DEFAULT 'provider'");
+  await addColumn("payments", "receipt_file_id", "TEXT", "TEXT");
+  await addColumn("payments", "receipt_note", "TEXT", "TEXT");
+  await addColumn("payments", "reviewed_at", usingPostgres ? "TIMESTAMPTZ" : "TEXT", "TEXT");
+  await addColumn("payments", "reviewed_by", "TEXT", "TEXT");
+  await addColumn("payments", "reject_reason", "TEXT", "TEXT");
+  await query(`CREATE INDEX IF NOT EXISTS idx_payments_status ON payments(status, created_at DESC)`);
+
   /* ----- lock the new tables down --------------------------------------- *
    * Every existing table has RLS on with zero policies, which denies the anon
    * and authenticated Supabase roles outright. The backend connects as the
@@ -106,7 +131,7 @@ async function run() {
    * otherwise they would be the only ones readable with a public API key.
    * ---------------------------------------------------------------------- */
   if (usingPostgres) {
-    for (const t of ["activities", "payments", "payment_cards"]) {
+    for (const t of ["activities", "payments", "payment_cards", "app_settings"]) {
       await query(`ALTER TABLE ${t} ENABLE ROW LEVEL SECURITY`);
     }
   }

@@ -1,8 +1,18 @@
 import { Router } from "express";
 import crypto from "node:crypto";
+import multer from "multer";
 import { query, queryOne } from "../db.js";
 import { requireAuth } from "../middleware/auth.js";
+import { rateLimit } from "../middleware/rateLimit.js";
 import { mapSubscription, mapPayment, mapCard } from "../lib/mappers.js";
+import { getSettings, getAdminChatId, manualPaymentReady } from "../lib/settings.js";
+import { sendReceiptToAdmin } from "../bot.js";
+
+const receiptUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 6 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => cb(null, file.mimetype.startsWith("image/")),
+});
 
 const router = Router();
 
@@ -33,6 +43,125 @@ router.get("/subscription", requireAuth, async (req, res, next) => {
     next(err);
   }
 });
+
+/* --------------------- manual card transfer ------------------------- *
+ * Used until a payment provider is connected: the user transfers to the
+ * card shown here, uploads a screenshot, and an admin confirms it. Nothing
+ * is granted automatically — only an admin review activates a subscription.
+ * ------------------------------------------------------------------- */
+
+/** Card details plus a freshly created pending order for the chosen plan. */
+router.post("/manual/start", requireAuth, async (req, res, next) => {
+  try {
+    const plan = PLANS[req.body?.planId];
+    if (!plan) return res.status(400).json({ error: "invalid_plan" });
+
+    if (!(await manualPaymentReady())) {
+      return res.status(503).json({
+        error: "manual_payment_not_configured",
+        message: "To'lov kartasi hali sozlanmagan. Iltimos, keyinroq urinib ko'ring.",
+      });
+    }
+
+    const settings = await getSettings();
+
+    // Reuse an order the user already started for this plan rather than
+    // stacking up pending rows every time they reopen the sheet.
+    let order = await queryOne(
+      `SELECT * FROM payments
+        WHERE user_id = $1 AND plan_id = $2 AND method = 'manual' AND status = 'pending'
+        ORDER BY created_at DESC LIMIT 1`,
+      [req.userId, plan.id]
+    );
+
+    if (!order) {
+      order = await queryOne(
+        `INSERT INTO payments (user_id, provider, plan_id, plan_title, amount_uzs, status, method)
+         VALUES ($1, 'card', $2, $3, $4, 'pending', 'manual')
+         RETURNING *`,
+        [req.userId, plan.id, plan.title, plan.amountUzs]
+      );
+    }
+
+    res.json({
+      payment: mapPayment(order),
+      plan,
+      card: {
+        number: settings.payment_card_number,
+        holder: settings.payment_card_holder,
+        bank: settings.payment_card_bank,
+        instructions: settings.payment_instructions,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** Receipt upload. Pushes the screenshot to the admin and queues it for review. */
+router.post(
+  "/manual/:id/receipt",
+  requireAuth,
+  rateLimit({ key: "receipt", windowMs: 600_000, max: 6 }),
+  receiptUpload.single("receipt"),
+  async (req, res, next) => {
+    try {
+      if (!req.file) return res.status(400).json({ error: "image_required", message: "Chek rasmini tanlang." });
+
+      const order = await queryOne(
+        "SELECT * FROM payments WHERE id = $1 AND user_id = $2 AND method = 'manual'",
+        [req.params.id, req.userId]
+      );
+      if (!order) return res.status(404).json({ error: "not_found" });
+      if (order.status === "paid") return res.status(409).json({ error: "already_paid" });
+
+      const [user, adminChatId] = await Promise.all([
+        queryOne("SELECT telegram_id, first_name, username FROM users WHERE id = $1", [req.userId]),
+        getAdminChatId(),
+      ]);
+
+      if (!adminChatId) {
+        return res.status(503).json({
+          error: "admin_chat_not_configured",
+          message: "Admin hali sozlanmagan. Iltimos, qo'llab-quvvatlashga yozing.",
+        });
+      }
+
+      const who = user?.username ? `@${user.username}` : user?.first_name || `ID ${req.userId}`;
+      const fileId = await sendReceiptToAdmin(adminChatId, {
+        buffer: req.file.buffer,
+        filename: req.file.originalname,
+        mimeType: req.file.mimetype,
+        caption:
+          `💳 <b>Yangi to'lov cheki</b>\n` +
+          `Foydalanuvchi: ${who}\n` +
+          `Reja: ${order.plan_title} — ${order.amount_uzs} so'm\n` +
+          `Buyurtma: #${order.id}\n\n` +
+          `Admin panelda tasdiqlang.`,
+      });
+
+      // Queueing a receipt the admin cannot see would leave the user believing
+      // they are done while nothing is reviewable, so delivery has to succeed.
+      if (!fileId) {
+        return res.status(502).json({
+          error: "receipt_delivery_failed",
+          message: "Chekni yuborib bo'lmadi. Qaytadan urinib ko'ring yoki qo'llab-quvvatlashga yozing.",
+        });
+      }
+
+      const note = typeof req.body?.note === "string" ? req.body.note.trim().slice(0, 300) : null;
+      const updated = await queryOne(
+        `UPDATE payments SET status = 'awaiting_review', receipt_file_id = $1, receipt_note = $2
+          WHERE id = $3 RETURNING *`,
+        [fileId, note || null, order.id]
+      );
+
+      res.status(201).json({ payment: mapPayment(updated) });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
 
 /* ------------------------- purchase history ------------------------- */
 

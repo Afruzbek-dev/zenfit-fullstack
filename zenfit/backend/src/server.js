@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import { initDb, usingPostgres } from "./db.js";
 import authRoutes from "./routes/auth.js";
+import bootstrapRoutes from "./routes/bootstrap.js";
 import onboardingRoutes from "./routes/onboarding.js";
 import profileRoutes from "./routes/profile.js";
 import mealsRoutes from "./routes/meals.js";
@@ -54,6 +55,7 @@ app.use(async (req, res, next) => {
 });
 
 app.use("/api/auth", authRoutes);
+app.use("/api/bootstrap", bootstrapRoutes);
 app.use("/api/onboarding", onboardingRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/meals", mealsRoutes);

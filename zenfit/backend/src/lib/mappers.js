@@ -59,7 +59,13 @@ export function mapPayment(p) {
     planTitle: p.plan_title,
     amountUzs: p.amount_uzs,
     status: p.status,
+    method: p.method || "provider",
     cardLast4: p.card_last4,
+    // The receipt id itself is not useful to the client; only whether one exists.
+    hasReceipt: Boolean(p.receipt_file_id),
+    receiptNote: p.receipt_note,
+    rejectReason: p.reject_reason,
+    reviewedAt: p.reviewed_at,
     createdAt: p.created_at,
     paidAt: p.paid_at,
   };

@@ -4,16 +4,32 @@
     {
       "name": "zenfit-backend",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev:local"],
+      "runtimeArgs": [
+        "run",
+        "dev:local"
+      ],
       "cwd": "zenfit/backend",
       "port": 8787
     },
     {
       "name": "zenfit-frontend",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "cwd": "zenfit/frontend",
       "port": 5173
+    },
+    {
+      "name": "zenfit-admin",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
+      "cwd": "zenfit/admin",
+      "port": 5174
     }
   ]
 }

@@ -3,14 +3,17 @@ import { Search, Play, AlertTriangle, ListChecks, Dumbbell } from "lucide-react"
 import { Screen, ScreenHeader, Chip, EmptyState, ListRow, Button } from "../components/ui.jsx";
 import { VideoPlayer } from "../components/ExerciseGuide.jsx";
 import { EXERCISES, MUSCLE_GROUPS, EQUIPMENT_LABELS, filterExercises, youtubeSearchUrl } from "../data/exercises.js";
+import { localizeExercise } from "../data/exerciseText.js";
+import { useApp } from "../store.jsx";
 
 /** Detail view: how to perform the movement, plus video. */
 export function ExerciseDetail({ exercise, onBack, onAdd }) {
+  const { t } = useApp();
   return (
     <Screen>
       <ScreenHeader
         title={exercise.name}
-        subtitle={`${exercise.muscle} • ${EQUIPMENT_LABELS[exercise.equipment] || exercise.equipment}`}
+        subtitle={`${exercise.muscle} • ${t(`equipment.${exercise.equipment}`)}`}
         onBack={onBack}
       />
 
@@ -67,16 +70,19 @@ export function ExerciseDetail({ exercise, onBack, onAdd }) {
 }
 
 export default function ExerciseLibrary({ onBack, onAdd }) {
+  const { t, lang } = useApp();
   const [group, setGroup] = useState("all");
   const [equipment, setEquipment] = useState(null);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState(null);
 
   if (selected) {
-    return <ExerciseDetail exercise={selected} onBack={() => setSelected(null)} onAdd={onAdd} />;
+    return <ExerciseDetail exercise={localizeExercise(selected, lang)} onBack={() => setSelected(null)} onAdd={onAdd} />;
   }
 
-  const list = filterExercises({ group, equipment, search });
+  // Filtering runs on the Uzbek source so ids and patterns stay stable; only
+  // what is rendered gets swapped into the active language.
+  const list = filterExercises({ group, equipment, search }).map((e) => localizeExercise(e, lang));
 
   return (
     <Screen>
@@ -99,16 +105,16 @@ export default function ExerciseLibrary({ onBack, onAdd }) {
       <div className="no-scrollbar -mx-5 mb-2.5 flex gap-2 overflow-x-auto px-5 pb-1">
         {MUSCLE_GROUPS.map((g) => (
           <Chip key={g.id} active={group === g.id} onClick={() => setGroup(g.id)}>
-            {g.label}
+            {t(`muscleGroups.${g.id}`)}
           </Chip>
         ))}
       </div>
 
       <div className="no-scrollbar -mx-5 mb-4 flex gap-2 overflow-x-auto px-5 pb-1">
-        <Chip active={!equipment} onClick={() => setEquipment(null)}>Har qanday jihoz</Chip>
-        {Object.entries(EQUIPMENT_LABELS).map(([k, label]) => (
+        <Chip active={!equipment} onClick={() => setEquipment(null)}>{t(`equipment.any`)}</Chip>
+        {Object.keys(EQUIPMENT_LABELS).map((k) => (
           <Chip key={k} active={equipment === k} onClick={() => setEquipment(equipment === k ? null : k)}>
-            {label}
+            {t(`equipment.${k}`)}
           </Chip>
         ))}
       </div>
@@ -122,7 +128,7 @@ export default function ExerciseLibrary({ onBack, onAdd }) {
               key={e.id}
               Icon={Dumbbell}
               title={e.name}
-              subtitle={`${e.muscle} • ${EQUIPMENT_LABELS[e.equipment]}`}
+              subtitle={`${e.muscle} • ${t(`equipment.${e.equipment}`)}`}
               onClick={() => setSelected(e)}
               right={
                 <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-rose/10">

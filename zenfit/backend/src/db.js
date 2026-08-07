@@ -186,8 +186,20 @@ CREATE TABLE IF NOT EXISTS payments (
   status      TEXT NOT NULL DEFAULT 'pending',
   external_id TEXT,
   card_last4  TEXT,
+  method          TEXT DEFAULT 'provider',
+  receipt_file_id TEXT,
+  receipt_note    TEXT,
+  reviewed_at     TEXT,
+  reviewed_by     TEXT,
+  reject_reason   TEXT,
   created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
   paid_at     TEXT
+);
+
+CREATE TABLE IF NOT EXISTS app_settings (
+  key        TEXT PRIMARY KEY,
+  value      TEXT,
+  updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
 );
 
 -- Only the provider's token and the masked tail are ever stored here.
@@ -221,6 +233,7 @@ CREATE INDEX IF NOT EXISTS idx_ai_usage_user_feature  ON ai_usage(user_id, featu
 CREATE INDEX IF NOT EXISTS idx_activities_user_date   ON activities(user_id, logged_at DESC);
 CREATE INDEX IF NOT EXISTS idx_payments_user_date     ON payments(user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_cards_user             ON payment_cards(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_payments_status        ON payments(status, created_at DESC);
 `;
 
 async function initSqlite() {

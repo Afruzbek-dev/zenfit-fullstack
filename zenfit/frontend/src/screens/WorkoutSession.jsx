@@ -3,14 +3,16 @@ import { Check, Info, Timer, TrendingUp, ChevronRight } from "lucide-react";
 import { Screen, ScreenHeader } from "../components/ui.jsx";
 import ExerciseRunner from "./ExerciseRunner.jsx";
 import ExerciseGuide from "../components/ExerciseGuide.jsx";
+import { localizeExercise } from "../data/exerciseText.js";
 import { estimateSessionKcal } from "../lib/aiPlanEngine.js";
 import { haptic } from "../telegram.js";
 import { useBackButton } from "../lib/useBackButton.js";
 import { useApp } from "../store.jsx";
 
 /** One row in the day's plan. Tapping it opens the exercise's own screen. */
-function ExerciseRow({ exercise, logged, onOpen, onGuide }) {
-  const { t } = useApp();
+function ExerciseRow({ exercise: planned, logged, onOpen, onGuide }) {
+  const { t, lang } = useApp();
+  const exercise = localizeExercise(planned, lang);
   const bodyweight = exercise.weightType === "bodyweight";
 
   return (

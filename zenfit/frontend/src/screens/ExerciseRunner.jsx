@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { Check, Info, Timer, TrendingUp, Minus, Plus, X, ChevronDown } from "lucide-react";
 import { Screen, ScreenHeader, Button, IconButton } from "../components/ui.jsx";
 import ExerciseGuide from "../components/ExerciseGuide.jsx";
+import { localizeExercise } from "../data/exerciseText.js";
 import { api } from "../api.js";
 import { haptic } from "../telegram.js";
 import { useBackButton } from "../lib/useBackButton.js";
@@ -244,8 +245,11 @@ function SetRow({ index, set, active, bodyweight, onOpen, onChange, onComplete, 
 /* ------------------------------- screen ------------------------------ */
 
 /** Everything for one exercise: its sets, the rest timer and the how-to. */
-export default function ExerciseRunner({ exercise, planDay, onBack, onFinish }) {
-  const { t } = useApp();
+export default function ExerciseRunner({ exercise: planned, planDay, onBack, onFinish }) {
+  const { t, lang } = useApp();
+  // Plans store the name as it was when generated, so the display name is
+  // resolved from the exercise id each render instead.
+  const exercise = useMemo(() => localizeExercise(planned, lang), [planned, lang]);
   const [showGuide, setShowGuide] = useState(false);
   const [sets, setSets] = useState(null);
   const [activeIndex, setActiveIndex] = useState(0);

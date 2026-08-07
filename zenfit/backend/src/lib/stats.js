@@ -19,31 +19,31 @@ export function dayRange(dateStr, tzOffsetMinutes = 0) {
 export async function getDayStats(userId, dateStr, tzOffsetMinutes = 0) {
   const { day, start, end } = dayRange(dateStr, tzOffsetMinutes);
 
-  const meals = await query(
-    `SELECT kcal, carbs, protein, fat FROM meals
-      WHERE user_id = $1 AND logged_at >= $2 AND logged_at < $3`,
-    [userId, start, end]
-  );
-
-  const workouts = await query(
-    `SELECT kcal FROM workout_logs
-      WHERE user_id = $1 AND logged_at >= $2 AND logged_at < $3`,
-    [userId, start, end]
-  );
-
-  const activities = await query(
-    `SELECT kcal, duration_min FROM activities
-      WHERE user_id = $1 AND logged_at >= $2 AND logged_at < $3`,
-    [userId, start, end]
-  );
-
-  const water = await queryOne(
-    `SELECT COALESCE(SUM(ml), 0) AS total FROM water_logs
-      WHERE user_id = $1 AND logged_at >= $2 AND logged_at < $3`,
-    [userId, start, end]
-  );
-
-  const profile = await queryOne(`SELECT * FROM profiles WHERE user_id = $1`, [userId]);
+  // Issued together: these five are independent, and awaiting them in sequence
+  // paid a full network round trip each — noticeable even inside one region.
+  const [meals, workouts, activities, water, profile] = await Promise.all([
+    query(
+      `SELECT kcal, carbs, protein, fat FROM meals
+        WHERE user_id = $1 AND logged_at >= $2 AND logged_at < $3`,
+      [userId, start, end]
+    ),
+    query(
+      `SELECT kcal FROM workout_logs
+        WHERE user_id = $1 AND logged_at >= $2 AND logged_at < $3`,
+      [userId, start, end]
+    ),
+    query(
+      `SELECT kcal, duration_min FROM activities
+        WHERE user_id = $1 AND logged_at >= $2 AND logged_at < $3`,
+      [userId, start, end]
+    ),
+    queryOne(
+      `SELECT COALESCE(SUM(ml), 0) AS total FROM water_logs
+        WHERE user_id = $1 AND logged_at >= $2 AND logged_at < $3`,
+      [userId, start, end]
+    ),
+    queryOne(`SELECT * FROM profiles WHERE user_id = $1`, [userId]),
+  ]);
 
   const totals = meals.reduce(
     (acc, m) => ({
@@ -121,19 +121,21 @@ export async function getStreak(userId, tzOffsetMinutes = 0) {
 
 /** Everything the AI trainer needs to answer with real numbers. */
 export async function buildTrainerContext(userId, tzOffsetMinutes = 0) {
-  const profile = await queryOne(`SELECT * FROM profiles WHERE user_id = $1`, [userId]);
-  const todayStats = await getDayStats(userId, null, tzOffsetMinutes);
-  const recentWorkouts = await query(
-    `SELECT exercise_name, sets_completed, logged_at FROM workout_logs
-      WHERE user_id = $1 ORDER BY logged_at DESC LIMIT 10`,
-    [userId]
-  );
-  const planRow = await queryOne(
-    `SELECT plan_json FROM ai_plans
-      WHERE user_id = $1 AND plan_type = 'workout' AND is_active = true
-      ORDER BY created_at DESC LIMIT 1`,
-    [userId]
-  );
+  const [profile, todayStats, recentWorkouts, planRow] = await Promise.all([
+    queryOne(`SELECT * FROM profiles WHERE user_id = $1`, [userId]),
+    getDayStats(userId, null, tzOffsetMinutes),
+    query(
+      `SELECT exercise_name, sets_completed, logged_at FROM workout_logs
+        WHERE user_id = $1 ORDER BY logged_at DESC LIMIT 10`,
+      [userId]
+    ),
+    queryOne(
+      `SELECT plan_json FROM ai_plans
+        WHERE user_id = $1 AND plan_type = 'workout' AND is_active = true
+        ORDER BY created_at DESC LIMIT 1`,
+      [userId]
+    ),
+  ]);
 
   let activePlan = null;
   if (planRow) {

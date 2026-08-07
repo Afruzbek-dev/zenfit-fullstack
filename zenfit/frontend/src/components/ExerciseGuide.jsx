@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Play, AlertTriangle, ListChecks, Dumbbell, Target, ExternalLink } from "lucide-react";
 import { Screen, ScreenHeader } from "./ui.jsx";
-import { EX_BY_ID, EQUIPMENT_LABELS, youtubeSearchUrl } from "../data/exercises.js";
+import { EX_BY_ID, youtubeSearchUrl } from "../data/exercises.js";
+import { localizeExercise } from "../data/exerciseText.js";
 import { openLink } from "../telegram.js";
 import { useBackButton } from "../lib/useBackButton.js";
 import { useApp } from "../store.jsx";
@@ -78,10 +79,10 @@ function Tag({ Icon, children }) {
 
 /** Full-screen how-to: video, ordered steps and the mistakes that cause injuries. */
 export default function ExerciseGuide({ exerciseId, onBack }) {
-  const { t } = useApp();
+  const { t, lang } = useApp();
   useBackButton(onBack);
 
-  const exercise = exerciseId ? EX_BY_ID[exerciseId] : null;
+  const exercise = exerciseId ? localizeExercise(EX_BY_ID[exerciseId], lang) : null;
   if (!exercise) return null;
 
   return (
@@ -103,7 +104,7 @@ export default function ExerciseGuide({ exerciseId, onBack }) {
 
       <div className="mb-5 mt-3 flex flex-wrap gap-2">
         <Tag Icon={Target}>{exercise.muscle}</Tag>
-        <Tag Icon={Dumbbell}>{EQUIPMENT_LABELS[exercise.equipment] || exercise.equipment}</Tag>
+        <Tag Icon={Dumbbell}>{t(`equipment.${exercise.equipment}`)}</Tag>
       </div>
 
       <section className="mb-5">
