@@ -5,10 +5,18 @@ import { query, queryOne } from "../db.js";
  * "today" a user sees matches their timezone, not the server's. Comparing
  * against an explicit [start, end) range also keeps the SQL portable between
  * Postgres and SQLite.
+ *
+ * `tzOffsetMinutes` is Date#getTimezoneOffset(): the minutes to ADD to local
+ * time to get UTC, so Uzbekistan (UTC+5) sends -300.
+ *
+ * Which calendar day it is has to be decided in the user's timezone, not UTC.
+ * Deriving it from the UTC date meant that between 00:00 and 05:00 in Tashkent
+ * the server still thought it was yesterday: the dashboard kept showing the
+ * previous day and anything logged in those five hours fell outside the
+ * queried window entirely.
  */
 export function dayRange(dateStr, tzOffsetMinutes = 0) {
-  const base = dateStr ? new Date(`${dateStr}T00:00:00Z`) : new Date();
-  const day = dateStr ? dateStr : base.toISOString().slice(0, 10);
+  const day = dateStr || new Date(Date.now() - tzOffsetMinutes * 60_000).toISOString().slice(0, 10);
   const startUtc = new Date(`${day}T00:00:00Z`);
   startUtc.setMinutes(startUtc.getMinutes() + tzOffsetMinutes);
   const endUtc = new Date(startUtc);

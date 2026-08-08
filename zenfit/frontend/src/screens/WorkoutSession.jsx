@@ -8,6 +8,7 @@ import { estimateSessionKcal } from "../lib/aiPlanEngine.js";
 import { haptic } from "../telegram.js";
 import { useBackButton } from "../lib/useBackButton.js";
 import { useApp } from "../store.jsx";
+import { localDateKey } from "../lib/format.js";
 
 /** One row in the day's plan. Tapping it opens the exercise's own screen. */
 function ExerciseRow({ exercise: planned, logged, onOpen, onGuide }) {
@@ -80,10 +81,10 @@ export default function WorkoutSession({ day, onBack }) {
   useBackButton(running || guideId ? null : onBack);
 
   // A plan-day exercise counts as done if it was logged today.
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateKey();
   const loggedIds = new Set(
     workoutHistory
-      .filter((w) => String(w.loggedAt).slice(0, 10) === today && w.planDay === day.day)
+      .filter((w) => localDateKey(new Date(w.loggedAt)) === today && w.planDay === day.day)
       .map((w) => w.exerciseId)
   );
 

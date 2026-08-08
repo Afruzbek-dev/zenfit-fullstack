@@ -127,6 +127,13 @@ export default {
     version: "Version",
   },
 
+  recipes: {
+    planTitle: "AI daily meal plan", planThinking: "AI is building your plan…",
+    planDesc: "Four meals matched to your target — with local dishes",
+    planLocked: "Activate Premium to get a personal meal plan",
+    planFailed: "Could not build the plan",
+  },
+
   premium: {
     choosePlan: "Choose a plan", payByCard: "Pay by card", payTitle: "Payment",
     card: "Card", copyCard: "Copy card number", copied: "Copied ✓",

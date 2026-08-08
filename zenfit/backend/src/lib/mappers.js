@@ -23,6 +23,8 @@ export function mapProfile(p) {
     sessionDuration: p.session_duration,
     injuries: p.injuries,
     waterTargetMl: p.water_target_ml ?? 2500,
+    targetWeightKg: p.target_weight_kg,
+    targetDate: p.target_date,
     displayName: p.display_name,
     language: p.language || "uz",
     theme: p.theme || "dark",

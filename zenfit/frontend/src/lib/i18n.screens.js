@@ -1,0 +1,268 @@
+/**
+ * Strings for the screens moved onto the translator in the second pass:
+ * onboarding, scan, recipes, chat and progress.
+ *
+ * Kept separate from i18n.js so the core dictionary stays readable; both are
+ * merged per language before use.
+ */
+
+export const uz = {
+  scan: {
+    title: "AI Skaner", subtitle: "Taom rasmini oling — kaloriya avtomatik hisoblanadi",
+    photoMode: "Rasm bilan", textMode: "Yozib so'rash",
+    takePhoto: "Rasmga olish yoki tanlash", analyzing: "AI tahlil qilmoqda…",
+    textPlaceholder: "Masalan: 150g tovuq ko'krak va 100g guruch",
+    ask: "Hisoblash", tipsTitle: "Yaxshi natija uchun",
+    tips: [
+      "Taomni tepadan yoki 45° burchakdan oling",
+      "Bir kadrda bitta taom bo'lsa aniqlik yuqori bo'ladi",
+      "Yoniga qoshiq yoki likopcha kiritsangiz, hajmni aniqroq baholaydi",
+    ],
+    notDetected: "Taom aniqlanmadi",
+    notDetectedDesc: "Rasmda ovqat aniq ko'rinmadi. Yaqinroq va yorug'roq holda qayta urinib ko'ring.",
+    scanFailed: "Skanerlab bo'lmadi", aiFailed: "AI javob bera olmadi",
+    saveFailed: "Saqlab bo'lmadi", added: "Ovqat qo'shildi ✓",
+    scannedMeal: "Skanerlangan taom", unknown: "Aniqlanmadi",
+    addToDiary: "Kunlik hisobga qo'shish", retry: "Boshqa rasm",
+    freeLeft: "bepul", estimateNote: "Bu taxminiy hisob — aniq o'lchov uchun tarozidan foydalaning.",
+  },
+
+  progress: {
+    title: "Progress", subtitle: "Natijalaringiz va statistika",
+    overall: "Umumiy", calorieBalance: "Kaloriya balansi", weightDynamics: "Vazn dinamikasi",
+    achievements: "Yutuqlar", workouts: "Mashqlar", target: "Me'yor", burned: "Sarflandi",
+    consumed: "Yeyildi", streak: "Streak", currentWeight: "Joriy vazn",
+    noWeightData: "Vazn tarixi hali yo'q", noWeightDesc: "Profilda vaznni yangilasangiz, grafik shu yerda chiziladi.",
+    goalProgress: "Maqsad sari", toGoal: "maqsadgacha", goalReached: "Maqsadga yetdingiz! 🎉",
+    badges: {
+      streak3: "3 kunlik streak", streak7: "7 kunlik streak",
+      burn1000: "1000 kcal sarflandi", meals10: "10 ta ovqat belgilandi",
+      workouts10: "10 ta mashq bajarildi", firstScan: "Birinchi AI skan",
+    },
+  },
+
+  chat: {
+    title: "AI Trener", subtitle: "Rejangiz va statistikangizni ko'rib turadi",
+    emptyTitle: "Shaxsiy AI treneringiz",
+    emptyDesc: "Ovqatlanish, mashq va tiklanish bo'yicha savol bering. U sizning profilingiz, bugungi kaloriyangiz va mashq tarixingizni ko'rib turadi.",
+    suggestions: [
+      "Bugun nima yeyishim kerak?",
+      "Tizzam og'riyapti, qanday mashq qilay?",
+      "Oqsil me'yorimni qanday to'ldiraman?",
+      "Rejamdagi og'irliklarni qachon oshiray?",
+    ],
+    placeholder: "Savolingizni yozing…", send: "Yuborish",
+    clearHistory: "Tarixni tozalash", clearConfirm: "Suhbat tarixini o'chirasizmi?",
+    historyCleared: "Tarix o'chirildi", aiFailed: "AI javob bera olmadi",
+    quotaTitle: "Bepul xabarlar tugadi", quotaDesc: "Cheksiz suhbat uchun Premium'ni faollashtiring.",
+  },
+
+  recipesScreen: {
+    title: "Retseptlar", subtitle: "Milliy taomlar va sodda fit taomlar",
+    searchPlaceholder: "Retsept yoki ingredient qidirish…",
+    results: "ta natija", added: "Dietaga qo'shildi ✓",
+    aiSection: "AI ovqat rejasi", yourPlan: "AI kunlik rejangiz", refresh: "Yangilash",
+    portion: "Porsiya", addPortion: "Qo'shish", nothingFound: "Hech narsa topilmadi",
+    nothingFoundDesc: "Filtr yoki qidiruv so'zini o'zgartirib ko'ring.",
+    ingredients: "Masalliqlar", steps: "Tayyorlash",
+  },
+
+  onboarding: {
+    welcomeTitle: "ZenFit'ga xush kelibsiz",
+    welcomeDesc: "Bir necha savol — va sizga moslashtirilgan kaloriya me'yori hamda mashq rejasi tayyor bo'ladi.",
+    start: "Boshlash", next: "Davom etish", finish: "AI bilan reja tuzish", skip: "Hozircha o'tkazib yuborish",
+    genderTitle: "Jinsingiz?", genderDesc: "Kaloriya hisobi shunga bog'liq",
+    bodyTitle: "Tana ko'rsatkichlari", bodyDesc: "Aniq hisob uchun kerak",
+    age: "Yosh", height: "Bo'y (sm)", weight: "Vazn (kg)",
+    activityTitle: "Kunlik faolligingiz?", activityDesc: "Ish va mashqdan tashqari harakatingiz",
+    goalTitle: "Asosiy maqsadingiz?", goalDesc: "Kaloriya va mashq rejasi shunga moslashtiriladi",
+    targetTitle: "Qaysi vaznga yetmoqchisiz?",
+    targetBy: "Taxminan {date}gacha",
+    targetDetail: "{kg} kg · {weeks} hafta · haftasiga {rate} kg",
+    targetSafe: "Bu — sog'liq uchun xavfsiz sur'at. Tezroq ozish mushak yo'qotishga olib keladi.",
+    targetsReady: "Rejangiz tayyor!", targetsFor: "{goal} maqsadi bo'yicha hisoblandi",
+    dailyCalories: "Kunlik kaloriya me'yori",
+    levelTitle: "Tayyorgarlik darajangiz?", levelDesc: "Og'irliklar shunga qarab tanlanadi",
+    daysTitle: "Haftasiga necha kun?", daysDesc: "Realistik bo'lgani yaxshi",
+    equipmentTitle: "Qayerda mashq qilasiz?", equipmentDesc: "Mashqlar shunga qarab tanlanadi",
+    durationTitle: "Bitta mashq qancha davom etadi?", durationDesc: "Mashqlar soni shunga moslashadi",
+    injuriesTitle: "Jarohat yoki cheklov bormi?", injuriesDesc: "Xavfli mashqlar almashtiriladi",
+    injuriesPlaceholder: "Masalan: tizza og'riydi (ixtiyoriy)",
+    thinking: "AI reja tuzmoqda…",
+    planReady: "Rejangiz tayyor 🚀", saveFailed: "Saqlashda xatolik",
+  },
+};
+
+export const ru = {
+  scan: {
+    title: "AI Сканер", subtitle: "Сфотографируйте блюдо — калории посчитаются автоматически",
+    photoMode: "По фото", textMode: "Текстом",
+    takePhoto: "Сделать фото или выбрать", analyzing: "AI анализирует…",
+    textPlaceholder: "Например: 150 г куриной грудки и 100 г риса",
+    ask: "Посчитать", tipsTitle: "Для точного результата",
+    tips: [
+      "Снимайте сверху или под углом 45°",
+      "Одно блюдо в кадре — выше точность",
+      "Положите рядом ложку или тарелку, чтобы оценить объём",
+    ],
+    notDetected: "Блюдо не распознано",
+    notDetectedDesc: "На фото не видно еды. Попробуйте снять ближе и при лучшем освещении.",
+    scanFailed: "Не удалось отсканировать", aiFailed: "AI не смог ответить",
+    saveFailed: "Не удалось сохранить", added: "Приём пищи добавлен ✓",
+    scannedMeal: "Отсканированное блюдо", unknown: "Не определено",
+    addToDiary: "Добавить в дневник", retry: "Другое фото",
+    freeLeft: "бесплатно", estimateNote: "Это оценка — для точности используйте весы.",
+  },
+
+  progress: {
+    title: "Прогресс", subtitle: "Ваши результаты и статистика",
+    overall: "Общее", calorieBalance: "Баланс калорий", weightDynamics: "Динамика веса",
+    achievements: "Достижения", workouts: "Тренировки", target: "Норма", burned: "Сожжено",
+    consumed: "Съедено", streak: "Серия", currentWeight: "Текущий вес",
+    noWeightData: "Истории веса пока нет", noWeightDesc: "Обновите вес в профиле — и здесь появится график.",
+    goalProgress: "Путь к цели", toGoal: "до цели", goalReached: "Цель достигнута! 🎉",
+    badges: {
+      streak3: "Серия 3 дня", streak7: "Серия 7 дней",
+      burn1000: "Сожжено 1000 ккал", meals10: "10 приёмов пищи",
+      workouts10: "10 тренировок", firstScan: "Первый AI скан",
+    },
+  },
+
+  chat: {
+    title: "AI Тренер", subtitle: "Видит ваш план и статистику",
+    emptyTitle: "Ваш личный AI тренер",
+    emptyDesc: "Спрашивайте о питании, тренировках и восстановлении. Он видит ваш профиль, сегодняшние калории и историю тренировок.",
+    suggestions: [
+      "Что мне съесть сегодня?",
+      "Болит колено, какие упражнения делать?",
+      "Как добрать норму белка?",
+      "Когда увеличивать веса в плане?",
+    ],
+    placeholder: "Напишите вопрос…", send: "Отправить",
+    clearHistory: "Очистить историю", clearConfirm: "Очистить историю переписки?",
+    historyCleared: "История очищена", aiFailed: "AI не смог ответить",
+    quotaTitle: "Бесплатные сообщения закончились", quotaDesc: "Активируйте Premium для безлимитного общения.",
+  },
+
+  recipesScreen: {
+    title: "Рецепты", subtitle: "Национальные блюда и простые фит-рецепты",
+    searchPlaceholder: "Поиск рецепта или ингредиента…",
+    results: "результатов", added: "Добавлено в дневник ✓",
+    aiSection: "AI план питания", yourPlan: "Ваш AI план на день", refresh: "Обновить",
+    portion: "Порция", addPortion: "Добавить", nothingFound: "Ничего не найдено",
+    nothingFoundDesc: "Измените фильтр или поисковый запрос.",
+    ingredients: "Ингредиенты", steps: "Приготовление",
+  },
+
+  onboarding: {
+    welcomeTitle: "Добро пожаловать в ZenFit",
+    welcomeDesc: "Несколько вопросов — и мы соберём вашу норму калорий и план тренировок.",
+    start: "Начать", next: "Продолжить", finish: "Составить план с AI", skip: "Пропустить пока",
+    genderTitle: "Ваш пол?", genderDesc: "От этого зависит расчёт калорий",
+    bodyTitle: "Параметры тела", bodyDesc: "Нужны для точного расчёта",
+    age: "Возраст", height: "Рост (см)", weight: "Вес (кг)",
+    activityTitle: "Ваша дневная активность?", activityDesc: "Движение помимо работы и тренировок",
+    goalTitle: "Ваша главная цель?", goalDesc: "Калории и план тренировок подстроятся под неё",
+    targetTitle: "К какому весу хотите прийти?",
+    targetBy: "Примерно к {date}",
+    targetDetail: "{kg} кг · {weeks} нед. · по {rate} кг в неделю",
+    targetSafe: "Это безопасный темп. Быстрее — значит терять мышцы.",
+    targetsReady: "Ваш план готов!", targetsFor: "Рассчитано для цели «{goal}»",
+    dailyCalories: "Дневная норма калорий",
+    levelTitle: "Ваш уровень подготовки?", levelDesc: "От него зависят рабочие веса",
+    daysTitle: "Сколько дней в неделю?", daysDesc: "Лучше выбрать реалистично",
+    equipmentTitle: "Где вы тренируетесь?", equipmentDesc: "Упражнения подберутся под это",
+    durationTitle: "Сколько длится тренировка?", durationDesc: "От этого зависит число упражнений",
+    injuriesTitle: "Есть травмы или ограничения?", injuriesDesc: "Опасные упражнения заменим",
+    injuriesPlaceholder: "Например: болит колено (необязательно)",
+    thinking: "AI составляет план…",
+    planReady: "Ваш план готов 🚀", saveFailed: "Ошибка сохранения",
+  },
+};
+
+export const en = {
+  scan: {
+    title: "AI Scanner", subtitle: "Photograph your food — calories are counted automatically",
+    photoMode: "By photo", textMode: "By text",
+    takePhoto: "Take or choose a photo", analyzing: "AI is analysing…",
+    textPlaceholder: "e.g. 150g chicken breast and 100g rice",
+    ask: "Calculate", tipsTitle: "For an accurate result",
+    tips: [
+      "Shoot from above or at a 45° angle",
+      "One dish per frame gives the best accuracy",
+      "Put a spoon or plate beside it to judge the portion",
+    ],
+    notDetected: "No food detected",
+    notDetectedDesc: "The photo doesn't clearly show food. Try again closer and in better light.",
+    scanFailed: "Could not scan", aiFailed: "The AI could not answer",
+    saveFailed: "Could not save", added: "Meal added ✓",
+    scannedMeal: "Scanned meal", unknown: "Unknown",
+    addToDiary: "Add to today's log", retry: "Another photo",
+    freeLeft: "free", estimateNote: "This is an estimate — use a scale when you need precision.",
+  },
+
+  progress: {
+    title: "Progress", subtitle: "Your results and statistics",
+    overall: "Overall", calorieBalance: "Calorie balance", weightDynamics: "Weight trend",
+    achievements: "Achievements", workouts: "Workouts", target: "Target", burned: "Burned",
+    consumed: "Eaten", streak: "Streak", currentWeight: "Current weight",
+    noWeightData: "No weight history yet", noWeightDesc: "Update your weight in the profile and the chart appears here.",
+    goalProgress: "Toward your goal", toGoal: "to go", goalReached: "Goal reached! 🎉",
+    badges: {
+      streak3: "3-day streak", streak7: "7-day streak",
+      burn1000: "1000 kcal burned", meals10: "10 meals logged",
+      workouts10: "10 workouts done", firstScan: "First AI scan",
+    },
+  },
+
+  chat: {
+    title: "AI Trainer", subtitle: "Sees your plan and your numbers",
+    emptyTitle: "Your personal AI trainer",
+    emptyDesc: "Ask about nutrition, training and recovery. It can see your profile, today's calories and your training history.",
+    suggestions: [
+      "What should I eat today?",
+      "My knee hurts — what should I train?",
+      "How do I hit my protein target?",
+      "When should I add weight to my plan?",
+    ],
+    placeholder: "Type your question…", send: "Send",
+    clearHistory: "Clear history", clearConfirm: "Clear the chat history?",
+    historyCleared: "History cleared", aiFailed: "The AI could not answer",
+    quotaTitle: "Free messages used up", quotaDesc: "Activate Premium for unlimited chat.",
+  },
+
+  recipesScreen: {
+    title: "Recipes", subtitle: "Local dishes and simple fit meals",
+    searchPlaceholder: "Search a recipe or ingredient…",
+    results: "results", added: "Added to your log ✓",
+    aiSection: "AI meal plan", yourPlan: "Your AI plan for today", refresh: "Refresh",
+    portion: "Portion", addPortion: "Add", nothingFound: "Nothing found",
+    nothingFoundDesc: "Try a different filter or search term.",
+    ingredients: "Ingredients", steps: "Method",
+  },
+
+  onboarding: {
+    welcomeTitle: "Welcome to ZenFit",
+    welcomeDesc: "A few questions and we'll build your calorie target and training plan.",
+    start: "Get started", next: "Continue", finish: "Build my plan with AI", skip: "Skip for now",
+    genderTitle: "Your sex?", genderDesc: "The calorie maths depends on it",
+    bodyTitle: "Body metrics", bodyDesc: "Needed for an accurate calculation",
+    age: "Age", height: "Height (cm)", weight: "Weight (kg)",
+    activityTitle: "How active are your days?", activityDesc: "Movement outside work and training",
+    goalTitle: "Your main goal?", goalDesc: "Calories and training adapt to it",
+    targetTitle: "What weight are you aiming for?",
+    targetBy: "Around {date}",
+    targetDetail: "{kg} kg · {weeks} weeks · {rate} kg per week",
+    targetSafe: "This is a safe pace. Going faster costs you muscle.",
+    targetsReady: "Your plan is ready!", targetsFor: "Calculated for your {goal} goal",
+    dailyCalories: "Daily calorie target",
+    levelTitle: "Your training experience?", levelDesc: "It sets your starting weights",
+    daysTitle: "How many days a week?", daysDesc: "Pick something you'll actually keep",
+    equipmentTitle: "Where do you train?", equipmentDesc: "Exercises are chosen to match",
+    durationTitle: "How long is a session?", durationDesc: "It sets how many exercises fit",
+    injuriesTitle: "Any injuries or limits?", injuriesDesc: "Risky exercises get swapped out",
+    injuriesPlaceholder: "e.g. sore knee (optional)",
+    thinking: "AI is building your plan…",
+    planReady: "Your plan is ready 🚀", saveFailed: "Could not save",
+  },
+};

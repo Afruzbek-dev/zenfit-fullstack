@@ -5,14 +5,14 @@
  * back to Uzbek rather than showing the raw key, so a gap degrades to a real
  * sentence. Look-ups take a dotted path — t("profile.healthData").
  *
- * Coverage: navigation, home, activity logging, the workout flow, the whole
- * profile area and premium/payment are translated into all three languages,
- * and every exercise's name, steps and mistakes live in data/exerciseText.js.
- * Onboarding, scan, recipes, chat and progress still render Uzbek strings and
- * are the next batch to move over.
+ * Every screen is covered in all three languages. Core strings live here,
+ * the later screens (onboarding, scan, recipes, chat, progress) in
+ * i18n.screens.js, and each exercise's name, steps and mistakes in
+ * data/exerciseText.js.
  */
 
 import en from "./i18n.en.js";
+import * as screens from "./i18n.screens.js";
 
 export const LANGUAGES = [
   { id: "uz", label: "O'zbekcha", native: "O'zbek" },
@@ -140,6 +140,13 @@ const uz = {
     notifTips: "Maslahat va yangiliklar", notifTipsDesc: "Haftalik maslahatlar va yangi imkoniyatlar",
     notifHint: "Bildirishnomalar Telegram bot orqali yuboriladi.",
     version: "Versiya",
+  },
+
+  recipes: {
+    planTitle: "AI kunlik ovqat rejasi", planThinking: "AI reja tuzmoqda…",
+    planDesc: "Me'yoringizga mos 4 mahal ovqat — milliy taomlar bilan",
+    planLocked: "Premium'ni faollashtiring va shaxsiy ovqat rejasi oling",
+    planFailed: "Reja tuzib bo'lmadi",
   },
 
   premium: {
@@ -325,6 +332,13 @@ const ru = {
     version: "Версия",
   },
 
+  recipes: {
+    planTitle: "AI план питания на день", planThinking: "AI составляет план…",
+    planDesc: "4 приёма пищи под вашу норму — с национальными блюдами",
+    planLocked: "Активируйте Premium и получите персональный план питания",
+    planFailed: "Не удалось составить план",
+  },
+
   premium: {
     choosePlan: "Выберите план", payByCard: "Оплатить картой", payTitle: "Оплата",
     card: "Карта", copyCard: "Скопировать номер карты", copied: "Скопировано ✓",
@@ -386,7 +400,11 @@ const ru = {
   },
 };
 
-export const DICTS = { uz, ru, en };
+export const DICTS = {
+  uz: { ...uz, ...screens.uz },
+  ru: { ...ru, ...screens.ru },
+  en: { ...en, ...screens.en },
+};
 
 function lookup(dict, path) {
   return path.split(".").reduce((acc, key) => (acc == null ? undefined : acc[key]), dict);

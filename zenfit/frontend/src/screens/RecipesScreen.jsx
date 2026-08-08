@@ -1,17 +1,27 @@
 import { useState } from "react";
-import { Search, Clock, Flame, Plus, Info, Sparkles, Loader2, UtensilsCrossed } from "lucide-react";
+import { Search, Clock, Flame, Plus, Info, Sparkles, Loader2, UtensilsCrossed, Crown } from "lucide-react";
 import { Screen, ScreenHeader, Section, Chip, Sheet, Button, EmptyState, ErrorNote } from "../components/ui.jsx";
 import { RECIPE_TAGS, filterRecipes } from "../data/recipes.js";
 import { api } from "../api.js";
 import { haptic } from "../telegram.js";
 import { useApp } from "../store.jsx";
+import PremiumSheet from "./profile/PremiumSheet.jsx";
 
-function DietPlanCard() {
-  const { dietPlan, setDietPlan, addMeal, showToast } = useApp();
+function DietPlanCard({ onOpenPremium }) {
+  const { dietPlan, setDietPlan, addMeal, showToast, subscription, t } = useApp();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  const [locked, setLocked] = useState(false);
+
+  const premium = Boolean(subscription?.isPremium);
 
   async function generate() {
+    // Don't spend a request to be told no — the client already knows.
+    if (!premium) {
+      setLocked(true);
+      onOpenPremium?.();
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -19,7 +29,12 @@ function DietPlanCard() {
       setDietPlan(res.plan);
       haptic("success");
     } catch (e) {
-      setError(e.message || "Reja tuzib bo'lmadi");
+      if (e.status === 402) {
+        setLocked(true);
+        onOpenPremium?.();
+      } else {
+        setError(e.message || t("recipes.planFailed"));
+      }
     } finally {
       setBusy(false);
     }
@@ -35,14 +50,27 @@ function DietPlanCard() {
           className="card card-lit flex w-full items-center gap-3 px-4 py-4 text-left active:scale-[0.99] disabled:opacity-60"
         >
           <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-neon/12">
-            {busy ? <Loader2 size={19} className="animate-spin text-neon" /> : <Sparkles size={19} className="text-neon" />}
+            {busy ? (
+              <Loader2 size={19} className="animate-spin text-neon" />
+            ) : premium ? (
+              <Sparkles size={19} className="text-neon" />
+            ) : (
+              <Crown size={19} className="text-amber" />
+            )}
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-[13.5px] font-bold text-ink">
-              {busy ? "AI reja tuzmoqda…" : "AI kunlik ovqat rejasi"}
+            <span className="flex items-center gap-2">
+              <span className="block text-[13.5px] font-bold text-ink">
+                {busy ? t("recipes.planThinking") : t("recipes.planTitle")}
+              </span>
+              {!premium && (
+                <span className="shrink-0 rounded-md bg-amber/15 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wider text-amber">
+                  Premium
+                </span>
+              )}
             </span>
             <span className="mt-0.5 block text-[11.5px] text-muted">
-              Me'yoringizga mos 4 mahal ovqat — milliy taomlar bilan
+              {premium || !locked ? t("recipes.planDesc") : t("recipes.planLocked")}
             </span>
           </span>
         </button>
@@ -61,7 +89,7 @@ function DietPlanCard() {
           {dietPlan.summary && <p className="mt-1 text-[11.5px] leading-relaxed text-muted">{dietPlan.summary}</p>}
         </div>
         <button onClick={generate} disabled={busy} className="shrink-0 text-[11.5px] font-bold text-neon disabled:opacity-50">
-          {busy ? "…" : "Yangilash"}
+          {busy ? "…" : t("recipesScreen.refresh")}
         </button>
       </div>
 
@@ -86,7 +114,7 @@ function DietPlanCard() {
                     haptic("success");
                     showToast("Qo'shildi ✓", "success");
                   } catch (e) {
-                    showToast(e.message || "Xatolik", "error");
+                    showToast(e.message || t("common.error"), "error");
                   }
                 }}
                 aria-label={`${m.name} ni qo'shish`}
@@ -111,7 +139,8 @@ function DietPlanCard() {
 }
 
 export default function RecipesScreen({ onBack }) {
-  const { addMeal, showToast } = useApp();
+  const { addMeal, showToast, t } = useApp();
+  const [premiumOpen, setPremiumOpen] = useState(false);
   const [tag, setTag] = useState("Barchasi");
   const [search, setSearch] = useState("");
   const [detail, setDetail] = useState(null);
@@ -131,24 +160,24 @@ export default function RecipesScreen({ onBack }) {
         source: "recipe",
       });
       haptic("success");
-      showToast("Dietaga qo'shildi ✓", "success");
+      showToast(t("recipesScreen.added"), "success");
       setDetail(null);
       setPortion(1);
     } catch (e) {
-      showToast(e.message || "Xatolik", "error");
+      showToast(e.message || t("common.error"), "error");
     }
   }
 
   return (
     <Screen>
       <ScreenHeader
-        title="Retseptlar"
-        subtitle="Milliy taomlar va sodda fit taomlar"
+        title={t("recipesScreen.title")}
+        subtitle={t("recipesScreen.subtitle")}
         onBack={onBack}
       />
 
-      <Section title="AI ovqat rejasi">
-        <DietPlanCard />
+      <Section title={t("recipesScreen.aiSection")}>
+        <DietPlanCard onOpenPremium={() => setPremiumOpen(true)} />
       </Section>
 
       <div className="mb-3 flex items-center gap-2 rounded-2xl border border-borderSoft bg-surface px-3.5 py-3 focus-within:border-neon/50">
@@ -156,7 +185,7 @@ export default function RecipesScreen({ onBack }) {
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Retsept yoki ingredient qidirish…"
+          placeholder={t("recipesScreen.searchPlaceholder")}
           className="w-full bg-transparent text-[14px] text-ink outline-none placeholder:text-faint"
         />
       </div>
@@ -284,6 +313,7 @@ export default function RecipesScreen({ onBack }) {
           </>
         )}
       </Sheet>
+      <PremiumSheet open={premiumOpen} onClose={() => setPremiumOpen(false)} />
     </Screen>
   );
 }

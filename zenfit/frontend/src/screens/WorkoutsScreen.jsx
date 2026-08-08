@@ -8,6 +8,7 @@ import { PROGRAMS } from "../data/programs.js";
 import { api } from "../api.js";
 import { haptic } from "../telegram.js";
 import { useApp } from "../store.jsx";
+import { localDateKey } from "../lib/format.js";
 
 function PlanDayCard({ item, doneCount, onOpen }) {
   if (item.rest) {
@@ -156,11 +157,11 @@ export default function WorkoutsScreen() {
   const [tipsBusy, setTipsBusy] = useState(false);
   const [creating, setCreating] = useState(false);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateKey();
   const doneByDay = useMemo(() => {
     const map = {};
     workoutHistory
-      .filter((w) => String(w.loggedAt).slice(0, 10) === today)
+      .filter((w) => localDateKey(new Date(w.loggedAt)) === today)
       .forEach((w) => {
         if (!w.planDay) return;
         map[w.planDay] = (map[w.planDay] || 0) + 1;

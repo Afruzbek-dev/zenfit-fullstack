@@ -132,7 +132,7 @@ function WeightChart({ history }) {
 }
 
 export default function ProgressScreen({ onBack }) {
-  const { summary, profile, workoutHistory } = useApp();
+  const { summary, profile, workoutHistory, t } = useApp();
   const [range, setRange] = useState(7);
   const [weekly, setWeekly] = useState(null);
   const [weights, setWeights] = useState([]);
@@ -162,21 +162,21 @@ export default function ProgressScreen({ onBack }) {
 
   return (
     <Screen>
-      <ScreenHeader title="Progress" subtitle="Natijalaringiz va statistika" onBack={onBack} />
+      <ScreenHeader title={t("progress.title")} subtitle={t("progress.subtitle")} onBack={onBack} />
 
-      <Section title="Umumiy">
+      <Section title={t("progress.overall")}>
         <div className="mb-2.5 flex gap-2.5">
           <StatTile Icon={Flame} label="Streak" value={summary?.streak || 0} unit="kun" tone="amber" />
-          <StatTile Icon={Dumbbell} label="Mashqlar" value={totalWorkouts} unit="ta" tone="cyan" />
+          <StatTile Icon={Dumbbell} label={t("progress.workouts")} value={totalWorkouts} unit="ta" tone="cyan" />
         </div>
         <div className="flex gap-2.5">
-          <StatTile Icon={TrendingUp} label="Sarflandi" value={totalBurned} unit="kcal" tone="neon" />
-          <StatTile Icon={Target} label="Me'yor" value={profile?.dailyCalorieTarget || 0} unit="kcal" tone="neon" />
+          <StatTile Icon={TrendingUp} label={t("progress.burned")} value={totalBurned} unit="kcal" tone="neon" />
+          <StatTile Icon={Target} label={t("progress.target")} value={profile?.dailyCalorieTarget || 0} unit="kcal" tone="neon" />
         </div>
       </Section>
 
       <Section
-        title="Kaloriya balansi"
+        title={t("progress.calorieBalance")}
         action={
           <div className="flex gap-1.5">
             {[7, 14, 30].map((d) => (
@@ -188,11 +188,11 @@ export default function ProgressScreen({ onBack }) {
         {weekly ? <WeeklyChart days={weekly} target={profile?.dailyCalorieTarget || 2000} /> : <Skeleton className="h-48" />}
       </Section>
 
-      <Section title="Vazn dinamikasi">
+      <Section title={t("progress.weightDynamics")}>
         <WeightChart history={weights} />
       </Section>
 
-      <Section title="Yutuqlar">
+      <Section title={t("progress.achievements")}>
         <div className="grid grid-cols-2 gap-2.5">
           {badges.map((b) => (
             <div

@@ -2,12 +2,18 @@ import { useMemo, useState } from "react";
 import {
   ChevronLeft, ChevronRight, Sparkles, TrendingDown, TrendingUp, Scale, Award, Zap,
   Home, Building2, Clock, Dumbbell, Check, ShieldAlert, Flame, User2, Users, Trees, Activity,
+  Minus, Plus, CalendarClock,
 } from "lucide-react";
 import { Button, OptionCard } from "../components/ui.jsx";
 import { generateWorkoutPlan } from "../lib/aiPlanEngine.js";
 import { bestProgram } from "../data/programs.js";
+import { estimateGoal, defaultTarget, targetBounds } from "../lib/goalPlan.js";
+import { uzShortDate } from "../lib/format.js";
 import { haptic } from "../telegram.js";
 import { useApp } from "../store.jsx";
+
+/** Bounds only make sense once a plausible bodyweight has been entered. */
+const bodyValidFor = (kg) => Number.isFinite(kg) && kg >= 30 && kg <= 300;
 
 const GOALS = [
   { id: "lose", Icon: TrendingDown, title: "Ozish", desc: "Yog' yo'qotish va vazn kamaytirish" },
@@ -108,12 +114,23 @@ export default function Onboarding({ onFinish }) {
   const [duration, setDuration] = useState(null);
   const [injuries, setInjuries] = useState("");
   const [targets, setTargets] = useState(null);
+  const [targetWeight, setTargetWeight] = useState(null);
 
   const nums = {
     age: Number(age),
     heightCm: Number(height),
     weightKg: Number(weight),
   };
+
+  const bounds = useMemo(
+    () => (bodyValidFor(nums.weightKg) && (goal === "lose" || goal === "gain") ? targetBounds(goal, nums.weightKg) : null),
+    [goal, nums.weightKg]
+  );
+
+  const goalEstimate = useMemo(
+    () => estimateGoal({ goal, currentKg: nums.weightKg, targetKg: targetWeight }),
+    [goal, nums.weightKg, targetWeight]
+  );
 
   const bodyValid =
     nums.age >= 10 && nums.age <= 100 &&
@@ -147,6 +164,7 @@ export default function Onboarding({ onFinish }) {
         activityLevel: activity, goal,
         fitnessLevel: level || "beginner",
         equipment, daysPerWeek: days, sessionDuration: duration, injuries,
+        targetWeightKg: targetWeight ?? undefined,
       });
       setTargets(res.computed);
       return true;
@@ -284,8 +302,83 @@ export default function Onboarding({ onFinish }) {
           {!thinking && step === 4 && (
             <StepShell title="Asosiy maqsadingiz?" subtitle="Kaloriya va mashq rejasi shunga moslashtiriladi">
               {GOALS.map((g) => (
-                <OptionCard key={g.id} active={goal === g.id} Icon={g.Icon} title={g.title} desc={g.desc} onClick={() => setGoal(g.id)} />
+                <OptionCard
+                  key={g.id}
+                  active={goal === g.id}
+                  Icon={g.Icon}
+                  title={g.title}
+                  desc={g.desc}
+                  onClick={() => {
+                    setGoal(g.id);
+                    // Seed a realistic target the moment a direction is picked.
+                    setTargetWeight(defaultTarget(g.id, nums.weightKg));
+                  }}
+                />
               ))}
+
+              {(goal === "lose" || goal === "gain") && bounds && (
+                <div className="animate-fade-up mt-5">
+                  <p className="mb-2.5 text-[11px] font-bold uppercase tracking-[0.14em] text-faint">
+                    Qaysi vaznga yetmoqchisiz?
+                  </p>
+
+                  <div className="card px-5 py-5">
+                    <div className="flex items-center justify-center gap-4">
+                      <button
+                        onClick={() => setTargetWeight((v) => Math.max(bounds.min, (v ?? 0) - 1))}
+                        aria-label="Kamaytirish"
+                        className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-borderSoft bg-surfaceAlt active:scale-95"
+                      >
+                        <Minus size={17} className="text-muted" />
+                      </button>
+                      <div className="text-center">
+                        <p className="tabular text-[38px] font-bold leading-none text-neon">{targetWeight ?? "—"}</p>
+                        <p className="mt-1 text-[12px] text-faint">kg</p>
+                      </div>
+                      <button
+                        onClick={() => setTargetWeight((v) => Math.min(bounds.max, (v ?? 0) + 1))}
+                        aria-label="Oshirish"
+                        className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-borderSoft bg-surfaceAlt active:scale-95"
+                      >
+                        <Plus size={17} className="text-muted" />
+                      </button>
+                    </div>
+
+                    <input
+                      type="range"
+                      min={bounds.min}
+                      max={bounds.max}
+                      value={targetWeight ?? bounds.min}
+                      onChange={(e) => setTargetWeight(Number(e.target.value))}
+                      aria-label="Maqsad vazni"
+                      className="mt-5 w-full accent-[color:rgb(var(--c-neon))]"
+                    />
+                    <div className="tabular mt-1 flex justify-between text-[11px] text-faint">
+                      <span>{bounds.min} kg</span>
+                      <span>{bounds.max} kg</span>
+                    </div>
+                  </div>
+
+                  {goalEstimate && (
+                    <div className="animate-fade-up mt-3 flex items-start gap-3 rounded-2xl border border-cyan/25 bg-cyan/[0.07] px-4 py-3.5">
+                      <CalendarClock size={17} className="mt-0.5 shrink-0 text-cyan" />
+                      <div className="min-w-0">
+                        <p className="text-[13px] font-bold text-ink">
+                          Taxminan {uzShortDate(goalEstimate.targetDate)}gacha
+                        </p>
+                        <p className="mt-1 text-[11.5px] leading-relaxed text-muted">
+                          {Math.abs(goalEstimate.deltaKg)} kg · {goalEstimate.weeks} hafta
+                          {goalEstimate.months >= 1 ? ` (~${goalEstimate.months} oy)` : ""} · haftasiga{" "}
+                          {goalEstimate.weeklyRateKg} kg
+                        </p>
+                        <p className="mt-1.5 text-[11px] leading-relaxed text-faint">
+                          Bu — sog'liq uchun xavfsiz sur'at. Tezroq ozish mushak yo'qotishga olib keladi.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </StepShell>
           )}
 

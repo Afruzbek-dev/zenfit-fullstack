@@ -73,6 +73,8 @@ CREATE TABLE IF NOT EXISTS profiles (
   session_duration     TEXT,
   injuries             TEXT,
   water_target_ml      INTEGER DEFAULT 2500,
+  target_weight_kg     REAL,
+  target_date          TEXT,
   display_name         TEXT,
   language             TEXT DEFAULT 'uz',
   theme                TEXT DEFAULT 'dark',

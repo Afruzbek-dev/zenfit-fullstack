@@ -8,7 +8,15 @@
   },
   "crons": [
     {
-      "path": "/api/cron/reminders",
+      "path": "/api/cron/reminders?slot=morning",
+      "schedule": "0 1 * * *"
+    },
+    {
+      "path": "/api/cron/reminders?slot=morningLate",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/reminders?slot=evening",
       "schedule": "0 14 * * *"
     }
   ],

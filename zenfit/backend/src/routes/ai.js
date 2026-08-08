@@ -190,6 +190,15 @@ router.post("/diet-plan", requireAuth, rateLimit({ key: "diet", windowMs: 300_00
       return res.status(400).json({ error: "onboarding_required", message: "Avval profilni to'ldiring." });
     }
 
+    // A generated meal plan is a premium feature. 402 is what the client already
+    // maps to the upgrade prompt, so this reuses the existing quota path.
+    if (!(await isPremium(req.userId))) {
+      return res.status(402).json({
+        error: "premium_required",
+        message: "Ovqatlanish rejasi Premium imkoniyati. Premium'ni faollashtiring va shaxsiy reja oling.",
+      });
+    }
+
     const plan = await generateDietPlan({ profile });
 
     await query("UPDATE ai_plans SET is_active = false WHERE user_id = $1 AND plan_type = 'diet'", [req.userId]);

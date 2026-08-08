@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { api, login, setToken } from "./api.js";
 import { translator, storedLanguage, persistLanguage, DICTS } from "./lib/i18n.js";
 import { applyTheme, storedTheme, watchSystemTheme } from "./lib/theme.js";
+import { localDateKey, msUntilLocalMidnight } from "./lib/format.js";
 
 const Ctx = createContext(null);
 export const useApp = () => useContext(Ctx);
@@ -123,6 +124,49 @@ export function AppProvider({ children }) {
   useEffect(() => {
     boot();
   }, [boot]);
+
+  /**
+   * Roll the dashboard over at local midnight.
+   *
+   * Without this an app left open overnight keeps showing yesterday's totals,
+   * and a phone that was asleep comes back to a stale day. The timer is
+   * re-armed each night rather than using a fixed 24h interval so it stays
+   * aligned with the wall clock, and a visibility check covers the case where
+   * the timer was frozen while the app was backgrounded.
+   */
+  const dayKeyRef = useRef(localDateKey());
+  useEffect(() => {
+    if (status !== "ready") return undefined;
+
+    let timer;
+    const rollover = () => {
+      const now = localDateKey();
+      if (now !== dayKeyRef.current) {
+        dayKeyRef.current = now;
+        refresh();
+      }
+    };
+
+    const arm = () => {
+      clearTimeout(timer);
+      // A second past midnight, so the new date has definitely ticked over.
+      timer = setTimeout(() => {
+        rollover();
+        arm();
+      }, msUntilLocalMidnight() + 1000);
+    };
+    arm();
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible") rollover();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [status, refresh]);
 
   /* ---------------------------- mutations ---------------------------- */
 

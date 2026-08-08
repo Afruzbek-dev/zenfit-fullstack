@@ -27,7 +27,7 @@ async function compressImage(file, maxDim = 1280, quality = 0.82) {
 }
 
 export default function ScanScreen({ onNavigate }) {
-  const { addMeal, showToast, subscription } = useApp();
+  const { addMeal, showToast, subscription, t } = useApp();
   const cameraRef = useRef(null);
   const galleryRef = useRef(null);
 
@@ -65,7 +65,7 @@ export default function ScanScreen({ onNavigate }) {
       haptic("success");
     } catch (err) {
       if (err.status === 402) setQuotaHit(true);
-      else setError(err.message || "Skanerlab bo'lmadi");
+      else setError(err.message || t("scan.scanFailed"));
       haptic("error");
     } finally {
       setBusy(false);
@@ -82,7 +82,7 @@ export default function ScanScreen({ onNavigate }) {
       haptic("success");
     } catch (err) {
       if (err.status === 402) setQuotaHit(true);
-      else setError(err.message || "AI javob bera olmadi");
+      else setError(err.message || t("scan.aiFailed"));
     } finally {
       setBusy(false);
     }
@@ -100,12 +100,12 @@ export default function ScanScreen({ onNavigate }) {
         source: mode === "photo" ? "ai_scan" : "ai_ask",
       });
       haptic("success");
-      showToast("Ovqat qo'shildi ✓", "success");
+      showToast(t("scan.added"), "success");
       reset();
       setText("");
       onNavigate("home");
     } catch (e) {
-      showToast(e.message || "Saqlab bo'lmadi", "error");
+      showToast(e.message || t("scan.saveFailed"), "error");
     }
   }
 
@@ -121,8 +121,8 @@ export default function ScanScreen({ onNavigate }) {
   return (
     <Screen>
       <ScreenHeader
-        title="AI Skaner"
-        subtitle="Taom rasmini oling — kaloriya avtomatik hisoblanadi"
+        title={t("scan.title")}
+        subtitle={t("scan.subtitle")}
         action={
           freeLeft !== null && !subscription?.isPremium ? (
             <span className="tabular shrink-0 rounded-full border border-borderSoft bg-surfaceAlt px-2.5 py-1.5 text-[11px] font-semibold text-muted">
@@ -134,8 +134,8 @@ export default function ScanScreen({ onNavigate }) {
 
       <div className="mb-5 flex gap-2 rounded-2xl border border-borderSoft bg-surfaceAlt p-1">
         {[
-          { id: "photo", label: "Rasm bilan", Icon: Camera },
-          { id: "text", label: "Yozib so'rash", Icon: Type },
+          { id: "photo", label: t("scan.photoMode"), Icon: Camera },
+          { id: "text", label: t("scan.textMode"), Icon: Type },
         ].map((m) => (
           <button
             key={m.id}
@@ -180,15 +180,11 @@ export default function ScanScreen({ onNavigate }) {
             <ImageIcon size={16} /> Galereyadan tanlash
           </Button>
 
-          <Section title="Yaxshi natija uchun" className="mt-6">
+          <Section title={t("scan.tipsTitle")} className="mt-6">
             <div className="card flex flex-col gap-2 px-4 py-3.5">
-              {[
-                "Taomni tepadan yoki 45° burchakdan oling",
-                "Yoniga qoshiq yoki likopcha kiritsangiz, hajmni aniqroq baholaydi",
-                "Bir kadrda bitta taom bo'lsa aniqlik yuqori bo'ladi",
-              ].map((t) => (
-                <p key={t} className="flex gap-2 text-[12px] leading-relaxed text-muted">
-                  <Check size={13} className="mt-0.5 shrink-0 text-neon" /> {t}
+              {(t("scan.tips") || []).map((tip) => (
+                <p key={tip} className="flex gap-2 text-[12px] leading-relaxed text-muted">
+                  <Check size={13} className="mt-0.5 shrink-0 text-neon" /> {tip}
                 </p>
               ))}
             </div>
@@ -203,7 +199,7 @@ export default function ScanScreen({ onNavigate }) {
               value={text}
               onChange={(e) => setText(e.target.value)}
               rows={3}
-              placeholder="Masalan: 150g tovuq ko'krak va 100g guruch"
+              placeholder={t("scan.textPlaceholder")}
               className="w-full resize-none bg-transparent text-[14px] leading-relaxed text-ink outline-none placeholder:text-faint"
             />
           </div>
@@ -215,7 +211,7 @@ export default function ScanScreen({ onNavigate }) {
 
       {preview && (
         <div className="mb-4 overflow-hidden rounded-xl2 border border-borderSoft">
-          <img src={preview} alt="Skanerlangan taom" className="h-52 w-full object-cover" />
+          <img src={preview} alt={t("scan.scannedMeal")} className="h-52 w-full object-cover" />
         </div>
       )}
 
@@ -250,11 +246,11 @@ export default function ScanScreen({ onNavigate }) {
 
       {result && !busy && (
         <div className="animate-fade-up">
-          {result.name === "Aniqlanmadi" ? (
+          {result.name === t("scan.unknown") ? (
             <EmptyState
               Icon={Camera}
-              title="Taom aniqlanmadi"
-              desc="Rasmda ovqat aniq ko'rinmadi. Yaqinroq va yorug'roq holda qayta urinib ko'ring."
+              title={t("scan.notDetected")}
+              desc={t("scan.notDetectedDesc")}
               action={<Button full onClick={reset}><RotateCcw size={15} /> Qayta urinish</Button>}
             />
           ) : (
@@ -280,9 +276,9 @@ export default function ScanScreen({ onNavigate }) {
 
                 <div className="mt-4 grid grid-cols-3 gap-2">
                   {[
-                    { l: "Uglevod", v: scaled.carbs, c: "text-cyan" },
-                    { l: "Oqsil", v: scaled.protein, c: "text-neon" },
-                    { l: "Yog'", v: scaled.fat, c: "text-amber" },
+                    { l: t("home.carbs"), v: scaled.carbs, c: "text-cyan" },
+                    { l: t("home.protein"), v: scaled.protein, c: "text-neon" },
+                    { l: t("home.fat"), v: scaled.fat, c: "text-amber" },
                   ].map((m) => (
                     <div key={m.l} className="rounded-xl bg-surfaceAlt px-2.5 py-2.5">
                       <p className="text-[10px] font-bold uppercase tracking-wider text-faint">{m.l}</p>

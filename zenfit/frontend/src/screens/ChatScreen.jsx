@@ -32,7 +32,7 @@ function Bubble({ role, content }) {
 }
 
 export default function ChatScreen({ onNavigate }) {
-  const { subscription, showToast } = useApp();
+  const { subscription, showToast, t } = useApp();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -83,7 +83,7 @@ export default function ChatScreen({ onNavigate }) {
       setMessages((prev) => prev.filter((m) => m.content !== content || m.role !== "user"));
       setInput(content);
       if (e.status === 402) setQuotaHit(true);
-      else setError(e.message || "AI javob bera olmadi");
+      else setError(e.message || t("chat.aiFailed"));
       haptic("error");
     } finally {
       setBusy(false);
@@ -91,21 +91,21 @@ export default function ChatScreen({ onNavigate }) {
   }
 
   async function clearChat() {
-    if (!(await showConfirm("Suhbat tarixini o'chirasizmi?"))) return;
+    if (!(await showConfirm(t("chat.clearConfirm")))) return;
     try {
       await api.clearChat();
       setMessages([]);
-      showToast("Tarix o'chirildi");
+      showToast(t("chat.historyCleared"));
     } catch (e) {
-      showToast(e.message || "Xatolik", "error");
+      showToast(e.message || t("common.error"), "error");
     }
   }
 
   return (
     <div className="relative z-10 mx-auto flex h-screen w-full max-w-lg flex-col px-5">
       <ScreenHeader
-        title="AI Trener"
-        subtitle="Rejangiz va statistikangizni ko'rib turadi"
+        title={t("chat.title")}
+        subtitle={t("chat.subtitle")}
         action={
           <div className="flex shrink-0 items-center gap-1.5">
             {freeLeft !== null && !subscription?.isPremium && (
@@ -114,7 +114,7 @@ export default function ChatScreen({ onNavigate }) {
               </span>
             )}
             {messages.length > 0 && (
-              <IconButton Icon={Trash2} label="Tarixni tozalash" onClick={clearChat} />
+              <IconButton Icon={Trash2} label={t("chat.clearHistory")} onClick={clearChat} />
             )}
           </div>
         }
@@ -198,14 +198,14 @@ export default function ChatScreen({ onNavigate }) {
                 }
               }}
               rows={1}
-              placeholder="Savolingizni yozing…"
+              placeholder={t("chat.placeholder")}
               className="max-h-24 w-full resize-none bg-transparent text-[14px] leading-relaxed text-ink outline-none placeholder:text-faint"
             />
           </div>
           <button
             onClick={() => send()}
             disabled={busy || !input.trim()}
-            aria-label="Yuborish"
+            aria-label={t("chat.send")}
             className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-neon text-neonOn active:scale-95 disabled:opacity-35"
           >
             {busy ? <Loader2 size={17} className="animate-spin" /> : <Send size={17} />}

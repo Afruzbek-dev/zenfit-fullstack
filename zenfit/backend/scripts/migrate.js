@@ -99,6 +99,10 @@ async function run() {
   `);
   await query(`CREATE INDEX IF NOT EXISTS idx_cards_user ON payment_cards(user_id, created_at DESC)`);
 
+  /* ----- goal weight and the date it should be reached ------------------ */
+  await addColumn("profiles", "target_weight_kg", "REAL", "REAL");
+  await addColumn("profiles", "target_date", "TEXT", "TEXT");
+
   /* ----- admin-editable settings ---------------------------------------- *
    * Key/value rather than columns: the payment card details change without a
    * deploy, and adding a new setting should not mean another migration.
