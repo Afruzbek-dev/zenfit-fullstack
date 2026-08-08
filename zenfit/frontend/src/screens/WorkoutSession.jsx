@@ -4,7 +4,7 @@ import { Screen, ScreenHeader } from "../components/ui.jsx";
 import ExerciseRunner from "./ExerciseRunner.jsx";
 import ExerciseGuide from "../components/ExerciseGuide.jsx";
 import { localizeExercise } from "../data/exerciseText.js";
-import { estimateSessionKcal } from "../lib/aiPlanEngine.js";
+import { isCompound } from "../lib/aiPlanEngine.js";
 import { haptic } from "../telegram.js";
 import { useBackButton } from "../lib/useBackButton.js";
 import { useApp } from "../store.jsx";
@@ -94,7 +94,9 @@ export default function WorkoutSession({ day, onBack }) {
         exerciseId: exercise.id,
         exerciseName: exercise.name,
         emoji: "🏋️",
-        kcal: estimateSessionKcal(exercise, profile?.weightKg || 70),
+        // The burn itself is computed server-side; a compound lift just moves
+        // more mass, so that is the one input the client contributes.
+        compound: isCompound(exercise.id),
         setsCompleted: sets.length,
         planDay: day.day,
         sets: sets.map((s) => ({ reps: Number(s.reps) || null, weightKg: Number(s.weightKg) || null })),

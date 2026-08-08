@@ -128,6 +128,16 @@ async function run() {
   await addColumn("payments", "reject_reason", "TEXT", "TEXT");
   await query(`CREATE INDEX IF NOT EXISTS idx_payments_status ON payments(status, created_at DESC)`);
 
+  /* ----- daily-activity level re-confirmation ---------------------------- *
+   * The activity question used to mean "how often do you train"; it now means
+   * "how active is your day without training", because sessions are credited
+   * separately (see lib/calorie.js). Anyone who answered the old question has
+   * a level that no longer means what they picked, so the app asks them once
+   * to re-check it. Onboarding and any profile save set this to true, which is
+   * why new users never see the prompt.
+   * ---------------------------------------------------------------------- */
+  await addColumn("profiles", "neat_confirmed", BOOL(false), BOOL(false));
+
   /* ----- lock the new tables down --------------------------------------- *
    * Every existing table has RLS on with zero policies, which denies the anon
    * and authenticated Supabase roles outright. The backend connects as the

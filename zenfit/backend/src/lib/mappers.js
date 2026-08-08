@@ -34,6 +34,7 @@ export function mapProfile(p) {
       water: bool(p.notif_water),
       tips: bool(p.notif_tips),
     },
+    neatConfirmed: bool(p.neat_confirmed),
     onboardingCompleted: bool(p.onboarding_completed),
   };
 }

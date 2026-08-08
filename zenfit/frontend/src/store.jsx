@@ -227,10 +227,13 @@ export function AppProvider({ children }) {
 
   const logWorkout = useCallback(async (payload) => {
     const res = await api.logWorkout(payload);
+    // The server owns the burn figure, so credit what it stored rather than
+    // what was sent — otherwise the ring drifts from the day's real total.
+    const kcal = res.workoutLog?.kcal || 0;
     setWorkoutHistory((prev) => [res.workoutLog, ...prev]);
     setSummary((prev) =>
       prev
-        ? { ...prev, burned: prev.burned + (payload.kcal || 0), remaining: prev.remaining + (payload.kcal || 0), workoutCount: prev.workoutCount + 1 }
+        ? { ...prev, burned: prev.burned + kcal, remaining: prev.remaining + kcal, workoutCount: prev.workoutCount + 1 }
         : prev
     );
     return res.workoutLog;

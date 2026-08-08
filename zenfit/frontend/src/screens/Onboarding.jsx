@@ -5,60 +5,47 @@ import {
   Minus, Plus, CalendarClock,
 } from "lucide-react";
 import { Button, OptionCard } from "../components/ui.jsx";
-import { generateWorkoutPlan } from "../lib/aiPlanEngine.js";
+import { generateWorkoutPlan, localizeDay, rulesNote } from "../lib/aiPlanEngine.js";
 import { bestProgram } from "../data/programs.js";
+import { localizeExercise } from "../data/exerciseText.js";
 import { estimateGoal, defaultTarget, targetBounds } from "../lib/goalPlan.js";
-import { uzShortDate } from "../lib/format.js";
+import { shortDate } from "../lib/format.js";
 import { haptic } from "../telegram.js";
 import { useApp } from "../store.jsx";
 
 /** Bounds only make sense once a plausible bodyweight has been entered. */
 const bodyValidFor = (kg) => Number.isFinite(kg) && kg >= 30 && kg <= 300;
 
+/**
+ * Only the id and the icon live here — every label comes from the dictionary,
+ * keyed by that id, so a new language never means touching this file.
+ */
 const GOALS = [
-  { id: "lose", Icon: TrendingDown, title: "Ozish", desc: "Yog' yo'qotish va vazn kamaytirish" },
-  { id: "maintain", Icon: Scale, title: "Vaznni saqlash", desc: "Shakl va tonusni ushlab turish" },
-  { id: "gain", Icon: TrendingUp, title: "Massa yig'ish", desc: "Mushak massasini oshirish" },
+  { id: "lose", Icon: TrendingDown },
+  { id: "maintain", Icon: Scale },
+  { id: "gain", Icon: TrendingUp },
 ];
 
-const ACTIVITY = [
-  { id: "sedentary", title: "Harakatsiz", desc: "Ofis ishi, deyarli mashq yo'q" },
-  { id: "light", title: "Yengil", desc: "Haftasiga 1-3 marta mashq" },
-  { id: "moderate", title: "O'rtacha", desc: "Haftasiga 3-5 marta mashq" },
-  { id: "active", title: "Faol", desc: "Haftasiga 6-7 marta mashq" },
-  { id: "very_active", title: "Juda faol", desc: "Og'ir jismoniy ish + mashq" },
-];
+const ACTIVITY = ["sedentary", "light", "moderate", "active", "very_active"];
 
 const LEVELS = [
-  { id: "beginner", Icon: Award, title: "Yangi boshlovchi", desc: "1 yildan kam tajriba" },
-  { id: "intermediate", Icon: Zap, title: "O'rta daraja", desc: "1-2 yil muntazam mashq" },
-  { id: "advanced", Icon: TrendingUp, title: "Tajribali", desc: "2+ yil intensiv mashq" },
+  { id: "beginner", Icon: Award },
+  { id: "intermediate", Icon: Zap },
+  { id: "advanced", Icon: TrendingUp },
 ];
 
-const DAYS = [
-  { id: 3, title: "2-3 kun", desc: "Full Body split" },
-  { id: 4, title: "4 kun", desc: "Upper / Lower split" },
-  { id: 5, title: "5-6 kun", desc: "Push / Pull / Legs split" },
-];
+const DAYS = [3, 4, 5];
 
 const EQUIPMENT = [
-  { id: "home-none", Icon: Home, title: "Uyda, jihozsiz", desc: "Faqat tana vazni bilan" },
-  { id: "home-dumbbell", Icon: Dumbbell, title: "Uyda, gantel bilan", desc: "Gantel va turnik" },
-  { id: "gym", Icon: Building2, title: "Sport zali", desc: "Shtanga, gantel, trenajyorlar" },
-  { id: "outdoor", Icon: Trees, title: "Ochiq havoda", desc: "Turnik, yugurish" },
+  { id: "home-none", Icon: Home },
+  { id: "home-dumbbell", Icon: Dumbbell },
+  { id: "gym", Icon: Building2 },
+  { id: "outdoor", Icon: Trees },
 ];
 
-const DURATION = [
-  { id: "30", title: "~30 daqiqa", desc: "4-5 mashq" },
-  { id: "60", title: "45-60 daqiqa", desc: "5-6 mashq" },
-  { id: "90", title: "60-90 daqiqa", desc: "6-7 mashq" },
-];
+const DURATION = ["30", "60", "90"];
 
-const INJURY_TAGS = [
-  { id: "tizza", label: "Tizza" },
-  { id: "bel", label: "Bel" },
-  { id: "yelka", label: "Yelka" },
-];
+const INJURY_TAGS = ["tizza", "bel", "yelka"];
 
 function StepShell({ title, subtitle, children }) {
   return (
@@ -70,7 +57,7 @@ function StepShell({ title, subtitle, children }) {
   );
 }
 
-function NumberField({ label, value, onChange, unit, min, max, placeholder }) {
+function NumberField({ label, value, onChange, unit, min, max, placeholder, hint }) {
   const invalid = value !== "" && (Number(value) < min || Number(value) > max);
   return (
     <label className="block">
@@ -90,13 +77,13 @@ function NumberField({ label, value, onChange, unit, min, max, placeholder }) {
         />
         <span className="shrink-0 text-[13px] font-semibold text-faint">{unit}</span>
       </span>
-      {invalid && <span className="mt-1 block text-[11px] text-rose">{min}-{max} oralig'ida bo'lishi kerak</span>}
+      {invalid && <span className="mt-1 block text-[11px] text-rose">{hint}</span>}
     </label>
   );
 }
 
 export default function Onboarding({ onFinish }) {
-  const { completeOnboarding, saveWorkoutPlan, showToast } = useApp();
+  const { completeOnboarding, saveWorkoutPlan, showToast, t, lang } = useApp();
 
   const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -169,7 +156,7 @@ export default function Onboarding({ onFinish }) {
       setTargets(res.computed);
       return true;
     } catch (e) {
-      showToast(e.message || "Saqlashda xatolik", "error");
+      showToast(e.message || t("onboarding.saveFailed"), "error");
       return false;
     } finally {
       setBusy(false);
@@ -212,7 +199,7 @@ export default function Onboarding({ onFinish }) {
       haptic("success");
       onFinish?.();
     } catch (e) {
-      showToast(e.message || "Rejani saqlab bo'lmadi", "error");
+      showToast(e.message || t("onboarding.saveFailed"), "error");
     } finally {
       setBusy(false);
     }
@@ -243,9 +230,9 @@ export default function Onboarding({ onFinish }) {
                   <Sparkles size={28} className="animate-pulse text-neon" />
                 </span>
               </div>
-              <p className="font-display text-lg font-bold text-ink">AI rejangizni tuzmoqda…</p>
+              <p className="font-display text-lg font-bold text-ink">{t("onboarding.thinking")}</p>
               <p className="max-w-[260px] text-[13px] leading-relaxed text-muted">
-                {nums.weightKg} kg vazningiz va maqsadingiz asosida og'irliklar hisoblanmoqda
+                {t("onboarding.thinkingDesc", { kg: nums.weightKg })}
               </p>
             </div>
           )}
@@ -256,20 +243,16 @@ export default function Onboarding({ onFinish }) {
                 <Flame size={36} className="text-neon" />
               </span>
               <h1 className="font-display text-[30px] font-bold leading-[1.1] tracking-tight text-ink">
-                ZenFit’ga<br />xush kelibsiz
+                {t("onboarding.welcomeTitle")}
               </h1>
               <p className="mt-3 max-w-[300px] text-[14px] leading-relaxed text-muted">
-                Ovqatlanish va mashqni bitta AI orqali boshqaring. 90 soniyada shaxsiy rejangizni oling.
+                {t("onboarding.welcomeDesc")}
               </p>
               <div className="mt-8 flex w-full flex-col gap-2">
-                {[
-                  "Shaxsiy kaloriya va makro me'yori",
-                  "Vazningizga mos og'irliklar (kg) bilan mashq rejasi",
-                  "Taom rasmini skanerlab kaloriya hisoblash",
-                ].map((t) => (
-                  <div key={t} className="flex items-center gap-2.5 rounded-2xl border border-borderSoft bg-surface px-4 py-3">
+                {(t("onboarding.bullets") || []).map((bullet) => (
+                  <div key={bullet} className="flex items-center gap-2.5 rounded-2xl border border-borderSoft bg-surface px-4 py-3">
                     <Check size={15} className="shrink-0 text-neon" />
-                    <span className="text-left text-[13px] text-ink">{t}</span>
+                    <span className="text-left text-[13px] text-ink">{bullet}</span>
                   </div>
                 ))}
               </div>
@@ -277,37 +260,54 @@ export default function Onboarding({ onFinish }) {
           )}
 
           {!thinking && step === 1 && (
-            <StepShell title="Jinsingiz?" subtitle="Kaloriya hisobi formulasi shunga bog'liq">
-              <OptionCard active={gender === "male"} Icon={User2} title="Erkak" onClick={() => setGender("male")} />
-              <OptionCard active={gender === "female"} Icon={Users} title="Ayol" onClick={() => setGender("female")} />
+            <StepShell title={t("onboarding.genderTitle")} subtitle={t("onboarding.genderDesc")}>
+              <OptionCard active={gender === "male"} Icon={User2} title={t("onboarding.male")} onClick={() => setGender("male")} />
+              <OptionCard active={gender === "female"} Icon={Users} title={t("onboarding.female")} onClick={() => setGender("female")} />
             </StepShell>
           )}
 
           {!thinking && step === 2 && (
-            <StepShell title="Tana ko'rsatkichlaringiz" subtitle="BMR va kunlik me'yoringiz shu raqamlardan hisoblanadi">
-              <NumberField label="Yosh" value={age} onChange={setAge} unit="yosh" min={10} max={100} placeholder="25" />
-              <NumberField label="Bo'y" value={height} onChange={setHeight} unit="sm" min={100} max={250} placeholder="175" />
-              <NumberField label="Vazn" value={weight} onChange={setWeight} unit="kg" min={30} max={300} placeholder="70" />
+            <StepShell title={t("onboarding.bodyTitle")} subtitle={t("onboarding.bodyDesc")}>
+              <NumberField
+                label={t("onboarding.age")} value={age} onChange={setAge} unit={t("onboarding.ageUnit")}
+                min={10} max={100} placeholder="25" hint={t("onboarding.rangeHint", { min: 10, max: 100 })}
+              />
+              <NumberField
+                label={t("onboarding.height")} value={height} onChange={setHeight} unit={t("common.cm")}
+                min={100} max={250} placeholder="175" hint={t("onboarding.rangeHint", { min: 100, max: 250 })}
+              />
+              <NumberField
+                label={t("onboarding.weight")} value={weight} onChange={setWeight} unit={t("common.kg")}
+                min={30} max={300} placeholder="70" hint={t("onboarding.rangeHint", { min: 30, max: 300 })}
+              />
             </StepShell>
           )}
 
           {!thinking && step === 3 && (
-            <StepShell title="Kunlik faolligingiz?" subtitle="Mashqdan tashqari umumiy harakatingiz">
-              {ACTIVITY.map((a) => (
-                <OptionCard key={a.id} active={activity === a.id} Icon={Activity} title={a.title} desc={a.desc} onClick={() => setActivity(a.id)} />
+            <StepShell title={t("onboarding.activityTitle")} subtitle={t("onboarding.activityDesc")}>
+              {ACTIVITY.map((id) => (
+                <OptionCard
+                  key={id}
+                  active={activity === id}
+                  Icon={Activity}
+                  title={t(`onboarding.activities.${id}.title`)}
+                  desc={t(`onboarding.activities.${id}.desc`)}
+                  onClick={() => setActivity(id)}
+                />
               ))}
+              <p className="mt-1 text-[11.5px] leading-relaxed text-faint">{t("onboarding.activityNote")}</p>
             </StepShell>
           )}
 
           {!thinking && step === 4 && (
-            <StepShell title="Asosiy maqsadingiz?" subtitle="Kaloriya va mashq rejasi shunga moslashtiriladi">
+            <StepShell title={t("onboarding.goalTitle")} subtitle={t("onboarding.goalDesc")}>
               {GOALS.map((g) => (
                 <OptionCard
                   key={g.id}
                   active={goal === g.id}
                   Icon={g.Icon}
-                  title={g.title}
-                  desc={g.desc}
+                  title={t(`onboarding.goals.${g.id}.title`)}
+                  desc={t(`onboarding.goals.${g.id}.desc`)}
                   onClick={() => {
                     setGoal(g.id);
                     // Seed a realistic target the moment a direction is picked.
@@ -319,14 +319,14 @@ export default function Onboarding({ onFinish }) {
               {(goal === "lose" || goal === "gain") && bounds && (
                 <div className="animate-fade-up mt-5">
                   <p className="mb-2.5 text-[11px] font-bold uppercase tracking-[0.14em] text-faint">
-                    Qaysi vaznga yetmoqchisiz?
+                    {t("onboarding.targetTitle")}
                   </p>
 
                   <div className="card px-5 py-5">
                     <div className="flex items-center justify-center gap-4">
                       <button
                         onClick={() => setTargetWeight((v) => Math.max(bounds.min, (v ?? 0) - 1))}
-                        aria-label="Kamaytirish"
+                        aria-label={t("onboarding.decrease")}
                         className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-borderSoft bg-surfaceAlt active:scale-95"
                       >
                         <Minus size={17} className="text-muted" />
@@ -337,7 +337,7 @@ export default function Onboarding({ onFinish }) {
                       </div>
                       <button
                         onClick={() => setTargetWeight((v) => Math.min(bounds.max, (v ?? 0) + 1))}
-                        aria-label="Oshirish"
+                        aria-label={t("onboarding.increase")}
                         className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-borderSoft bg-surfaceAlt active:scale-95"
                       >
                         <Plus size={17} className="text-muted" />
@@ -350,7 +350,7 @@ export default function Onboarding({ onFinish }) {
                       max={bounds.max}
                       value={targetWeight ?? bounds.min}
                       onChange={(e) => setTargetWeight(Number(e.target.value))}
-                      aria-label="Maqsad vazni"
+                      aria-label={t("onboarding.targetWeightLabel")}
                       className="mt-5 w-full accent-[color:rgb(var(--c-neon))]"
                     />
                     <div className="tabular mt-1 flex justify-between text-[11px] text-faint">
@@ -364,15 +364,18 @@ export default function Onboarding({ onFinish }) {
                       <CalendarClock size={17} className="mt-0.5 shrink-0 text-cyan" />
                       <div className="min-w-0">
                         <p className="text-[13px] font-bold text-ink">
-                          Taxminan {uzShortDate(goalEstimate.targetDate)}gacha
+                          {t("onboarding.targetBy", { date: shortDate(goalEstimate.targetDate, lang) })}
                         </p>
                         <p className="mt-1 text-[11.5px] leading-relaxed text-muted">
-                          {Math.abs(goalEstimate.deltaKg)} kg · {goalEstimate.weeks} hafta
-                          {goalEstimate.months >= 1 ? ` (~${goalEstimate.months} oy)` : ""} · haftasiga{" "}
-                          {goalEstimate.weeklyRateKg} kg
+                          {t("onboarding.targetDetail", {
+                            kg: Math.abs(goalEstimate.deltaKg),
+                            weeks: goalEstimate.weeks,
+                            rate: goalEstimate.weeklyRateKg,
+                          })}
+                          {goalEstimate.months >= 1 ? t("onboarding.monthsSuffix", { months: goalEstimate.months }) : ""}
                         </p>
                         <p className="mt-1.5 text-[11px] leading-relaxed text-faint">
-                          Bu — sog'liq uchun xavfsiz sur'at. Tezroq ozish mushak yo'qotishga olib keladi.
+                          {t("onboarding.targetSafe")}
                         </p>
                       </div>
                     </div>
@@ -387,21 +390,21 @@ export default function Onboarding({ onFinish }) {
               <span className="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-neon/15">
                 <Check size={26} className="text-neon" />
               </span>
-              <h2 className="font-display text-[22px] font-bold text-ink">Rejangiz tayyor!</h2>
+              <h2 className="font-display text-[22px] font-bold text-ink">{t("onboarding.targetsReady")}</h2>
               <p className="mt-1 text-[13px] text-muted">
-                {goal === "lose" ? "Ozish" : goal === "gain" ? "Massa yig'ish" : "Vaznni saqlash"} maqsadi bo'yicha hisoblandi
+                {t("onboarding.targetsFor", { goal: t(`onboarding.goals.${goal}.title`) })}
               </p>
 
               <div className="card card-lit mt-6 w-full px-5 py-6">
-                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-faint">Kunlik kaloriya me'yori</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-faint">{t("onboarding.dailyCalories")}</p>
                 <p className="tabular mt-1 text-[46px] font-bold leading-none text-neon">{targets.dailyCalorieTarget}</p>
-                <p className="mt-1 text-[12px] text-muted">kcal / kun</p>
+                <p className="mt-1 text-[12px] text-muted">kcal / {t("common.day")}</p>
 
                 <div className="mt-5 grid grid-cols-3 gap-2">
                   {[
-                    { l: "Oqsil", v: targets.proteinTargetG, c: "text-neon" },
-                    { l: "Uglevod", v: targets.carbsTargetG, c: "text-cyan" },
-                    { l: "Yog'", v: targets.fatTargetG, c: "text-amber" },
+                    { l: t("home.protein"), v: targets.proteinTargetG, c: "text-neon" },
+                    { l: t("home.carbs"), v: targets.carbsTargetG, c: "text-cyan" },
+                    { l: t("home.fat"), v: targets.fatTargetG, c: "text-amber" },
                   ].map((m) => (
                     <div key={m.l} className="rounded-xl bg-surfaceAlt px-2 py-2.5">
                       <p className="text-[10px] font-bold uppercase tracking-wider text-faint">{m.l}</p>
@@ -416,80 +419,106 @@ export default function Onboarding({ onFinish }) {
                 </div>
               </div>
 
-              <p className="mt-5 text-[13px] leading-relaxed text-muted">
-                Endi mashq rejangizni tuzamiz — bu 5 ta qisqa savol.
-              </p>
+              <p className="mt-5 text-[13px] leading-relaxed text-muted">{t("onboarding.nextSteps")}</p>
             </div>
           )}
 
           {!thinking && step === 6 && (
-            <StepShell title="Mashg'ulot tajribangiz?" subtitle="Setlar soni va boshlang'ich og'irlik shunga qarab belgilanadi">
+            <StepShell title={t("onboarding.levelTitle")} subtitle={t("onboarding.levelDesc")}>
               {LEVELS.map((l) => (
-                <OptionCard key={l.id} active={level === l.id} Icon={l.Icon} title={l.title} desc={l.desc} onClick={() => setLevel(l.id)} />
+                <OptionCard
+                  key={l.id}
+                  active={level === l.id}
+                  Icon={l.Icon}
+                  title={t(`onboarding.levels.${l.id}.title`)}
+                  desc={t(`onboarding.levels.${l.id}.desc`)}
+                  onClick={() => setLevel(l.id)}
+                />
               ))}
             </StepShell>
           )}
 
           {!thinking && step === 7 && (
-            <StepShell title="Haftasiga necha kun?" subtitle="Har hafta ushlab tura oladigan realistik sonni tanlang">
+            <StepShell title={t("onboarding.daysTitle")} subtitle={t("onboarding.daysDesc")}>
               {DAYS.map((d) => (
-                <OptionCard key={d.id} active={days === d.id} Icon={Clock} title={d.title} desc={d.desc} onClick={() => setDays(d.id)} />
+                <OptionCard
+                  key={d}
+                  active={days === d}
+                  Icon={Clock}
+                  title={t(`onboarding.days.${d}.title`)}
+                  desc={t(`onboarding.days.${d}.desc`)}
+                  onClick={() => setDays(d)}
+                />
               ))}
             </StepShell>
           )}
 
           {!thinking && step === 8 && (
-            <StepShell title="Qayerda mashq qilasiz?" subtitle="Mavjud jihozga qarab mashqlar tanlanadi">
+            <StepShell title={t("onboarding.equipmentTitle")} subtitle={t("onboarding.equipmentDesc")}>
               {EQUIPMENT.map((e) => (
-                <OptionCard key={e.id} active={equipment === e.id} Icon={e.Icon} title={e.title} desc={e.desc} onClick={() => setEquipment(e.id)} />
+                <OptionCard
+                  key={e.id}
+                  active={equipment === e.id}
+                  Icon={e.Icon}
+                  title={t(`onboarding.equipments.${e.id}.title`)}
+                  desc={t(`onboarding.equipments.${e.id}.desc`)}
+                  onClick={() => setEquipment(e.id)}
+                />
               ))}
             </StepShell>
           )}
 
           {!thinking && step === 9 && (
-            <StepShell title="Bir mashg'ulot qancha vaqt?" subtitle="Mashqlar soni shu vaqtga sig'diriladi">
+            <StepShell title={t("onboarding.durationTitle")} subtitle={t("onboarding.durationDesc")}>
               {DURATION.map((d) => (
-                <OptionCard key={d.id} active={duration === d.id} Icon={Clock} title={d.title} desc={d.desc} onClick={() => setDuration(d.id)} />
+                <OptionCard
+                  key={d}
+                  active={duration === d}
+                  Icon={Clock}
+                  title={t(`onboarding.durations.${d}.title`)}
+                  desc={t(`onboarding.durations.${d}.desc`)}
+                  onClick={() => setDuration(d)}
+                />
               ))}
             </StepShell>
           )}
 
           {!thinking && step === 10 && (
-            <StepShell title="Jarohat yoki cheklov bormi?" subtitle="Ixtiyoriy — bo'lsa, AI xavfli mashqlarni xavfsizga almashtiradi">
+            <StepShell title={t("onboarding.injuriesTitle")} subtitle={t("onboarding.injuriesDesc")}>
               <div className="rounded-2xl border border-borderSoft bg-surface px-4 py-3.5 focus-within:border-neon/60">
                 <input
                   value={injuries}
                   onChange={(e) => setInjuries(e.target.value)}
-                  placeholder="masalan: tizza, bel…"
+                  placeholder={t("onboarding.injuriesPlaceholder")}
                   className="w-full bg-transparent text-[15px] text-ink outline-none placeholder:text-faint"
                 />
               </div>
               <div className="flex flex-wrap gap-2">
-                {INJURY_TAGS.map((t) => {
-                  const on = injuries.toLowerCase().includes(t.id);
+                {INJURY_TAGS.map((tag) => {
+                  // The tag is stored by its id, so what the AI reads stays
+                  // stable no matter which language the button was shown in.
+                  const on = injuries.toLowerCase().includes(tag);
                   return (
                     <button
-                      key={t.id}
+                      key={tag}
                       onClick={() => {
                         haptic("select");
                         setInjuries((prev) =>
                           on
-                            ? prev.replace(new RegExp(`\\s*,?\\s*${t.id}`, "i"), "").replace(/^,\s*/, "").trim()
-                            : prev ? `${prev}, ${t.id}` : t.id
+                            ? prev.replace(new RegExp(`\\s*,?\\s*${tag}`, "i"), "").replace(/^,\s*/, "").trim()
+                            : prev ? `${prev}, ${tag}` : tag
                         );
                       }}
                       className={`rounded-full border px-3.5 py-1.5 text-xs font-semibold ${
                         on ? "border-amber bg-amber/15 text-amber" : "border-borderSoft bg-surfaceAlt text-muted"
                       }`}
                     >
-                      {t.label}
+                      {t(`onboarding.injuryTags.${tag}`)}
                     </button>
                   );
                 })}
               </div>
-              <p className="text-[11.5px] leading-relaxed text-faint">
-                Jiddiy jarohat bo'lsa, mashq boshlashdan oldin shifokor bilan maslahatlashing.
-              </p>
+              <p className="text-[11.5px] leading-relaxed text-faint">{t("onboarding.injuryWarn")}</p>
             </StepShell>
           )}
 
@@ -499,9 +528,9 @@ export default function Onboarding({ onFinish }) {
                 <span className="mb-3 grid h-14 w-14 place-items-center rounded-2xl bg-neon/15">
                   <Sparkles size={24} className="text-neon" />
                 </span>
-                <h2 className="font-display text-[21px] font-bold text-ink">Shaxsiy rejangiz tayyor!</h2>
+                <h2 className="font-display text-[21px] font-bold text-ink">{t("onboarding.planPersonal")}</h2>
                 <p className="mt-1 max-w-[290px] text-[12.5px] leading-relaxed text-muted">
-                  {nums.weightKg} kg vazningiz asosida boshlang'ich og'irliklar hisoblandi
+                  {t("onboarding.planBasedOn", { kg: nums.weightKg })}
                 </p>
               </div>
 
@@ -516,32 +545,32 @@ export default function Onboarding({ onFinish }) {
                 <div className="flex items-center gap-2 rounded-2xl bg-cyan/10 px-4 py-3">
                   <Award size={15} className="shrink-0 text-cyan" />
                   <p className="text-[11.5px] leading-relaxed text-cyan">
-                    <b>{matched.p.title}</b> dasturi ham sizga {matched.matchPercent}% mos — Mashqlar bo'limidan almashtira olasiz.
+                    {t("onboarding.matchedProgram", { title: matched.p.title, percent: matched.matchPercent })}
                   </p>
                 </div>
               )}
 
               <div className="card px-4 py-4">
                 <div className="mb-3 flex items-center justify-between">
-                  <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-faint">Haftalik reja</span>
+                  <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-faint">{t("onboarding.weeklyPlan")}</span>
                   <span className="rounded-full bg-surfaceAlt px-2.5 py-1 text-[10.5px] font-semibold text-muted">
-                    {plan.rules.reps} takror • {plan.rules.rest} dam
+                    {t("onboarding.repsRest", { reps: plan.rules.reps, rest: plan.rules.rest })}
                   </span>
                 </div>
-                <p className="mb-3 text-[11.5px] leading-relaxed text-faint">{plan.rules.note}</p>
+                <p className="mb-3 text-[11.5px] leading-relaxed text-faint">{rulesNote(plan.rules, t)}</p>
 
                 <div className="flex flex-col gap-2">
                   {plan.days.filter((d) => !d.rest).map((d) => (
                     <div key={d.day} className="rounded-2xl border border-borderSoft bg-surfaceAlt p-3.5">
                       <div className="mb-2 flex items-center gap-2">
                         <Dumbbell size={13} className="text-neon" />
-                        <span className="text-[12.5px] font-bold text-ink">{d.day} — {d.label}</span>
+                        <span className="text-[12.5px] font-bold text-ink">{localizeDay(d.day, t)} — {d.label}</span>
                       </div>
                       <div className="flex flex-col gap-1.5">
                         {d.exercises.map((e) => (
                           <div key={e.id} className="flex items-baseline justify-between gap-2">
                             <span className={`text-[12px] leading-snug ${e.adjusted ? "text-amber" : "text-muted"}`}>
-                              {e.name}{e.adjusted && " ⚠"}
+                              {localizeExercise(e, lang).name}{e.adjusted && " ⚠"}
                             </span>
                             <span className="tabular shrink-0 text-[11px] font-semibold text-faint">
                               {e.sets}×{e.reps}
@@ -566,7 +595,7 @@ export default function Onboarding({ onFinish }) {
                   haptic("light");
                   setStep((s) => Math.max(0, s - 1));
                 }}
-                aria-label="Orqaga"
+                aria-label={t("common.back")}
                 className="grid h-[52px] w-[52px] shrink-0 place-items-center rounded-2xl border border-borderSoft bg-surfaceAlt active:scale-95"
               >
                 <ChevronLeft size={20} className="text-ink" />
@@ -574,19 +603,19 @@ export default function Onboarding({ onFinish }) {
             )}
             {step < 11 ? (
               <Button full size="lg" disabled={!canNext} loading={busy} onClick={next}>
-                {step === 0 ? "Boshlash" : step === 10 ? "AI bilan reja tuzish" : "Davom etish"}
+                {step === 0 ? t("onboarding.start") : step === 10 ? t("onboarding.finish") : t("onboarding.next")}
                 {step === 10 ? <Sparkles size={17} /> : <ChevronRight size={18} />}
               </Button>
             ) : (
               <div className="flex w-full flex-col gap-2">
                 <Button full size="lg" loading={busy} onClick={finish}>
-                  Rejani saqlash va boshlash 🚀
+                  {t("onboarding.savePlan")}
                 </Button>
                 <button
                   onClick={() => onFinish?.()}
                   className="py-1.5 text-center text-[12px] font-semibold text-faint"
                 >
-                  Hozircha o'tkazib yuborish
+                  {t("onboarding.skip")}
                 </button>
               </div>
             )}

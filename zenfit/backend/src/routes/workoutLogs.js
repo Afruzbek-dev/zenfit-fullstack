@@ -3,6 +3,7 @@ import { query, queryOne } from "../db.js";
 import { requireAuth } from "../middleware/auth.js";
 import { mapWorkoutLog, mapExerciseSet } from "../lib/mappers.js";
 import { dayRange } from "../lib/stats.js";
+import { computeStrengthKcal } from "../lib/activities.js";
 
 const router = Router();
 
@@ -40,17 +41,27 @@ router.get("/history", requireAuth, async (req, res, next) => {
  */
 router.post("/", requireAuth, async (req, res, next) => {
   try {
-    const { exerciseId, exerciseName, emoji, kcal, setsCompleted, planDay, sets } = req.body || {};
+    const { exerciseId, exerciseName, emoji, compound, setsCompleted, planDay, sets } = req.body || {};
     if (!exerciseName) return res.status(400).json({ error: "exerciseName_required" });
+
+    const doneSets = Number.isFinite(setsCompleted) ? setsCompleted : (Array.isArray(sets) ? sets.length : null);
+
+    // Burned calories are derived here, never taken from the request. A client
+    // figure would be both forgeable and stale the moment the model is tuned —
+    // cardio has always worked this way and strength now matches it.
+    const profile = await queryOne(`SELECT weight_kg FROM profiles WHERE user_id = $1`, [req.userId]);
+    const kcal = computeStrengthKcal({
+      setsCompleted: doneSets,
+      compound: Boolean(compound),
+      weightKg: Number(profile?.weight_kg) || undefined,
+    });
 
     const logRows = await query(
       `INSERT INTO workout_logs (user_id, exercise_id, exercise_name, emoji, kcal, sets_completed, plan_day)
        VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
       [
         req.userId, exerciseId || null, String(exerciseName).slice(0, 120), emoji || null,
-        Number.isFinite(kcal) ? Math.round(kcal) : 0,
-        Number.isFinite(setsCompleted) ? setsCompleted : (Array.isArray(sets) ? sets.length : null),
-        planDay || null,
+        kcal, doneSets, planDay || null,
       ]
     );
     const log = logRows[0];

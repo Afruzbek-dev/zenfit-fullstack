@@ -82,6 +82,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   notif_meal           INTEGER NOT NULL DEFAULT 1,
   notif_water          INTEGER NOT NULL DEFAULT 0,
   notif_tips           INTEGER NOT NULL DEFAULT 1,
+  neat_confirmed       INTEGER NOT NULL DEFAULT 0,
   onboarding_completed INTEGER NOT NULL DEFAULT 0,
   updated_at           TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
 );

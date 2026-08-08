@@ -47,7 +47,7 @@ router.post("/", requireAuth, async (req, res, next) => {
          fitness_level = $11, equipment = $12, days_per_week = $13,
          session_duration = $14, injuries = $15,
          target_weight_kg = $16, target_date = $17,
-         onboarding_completed = true, updated_at = now()
+         neat_confirmed = true, onboarding_completed = true, updated_at = now()
        WHERE user_id = $18`,
       [
         gender, age, heightCm, weightKg, activityLevel, goal,

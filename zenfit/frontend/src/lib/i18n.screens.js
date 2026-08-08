@@ -25,6 +25,12 @@ export const uz = {
     scannedMeal: "Skanerlangan taom", unknown: "Aniqlanmadi",
     addToDiary: "Kunlik hisobga qo'shish", retry: "Boshqa rasm",
     freeLeft: "bepul", estimateNote: "Bu taxminiy hisob — aniq o'lchov uchun tarozidan foydalaning.",
+    shoot: "Rasmga olish", shootHint: "Taomni tepadan, yaxshi yorug'likda suratga oling",
+    fromGallery: "Galereyadan tanlash", askAi: "AI dan so'rash",
+    analyzingHint: "Bu odatda 3-5 soniya oladi",
+    quotaTitle: "Bepul limit tugadi",
+    quotaDesc: "AI skanerdan cheksiz foydalanish uchun ZenFit Premium'ni faollashtiring.",
+    aboutPremium: "Premium haqida", confidence: "ishonch", portion: "Porsiya",
   },
 
   progress: {
@@ -65,6 +71,14 @@ export const uz = {
     portion: "Porsiya", addPortion: "Qo'shish", nothingFound: "Hech narsa topilmadi",
     nothingFoundDesc: "Filtr yoki qidiruv so'zini o'zgartirib ko'ring.",
     ingredients: "Masalliqlar", steps: "Tayyorlash",
+    showMore: "Ko'proq ko'rish", per100: "100 g uchun", grams: "Gramm",
+    approxValue: "Taxminiy qiymat", stableValue: "Barqaror qiymat",
+    catalogueNote: "Qiymatlar mahsulot tarkibi jadvallaridan olingan. Brend va tayyorlash usuliga qarab farq qilishi mumkin.",
+    cats: {
+      all: "Barchasi", national: "Milliy taom", meat: "Go'sht", fish: "Baliq", dairy: "Sut mahsulotlari",
+      grain: "Yorma va non", veg: "Sabzavot", fruit: "Meva", nut: "Yong'oq va moy",
+      sweet: "Shirinlik", drink: "Ichimlik", fast: "Fastfud",
+    },
   },
 
   onboarding: {
@@ -74,7 +88,7 @@ export const uz = {
     genderTitle: "Jinsingiz?", genderDesc: "Kaloriya hisobi shunga bog'liq",
     bodyTitle: "Tana ko'rsatkichlari", bodyDesc: "Aniq hisob uchun kerak",
     age: "Yosh", height: "Bo'y (sm)", weight: "Vazn (kg)",
-    activityTitle: "Kunlik faolligingiz?", activityDesc: "Ish va mashqdan tashqari harakatingiz",
+    activityTitle: "Kunlik faolligingiz?", activityDesc: "Ish va yurish — mashqsiz kundalik hayotingiz",
     goalTitle: "Asosiy maqsadingiz?", goalDesc: "Kaloriya va mashq rejasi shunga moslashtiriladi",
     targetTitle: "Qaysi vaznga yetmoqchisiz?",
     targetBy: "Taxminan {date}gacha",
@@ -90,6 +104,64 @@ export const uz = {
     injuriesPlaceholder: "Masalan: tizza og'riydi (ixtiyoriy)",
     thinking: "AI reja tuzmoqda…",
     planReady: "Rejangiz tayyor 🚀", saveFailed: "Saqlashda xatolik",
+
+    bullets: [
+      "Shaxsiy kaloriya va makro me'yori",
+      "Vazningizga mos og'irliklar (kg) bilan mashq rejasi",
+      "Taom rasmini skanerlab kaloriya hisoblash",
+    ],
+    male: "Erkak", female: "Ayol",
+    ageUnit: "yosh", rangeHint: "{min}-{max} oralig'ida bo'lishi kerak",
+
+    goals: {
+      lose: { title: "Ozish", desc: "Yog' yo'qotish va vazn kamaytirish" },
+      maintain: { title: "Vaznni saqlash", desc: "Shakl va tonusni ushlab turish" },
+      gain: { title: "Massa yig'ish", desc: "Mushak massasini oshirish" },
+    },
+    // Deliberately about the day, not about training: sessions are logged and
+    // credited separately, so counting them here too would pay twice.
+    activityNote: "Mashqlarni bu yerga qo'shmang — ular belgilaganingizda alohida qo'shiladi.",
+    activities: {
+      sedentary: { title: "Harakatsiz", desc: "Ofis ishi, kuniga 5000 qadamdan kam" },
+      light: { title: "Yengil", desc: "Qisman oyoqda, kuniga 5-8 ming qadam" },
+      moderate: { title: "O'rtacha", desc: "Kun bo'yi yurish — sotuvchi, kuryer, o'qituvchi" },
+      active: { title: "Faol", desc: "Jismoniy ish — quruvchi, omborchi" },
+      very_active: { title: "Juda faol", desc: "Og'ir jismoniy mehnat, kun bo'yi yuk ko'tarish" },
+    },
+    levels: {
+      beginner: { title: "Yangi boshlovchi", desc: "1 yildan kam tajriba" },
+      intermediate: { title: "O'rta daraja", desc: "1-2 yil muntazam mashq" },
+      advanced: { title: "Tajribali", desc: "2+ yil intensiv mashq" },
+    },
+    days: {
+      3: { title: "2-3 kun", desc: "Full Body split" },
+      4: { title: "4 kun", desc: "Upper / Lower split" },
+      5: { title: "5-6 kun", desc: "Push / Pull / Legs split" },
+    },
+    equipments: {
+      "home-none": { title: "Uyda, jihozsiz", desc: "Faqat tana vazni bilan" },
+      "home-dumbbell": { title: "Uyda, gantel bilan", desc: "Gantel va turnik" },
+      gym: { title: "Sport zali", desc: "Shtanga, gantel, trenajyorlar" },
+      outdoor: { title: "Ochiq havoda", desc: "Turnik, yugurish" },
+    },
+    durations: {
+      30: { title: "~30 daqiqa", desc: "4-5 mashq" },
+      60: { title: "45-60 daqiqa", desc: "5-6 mashq" },
+      90: { title: "60-90 daqiqa", desc: "6-7 mashq" },
+    },
+    injuryTags: { tizza: "Tizza", bel: "Bel", yelka: "Yelka" },
+    injuryWarn: "Jiddiy jarohat bo'lsa, mashq boshlashdan oldin shifokor bilan maslahatlashing.",
+
+    decrease: "Kamaytirish", increase: "Oshirish", targetWeightLabel: "Maqsad vazni",
+    monthsSuffix: " (~{months} oy)",
+    thinkingDesc: "{kg} kg vazningiz va maqsadingiz asosida og'irliklar hisoblanmoqda",
+    nextSteps: "Endi mashq rejangizni tuzamiz — bu 5 ta qisqa savol.",
+    planPersonal: "Shaxsiy rejangiz tayyor!",
+    planBasedOn: "{kg} kg vazningiz asosida boshlang'ich og'irliklar hisoblandi",
+    weeklyPlan: "Haftalik reja",
+    repsRest: "{reps} takror • {rest} dam",
+    matchedProgram: "{title} dasturi ham sizga {percent}% mos — Mashqlar bo'limidan almashtira olasiz.",
+    savePlan: "Rejani saqlash va boshlash 🚀",
   },
 };
 
@@ -112,6 +184,12 @@ export const ru = {
     scannedMeal: "Отсканированное блюдо", unknown: "Не определено",
     addToDiary: "Добавить в дневник", retry: "Другое фото",
     freeLeft: "бесплатно", estimateNote: "Это оценка — для точности используйте весы.",
+    shoot: "Сделать фото", shootHint: "Снимайте блюдо сверху, при хорошем свете",
+    fromGallery: "Выбрать из галереи", askAi: "Спросить AI",
+    analyzingHint: "Обычно это занимает 3-5 секунд",
+    quotaTitle: "Бесплатный лимит исчерпан",
+    quotaDesc: "Активируйте ZenFit Premium для безлимитного AI-сканера.",
+    aboutPremium: "О Premium", confidence: "точность", portion: "Порция",
   },
 
   progress: {
@@ -152,6 +230,14 @@ export const ru = {
     portion: "Порция", addPortion: "Добавить", nothingFound: "Ничего не найдено",
     nothingFoundDesc: "Измените фильтр или поисковый запрос.",
     ingredients: "Ингредиенты", steps: "Приготовление",
+    showMore: "Показать ещё", per100: "на 100 г", grams: "Граммы",
+    approxValue: "Приблизительное значение", stableValue: "Стабильное значение",
+    catalogueNote: "Значения взяты из таблиц состава продуктов. Могут отличаться в зависимости от бренда и способа приготовления.",
+    cats: {
+      all: "Все", national: "Национальные", meat: "Мясо", fish: "Рыба", dairy: "Молочное",
+      grain: "Крупы и хлеб", veg: "Овощи", fruit: "Фрукты", nut: "Орехи и масла",
+      sweet: "Сладкое", drink: "Напитки", fast: "Фастфуд",
+    },
   },
 
   onboarding: {
@@ -161,7 +247,7 @@ export const ru = {
     genderTitle: "Ваш пол?", genderDesc: "От этого зависит расчёт калорий",
     bodyTitle: "Параметры тела", bodyDesc: "Нужны для точного расчёта",
     age: "Возраст", height: "Рост (см)", weight: "Вес (кг)",
-    activityTitle: "Ваша дневная активность?", activityDesc: "Движение помимо работы и тренировок",
+    activityTitle: "Ваша дневная активность?", activityDesc: "Работа и ходьба — ваш день без тренировок",
     goalTitle: "Ваша главная цель?", goalDesc: "Калории и план тренировок подстроятся под неё",
     targetTitle: "К какому весу хотите прийти?",
     targetBy: "Примерно к {date}",
@@ -177,6 +263,62 @@ export const ru = {
     injuriesPlaceholder: "Например: болит колено (необязательно)",
     thinking: "AI составляет план…",
     planReady: "Ваш план готов 🚀", saveFailed: "Ошибка сохранения",
+
+    bullets: [
+      "Личная норма калорий и БЖУ",
+      "План тренировок с весами под ваш вес",
+      "Подсчёт калорий по фото блюда",
+    ],
+    male: "Мужской", female: "Женский",
+    ageUnit: "лет", rangeHint: "Должно быть от {min} до {max}",
+
+    goals: {
+      lose: { title: "Похудение", desc: "Сжечь жир и снизить вес" },
+      maintain: { title: "Поддержание веса", desc: "Сохранить форму и тонус" },
+      gain: { title: "Набор массы", desc: "Нарастить мышцы" },
+    },
+    activityNote: "Тренировки сюда не считайте — они добавляются отдельно, когда вы их отмечаете.",
+    activities: {
+      sedentary: { title: "Малоподвижный", desc: "Офисная работа, меньше 5000 шагов в день" },
+      light: { title: "Лёгкий", desc: "Частично на ногах, 5-8 тысяч шагов в день" },
+      moderate: { title: "Средний", desc: "Весь день на ногах — продавец, курьер, учитель" },
+      active: { title: "Активный", desc: "Физическая работа — строитель, кладовщик" },
+      very_active: { title: "Очень активный", desc: "Тяжёлый физический труд, весь день с грузом" },
+    },
+    levels: {
+      beginner: { title: "Начинающий", desc: "Меньше года опыта" },
+      intermediate: { title: "Средний", desc: "1-2 года регулярных тренировок" },
+      advanced: { title: "Опытный", desc: "2+ года интенсивных тренировок" },
+    },
+    days: {
+      3: { title: "2-3 дня", desc: "Full Body split" },
+      4: { title: "4 дня", desc: "Upper / Lower split" },
+      5: { title: "5-6 дней", desc: "Push / Pull / Legs split" },
+    },
+    equipments: {
+      "home-none": { title: "Дома, без инвентаря", desc: "Только вес тела" },
+      "home-dumbbell": { title: "Дома, с гантелями", desc: "Гантели и турник" },
+      gym: { title: "Спортзал", desc: "Штанга, гантели, тренажёры" },
+      outdoor: { title: "На улице", desc: "Турник, бег" },
+    },
+    durations: {
+      30: { title: "~30 минут", desc: "4-5 упражнений" },
+      60: { title: "45-60 минут", desc: "5-6 упражнений" },
+      90: { title: "60-90 минут", desc: "6-7 упражнений" },
+    },
+    injuryTags: { tizza: "Колено", bel: "Поясница", yelka: "Плечо" },
+    injuryWarn: "При серьёзной травме сначала проконсультируйтесь с врачом.",
+
+    decrease: "Уменьшить", increase: "Увеличить", targetWeightLabel: "Целевой вес",
+    monthsSuffix: " (~{months} мес.)",
+    thinkingDesc: "Веса рассчитываются по вашему весу {kg} кг и цели",
+    nextSteps: "Теперь составим план тренировок — это 5 коротких вопросов.",
+    planPersonal: "Ваш персональный план готов!",
+    planBasedOn: "Стартовые веса рассчитаны по вашему весу {kg} кг",
+    weeklyPlan: "План на неделю",
+    repsRest: "{reps} повт. • отдых {rest}",
+    matchedProgram: "Программа «{title}» подходит вам на {percent}% — заменить можно в разделе «Тренировки».",
+    savePlan: "Сохранить план и начать 🚀",
   },
 };
 
@@ -199,6 +341,12 @@ export const en = {
     scannedMeal: "Scanned meal", unknown: "Unknown",
     addToDiary: "Add to today's log", retry: "Another photo",
     freeLeft: "free", estimateNote: "This is an estimate — use a scale when you need precision.",
+    shoot: "Take a photo", shootHint: "Shoot the dish from above, in good light",
+    fromGallery: "Choose from gallery", askAi: "Ask the AI",
+    analyzingHint: "This usually takes 3-5 seconds",
+    quotaTitle: "Free limit reached",
+    quotaDesc: "Activate ZenFit Premium for unlimited AI scanning.",
+    aboutPremium: "About Premium", confidence: "confidence", portion: "Portion",
   },
 
   progress: {
@@ -239,6 +387,14 @@ export const en = {
     portion: "Portion", addPortion: "Add", nothingFound: "Nothing found",
     nothingFoundDesc: "Try a different filter or search term.",
     ingredients: "Ingredients", steps: "Method",
+    showMore: "Show more", per100: "per 100 g", grams: "Grams",
+    approxValue: "Approximate value", stableValue: "Reliable value",
+    catalogueNote: "Values come from food composition tables. They vary with brand and how the food is prepared.",
+    cats: {
+      all: "All", national: "Local dishes", meat: "Meat", fish: "Fish", dairy: "Dairy",
+      grain: "Grains & bread", veg: "Vegetables", fruit: "Fruit", nut: "Nuts & oils",
+      sweet: "Sweets", drink: "Drinks", fast: "Fast food",
+    },
   },
 
   onboarding: {
@@ -248,7 +404,7 @@ export const en = {
     genderTitle: "Your sex?", genderDesc: "The calorie maths depends on it",
     bodyTitle: "Body metrics", bodyDesc: "Needed for an accurate calculation",
     age: "Age", height: "Height (cm)", weight: "Weight (kg)",
-    activityTitle: "How active are your days?", activityDesc: "Movement outside work and training",
+    activityTitle: "How active are your days?", activityDesc: "Work and walking — your day outside training",
     goalTitle: "Your main goal?", goalDesc: "Calories and training adapt to it",
     targetTitle: "What weight are you aiming for?",
     targetBy: "Around {date}",
@@ -264,5 +420,61 @@ export const en = {
     injuriesPlaceholder: "e.g. sore knee (optional)",
     thinking: "AI is building your plan…",
     planReady: "Your plan is ready 🚀", saveFailed: "Could not save",
+
+    bullets: [
+      "A calorie and macro target that fits you",
+      "A training plan with weights matched to your bodyweight",
+      "Calorie counting from a photo of your food",
+    ],
+    male: "Male", female: "Female",
+    ageUnit: "years", rangeHint: "Must be between {min} and {max}",
+
+    goals: {
+      lose: { title: "Lose weight", desc: "Drop fat and bring your weight down" },
+      maintain: { title: "Maintain weight", desc: "Hold your shape and condition" },
+      gain: { title: "Build muscle", desc: "Add muscle mass" },
+    },
+    activityNote: "Don't count training here — sessions are added separately when you log them.",
+    activities: {
+      sedentary: { title: "Sedentary", desc: "Desk job, under 5,000 steps a day" },
+      light: { title: "Light", desc: "Partly on your feet, 5-8k steps a day" },
+      moderate: { title: "Moderate", desc: "On your feet all day — shop work, courier, teaching" },
+      active: { title: "Active", desc: "Physical job — construction, warehouse" },
+      very_active: { title: "Very active", desc: "Heavy manual labour, lifting all day" },
+    },
+    levels: {
+      beginner: { title: "Beginner", desc: "Less than a year of training" },
+      intermediate: { title: "Intermediate", desc: "1-2 years training regularly" },
+      advanced: { title: "Advanced", desc: "2+ years of serious training" },
+    },
+    days: {
+      3: { title: "2-3 days", desc: "Full body split" },
+      4: { title: "4 days", desc: "Upper / lower split" },
+      5: { title: "5-6 days", desc: "Push / pull / legs split" },
+    },
+    equipments: {
+      "home-none": { title: "At home, no kit", desc: "Bodyweight only" },
+      "home-dumbbell": { title: "At home, with dumbbells", desc: "Dumbbells and a pull-up bar" },
+      gym: { title: "Gym", desc: "Barbell, dumbbells, machines" },
+      outdoor: { title: "Outdoors", desc: "Pull-up bar, running" },
+    },
+    durations: {
+      30: { title: "~30 minutes", desc: "4-5 exercises" },
+      60: { title: "45-60 minutes", desc: "5-6 exercises" },
+      90: { title: "60-90 minutes", desc: "6-7 exercises" },
+    },
+    injuryTags: { tizza: "Knee", bel: "Lower back", yelka: "Shoulder" },
+    injuryWarn: "If the injury is serious, see a doctor before you start training.",
+
+    decrease: "Decrease", increase: "Increase", targetWeightLabel: "Goal weight",
+    monthsSuffix: " (~{months} months)",
+    thinkingDesc: "Working out your weights from {kg} kg and your goal",
+    nextSteps: "Now let's build your training plan — five short questions.",
+    planPersonal: "Your personal plan is ready!",
+    planBasedOn: "Starting weights calculated from your {kg} kg",
+    weeklyPlan: "Your week",
+    repsRest: "{reps} reps • {rest} rest",
+    matchedProgram: "The {title} programme is also a {percent}% match — you can switch in Workouts.",
+    savePlan: "Save the plan and start 🚀",
   },
 };

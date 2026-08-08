@@ -170,14 +170,14 @@ export default function ScanScreen({ onNavigate }) {
                 <Camera size={28} className="text-neonOn" />
               </span>
             </span>
-            <span className="font-display text-[16px] font-bold text-ink">Rasmga olish</span>
+            <span className="font-display text-[16px] font-bold text-ink">{t("scan.shoot")}</span>
             <span className="max-w-[240px] text-center text-[12px] leading-relaxed text-muted">
-              Taomni tepadan, yaxshi yorug'likda suratga oling
+              {t("scan.shootHint")}
             </span>
           </button>
 
           <Button full variant="ghost" onClick={() => galleryRef.current?.click()}>
-            <ImageIcon size={16} /> Galereyadan tanlash
+            <ImageIcon size={16} /> {t("scan.fromGallery")}
           </Button>
 
           <Section title={t("scan.tipsTitle")} className="mt-6">
@@ -204,7 +204,7 @@ export default function ScanScreen({ onNavigate }) {
             />
           </div>
           <Button full size="lg" loading={busy} disabled={text.trim().length < 2} onClick={askText}>
-            <Sparkles size={16} /> AI dan so'rash
+            <Sparkles size={16} /> {t("scan.askAi")}
           </Button>
         </>
       )}
@@ -218,8 +218,8 @@ export default function ScanScreen({ onNavigate }) {
       {busy && (
         <div className="card flex flex-col items-center gap-3 px-6 py-8">
           <Loader2 size={26} className="animate-spin text-neon" />
-          <p className="font-display text-[14px] font-bold text-ink">AI tahlil qilmoqda…</p>
-          <p className="text-[12px] text-muted">Bu odatda 3-5 soniya oladi</p>
+          <p className="font-display text-[14px] font-bold text-ink">{t("scan.analyzing")}</p>
+          <p className="text-[12px] text-muted">{t("scan.analyzingHint")}</p>
         </div>
       )}
 
@@ -228,12 +228,12 @@ export default function ScanScreen({ onNavigate }) {
           <span className="mb-3 grid h-14 w-14 place-items-center rounded-2xl bg-amber/15">
             <Crown size={24} className="text-amber" />
           </span>
-          <p className="font-display text-[16px] font-bold text-ink">Bepul limit tugadi</p>
+          <p className="font-display text-[16px] font-bold text-ink">{t("scan.quotaTitle")}</p>
           <p className="mt-1.5 max-w-[260px] text-[12.5px] leading-relaxed text-muted">
-            AI skanerdan cheksiz foydalanish uchun ZenFit Premium'ni faollashtiring.
+            {t("scan.quotaDesc")}
           </p>
           <Button className="mt-4" full onClick={() => onNavigate("profile")}>
-            <Crown size={15} /> Premium haqida
+            <Crown size={15} /> {t("scan.aboutPremium")}
           </Button>
         </div>
       )}
@@ -251,7 +251,7 @@ export default function ScanScreen({ onNavigate }) {
               Icon={Camera}
               title={t("scan.notDetected")}
               desc={t("scan.notDetectedDesc")}
-              action={<Button full onClick={reset}><RotateCcw size={15} /> Qayta urinish</Button>}
+              action={<Button full onClick={reset}><RotateCcw size={15} /> {t("scan.retry")}</Button>}
             />
           ) : (
             <>
@@ -265,7 +265,7 @@ export default function ScanScreen({ onNavigate }) {
                   </div>
                   {Number.isFinite(result.confidence) && (
                     <span className="shrink-0 rounded-lg bg-surfaceAlt px-2 py-1 text-[10.5px] font-bold text-muted">
-                      {result.confidence}% ishonch
+                      {result.confidence}% {t("scan.confidence")}
                     </span>
                   )}
                 </div>
@@ -295,7 +295,7 @@ export default function ScanScreen({ onNavigate }) {
                 )}
 
                 <div className="mt-4">
-                  <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-faint">Porsiya</p>
+                  <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-faint">{t("scan.portion")}</p>
                   <div className="flex gap-2">
                     {[0.5, 1, 1.5, 2].map((p) => (
                       <button
@@ -314,7 +314,7 @@ export default function ScanScreen({ onNavigate }) {
 
               <div className="flex gap-2.5">
                 <Button variant="ghost" onClick={reset}><RotateCcw size={15} /></Button>
-                <Button full size="lg" onClick={save}><Check size={17} /> Dietaga qo'shish</Button>
+                <Button full size="lg" onClick={save}><Check size={17} /> {t("scan.addToDiary")}</Button>
               </div>
             </>
           )}

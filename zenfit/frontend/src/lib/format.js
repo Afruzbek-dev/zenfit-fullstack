@@ -1,27 +1,43 @@
 /**
- * Uzbek date helpers. Intl does not ship a reliable `uz-UZ` locale in every
- * WebView (Telegram's Android client included), where it falls back to output
- * like "M08 6, Thu" — so the names are spelled out here instead.
+ * Date helpers. Intl does not ship a reliable `uz-UZ` locale in every WebView
+ * (Telegram's Android client included), where it falls back to output like
+ * "M08 6, Thu" — so the names are spelled out here instead. Russian and
+ * English are spelled out alongside it rather than mixing two mechanisms.
  */
 
-const MONTHS = [
-  "yanvar", "fevral", "mart", "aprel", "may", "iyun",
-  "iyul", "avgust", "sentabr", "oktabr", "noyabr", "dekabr",
-];
+const MONTHS = {
+  uz: ["yanvar", "fevral", "mart", "aprel", "may", "iyun", "iyul", "avgust", "sentabr", "oktabr", "noyabr", "dekabr"],
+  ru: ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"],
+  en: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+};
 
-const WEEKDAYS = ["yakshanba", "dushanba", "seshanba", "chorshanba", "payshanba", "juma", "shanba"];
+const WEEKDAYS = {
+  uz: ["yakshanba", "dushanba", "seshanba", "chorshanba", "payshanba", "juma", "shanba"],
+  ru: ["воскресенье", "понедельник", "вторник", "среда", "четверг", "пятница", "суббота"],
+  en: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+};
 
 export const WEEKDAYS_SHORT = ["Ya", "Du", "Se", "Ch", "Pa", "Ju", "Sh"];
 
-/** e.g. "6-avgust, payshanba" */
-export function uzFullDate(date = new Date()) {
-  return `${date.getDate()}-${MONTHS[date.getMonth()]}, ${WEEKDAYS[date.getDay()]}`;
+const pick = (table, lang) => table[lang] || table.uz;
+
+/** e.g. "6-avgust, payshanba" · "6 августа, четверг" · "Thursday, 6 August" */
+export function fullDate(date = new Date(), lang = "uz") {
+  const month = pick(MONTHS, lang)[date.getMonth()];
+  const weekday = pick(WEEKDAYS, lang)[date.getDay()];
+  if (lang === "en") return `${weekday}, ${date.getDate()} ${month}`;
+  if (lang === "ru") return `${date.getDate()} ${month}, ${weekday}`;
+  return `${date.getDate()}-${month}, ${weekday}`;
 }
 
-/** e.g. "6-avgust" */
-export function uzShortDate(date = new Date()) {
-  return `${date.getDate()}-${MONTHS[date.getMonth()]}`;
+/** e.g. "6-avgust" · "6 августа" · "6 August" */
+export function shortDate(date = new Date(), lang = "uz") {
+  const month = pick(MONTHS, lang)[date.getMonth()];
+  return lang === "uz" ? `${date.getDate()}-${month}` : `${date.getDate()} ${month}`;
 }
+
+export const uzFullDate = (date = new Date()) => fullDate(date, "uz");
+export const uzShortDate = (date = new Date()) => shortDate(date, "uz");
 
 /** Thousands separator that matches local convention (space). */
 export function uzNumber(n) {

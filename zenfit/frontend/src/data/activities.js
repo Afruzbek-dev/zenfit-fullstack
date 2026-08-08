@@ -79,8 +79,9 @@ function metFor(activityId, intensity, durationMin, distanceKm) {
   return 10.0;
 }
 
+/** Net of resting metabolism — see backend/src/lib/activities.js for why. */
 export function estimateKcal({ activityId, intensity, durationMin, distanceKm, weightKg }) {
   const weight = Number(weightKg) > 0 ? Number(weightKg) : 70;
   const met = metFor(activityId, intensity, durationMin, distanceKm);
-  return Math.max(0, Math.round(((met * 3.5 * weight) / 200) * durationMin));
+  return Math.max(0, Math.round((((met - 1) * 3.5 * weight) / 200) * durationMin));
 }

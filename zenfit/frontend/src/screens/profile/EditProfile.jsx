@@ -142,6 +142,12 @@ export default function EditProfile({ onBack }) {
             </Chip>
           ))}
         </div>
+        {/* Same wording as onboarding: without it the chips read as "how often
+            do you train", which is what this field used to mean. */}
+        <p className="mt-2 text-[11.5px] leading-relaxed text-faint">
+          {form.activityLevel ? t(`onboarding.activities.${form.activityLevel}.desc`) : ""}
+        </p>
+        <p className="mt-1 text-[11.5px] leading-relaxed text-faint">{t("onboarding.activityNote")}</p>
       </Section>
 
       <Section title={t("profile.level")}>

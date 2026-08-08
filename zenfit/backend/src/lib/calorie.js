@@ -1,9 +1,24 @@
+/**
+ * These describe daily life WITHOUT training — the job, the walking, the
+ * housework. Training is not in here on purpose.
+ *
+ * The familiar Harris-Benedict ladder (1.2 … 1.9) bakes workouts into the
+ * multiplier: 1.55 literally means "moderate exercise 3-5 days a week". This
+ * app also logs every session and credits it back to the daily budget, so
+ * using that ladder paid for the same workout twice — once in the target and
+ * again when it was logged. A user training five times a week could be handed
+ * ~700 phantom kcal before eating anything.
+ *
+ * So the base is now occupational/NEAT only and the top of the ladder is
+ * correspondingly lower; what a session costs arrives from lib/activities.js
+ * when it actually happens.
+ */
 const ACTIVITY_MULTIPLIERS = {
-  sedentary: 1.2,     // deyarli harakatsiz, ofis ishi
-  light: 1.375,       // haftasiga 1-3 marta yengil mashq
-  moderate: 1.55,     // haftasiga 3-5 marta mashq
-  active: 1.725,      // haftasiga 6-7 marta mashq
-  very_active: 1.9,   // fizik og'ir ish + kundalik mashq
+  sedentary: 1.2,     // ofis ishi, kuniga ~5000 qadamdan kam
+  light: 1.3,         // qisman oyoqda, kuniga 5-8 ming qadam
+  moderate: 1.45,     // kun bo'yi yurish — sotuvchi, kuryer, o'qituvchi
+  active: 1.6,        // jismoniy ish — quruvchi, omborchi
+  very_active: 1.75,  // og'ir jismoniy mehnat, kun bo'yi yuk ko'tarish
 };
 
 export function calculateBMR({ gender, age, heightCm, weightKg }) {

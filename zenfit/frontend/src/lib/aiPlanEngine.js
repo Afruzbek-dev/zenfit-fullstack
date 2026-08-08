@@ -74,11 +74,32 @@ export function progressWeight({ exerciseId, lastSets, topReps, fallbackKg }) {
 
 /* ------------------------------ rep rules ------------------------------ */
 
+/**
+ * `noteKey` is what the UI translates; `note` stays as the Uzbek fallback so a
+ * plan generated before this existed — plans are stored as JSON and are not
+ * regenerated on upgrade — still renders a sentence rather than a blank.
+ */
 export const REP_RULES = {
-  lose: { reps: "12-15", topReps: 15, rest: "45-60s", note: "Yuqori takror + mashqdan keyin 15-20 daqiqa kardio qo'shing." },
-  maintain: { reps: "8-12", topReps: 12, rest: "60-90s", note: "Muvozanatli hajm — texnikaga e'tibor bering." },
-  gain: { reps: "6-10", topReps: 10, rest: "90-120s", note: "Og'irlikni har hafta asta oshirib boring." },
+  lose: { reps: "12-15", topReps: 15, rest: "45-60s", noteKey: "lose", note: "Yuqori takror + mashqdan keyin 15-20 daqiqa kardio qo'shing." },
+  maintain: { reps: "8-12", topReps: 12, rest: "60-90s", noteKey: "maintain", note: "Muvozanatli hajm — texnikaga e'tibor bering." },
+  gain: { reps: "6-10", topReps: 10, rest: "90-120s", noteKey: "gain", note: "Og'irlikni har hafta asta oshirib boring." },
 };
+
+/**
+ * Day labels are stored inside the plan JSON as "1-kun", so they cannot simply
+ * be re-keyed without invalidating every saved plan. Parsing the number back
+ * out localizes old and new plans alike.
+ */
+export function localizeDay(day, t) {
+  const n = parseInt(day, 10);
+  return Number.isFinite(n) ? t("workout.dayN", { n }) : day;
+}
+
+/** Same fallback rule as rulesNote: stored plans keep their Uzbek title. */
+export const planTitle = (plan, t) => (plan?.titleKey ? t("workout.planTitle") : plan?.title || "");
+
+export const rulesNote = (rules, t) =>
+  rules?.noteKey ? t(`workout.rulesNote.${rules.noteKey}`) : rules?.note || "";
 
 const setsFor = (level, isCompound) => (level === "beginner" ? 3 : isCompound ? 4 : 3);
 
@@ -243,6 +264,7 @@ export function generateWorkoutPlan({
 
   return {
     title: "AI Shaxsiy Reja",
+    titleKey: "planTitle",
     createdAt: new Date().toISOString(),
     goal,
     level,
@@ -258,10 +280,16 @@ export function generateWorkoutPlan({
   };
 }
 
-/** Rough energy estimate so logging a session moves the calorie balance. */
+export const isCompound = (exerciseId) => EX_BY_ID[exerciseId]?.type === "compound";
+
+/**
+ * Preview only — the stored figure is recomputed by the server (see
+ * backend/src/lib/activities.js) so the two must agree. Net of the ~1 MET the
+ * body spends anyway during those minutes, which the daily target already
+ * covers.
+ */
 export function estimateSessionKcal(exercise, weightKg = 70) {
-  const ex = EX_BY_ID[exercise.id];
-  const met = ex?.type === "compound" ? 6 : 4;
+  const met = isCompound(exercise.id) ? 6 : 5;
   const minutes = (exercise.sets || 3) * 1.6;
-  return Math.round((met * 3.5 * weightKg) / 200 * minutes);
+  return Math.round(((met - 1) * 3.5 * weightKg) / 200 * minutes);
 }

@@ -1,14 +1,14 @@
 import { useState } from "react";
 import {
   Flame, Droplets, Dumbbell, Camera, Plus, Trash2, Minus, Activity,
-  UtensilsCrossed, TrendingUp, Sparkles, BarChart3,
+  UtensilsCrossed, TrendingUp, Sparkles, BarChart3, Info, ChevronRight,
 } from "lucide-react";
 import { Screen, ScreenHeader, Section, StatTile, ProgressRing, MacroBar, EmptyState, Skeleton, Button, ListRow } from "../components/ui.jsx";
 import ActivitySheet from "../components/ActivitySheet.jsx";
 import { ACTIVITY_BY_ID } from "../data/activities.js";
 import { useApp } from "../store.jsx";
 import { haptic } from "../telegram.js";
-import { uzFullDate } from "../lib/format.js";
+import { fullDate } from "../lib/format.js";
 
 function QuickAction({ Icon, label, onClick, tone = "surface" }) {
   const tones = {
@@ -30,7 +30,7 @@ function QuickAction({ Icon, label, onClick, tone = "surface" }) {
 }
 
 export default function HomeScreen({ onNavigate }) {
-  const { profile, summary, meals, activities, removeMeal, removeActivity, addWater, showToast, workoutPlan, t } = useApp();
+  const { profile, summary, meals, activities, removeMeal, removeActivity, addWater, showToast, workoutPlan, t, lang } = useApp();
   const [waterBusy, setWaterBusy] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
 
@@ -77,7 +77,7 @@ export default function HomeScreen({ onNavigate }) {
     <Screen>
       <ScreenHeader
         title={greeting}
-        subtitle={uzFullDate()}
+        subtitle={fullDate(new Date(), lang)}
         action={
           summary.streak > 0 && (
             <span className="flex shrink-0 items-center gap-1 rounded-full border border-amber/30 bg-amber/12 px-2.5 py-1.5">
@@ -99,20 +99,22 @@ export default function HomeScreen({ onNavigate }) {
           </div>
         </ProgressRing>
 
+        {/* The signs spell out the arithmetic behind the ring: training adds
+            to the budget, food takes from it. */}
         <div className="mt-4 flex w-full items-center justify-center gap-5 text-center">
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-faint">{t("home.eaten")}</p>
-            <p className="tabular text-[15px] font-bold text-ink">{eaten}</p>
-          </div>
-          <span className="h-8 w-px bg-borderSoft" />
           <div>
             <p className="text-[10px] font-bold uppercase tracking-wider text-faint">{t("home.target")}</p>
             <p className="tabular text-[15px] font-bold text-ink">{target}</p>
           </div>
-          <span className="h-8 w-px bg-borderSoft" />
+          <span className="text-[13px] font-bold text-faint">+</span>
           <div>
             <p className="text-[10px] font-bold uppercase tracking-wider text-faint">{t("home.burned")}</p>
             <p className="tabular text-[15px] font-bold text-cyan">{summary.burned}</p>
+          </div>
+          <span className="text-[13px] font-bold text-faint">−</span>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-faint">{t("home.eaten")}</p>
+            <p className="tabular text-[15px] font-bold text-amber">{eaten}</p>
           </div>
         </div>
 
@@ -122,6 +124,24 @@ export default function HomeScreen({ onNavigate }) {
           <MacroBar label={t("home.fat")} value={summary.fat} target={profile?.fatTargetG} color="rgb(var(--c-amber))" />
         </div>
       </div>
+
+      {/* The activity question changed meaning — it no longer counts workouts,
+          because those are credited when logged. Anyone who answered the old
+          version is asked once to re-check, since their stored level would
+          otherwise inflate the target. */}
+      {profile && profile.neatConfirmed === false && (
+        <button
+          onClick={() => onNavigate("profile:edit")}
+          className="mb-3 flex w-full items-start gap-3 rounded-2xl border border-amber/30 bg-amber/[0.08] px-4 py-3.5 text-left active:scale-[0.99]"
+        >
+          <Info size={16} className="mt-0.5 shrink-0 text-amber" />
+          <span className="min-w-0 flex-1">
+            <span className="block text-[12.5px] font-bold text-ink">{t("home.neatTitle")}</span>
+            <span className="mt-0.5 block text-[11.5px] leading-relaxed text-muted">{t("home.neatDesc")}</span>
+          </span>
+          <ChevronRight size={16} className="mt-0.5 shrink-0 text-amber" />
+        </button>
+      )}
 
       {/* Quick actions — the destinations that are not tabs. */}
       <div className="mb-5 flex gap-2.5">

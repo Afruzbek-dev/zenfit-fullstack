@@ -3,14 +3,16 @@ import { Sparkles, Dumbbell, Coffee, Check, Play, RefreshCw, BookOpen, ShieldAle
 import { Screen, ScreenHeader, Section, Button, Sheet, EmptyState, ListRow, ErrorNote, IconButton } from "../components/ui.jsx";
 import WorkoutSession from "./WorkoutSession.jsx";
 import ExerciseLibrary from "./ExerciseLibrary.jsx";
-import { generateWorkoutPlan } from "../lib/aiPlanEngine.js";
+import { generateWorkoutPlan, localizeDay, planTitle } from "../lib/aiPlanEngine.js";
 import { PROGRAMS } from "../data/programs.js";
 import { api } from "../api.js";
 import { haptic } from "../telegram.js";
 import { useApp } from "../store.jsx";
 import { localDateKey } from "../lib/format.js";
 
-function PlanDayCard({ item, doneCount, onOpen }) {
+function PlanDayCard({ item, doneCount, onOpen, t }) {
+  const day = localizeDay(item.day, t);
+
   if (item.rest) {
     return (
       <div className="card flex items-center gap-3 px-4 py-3.5 opacity-70">
@@ -18,8 +20,8 @@ function PlanDayCard({ item, doneCount, onOpen }) {
           <Coffee size={17} className="text-muted" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-[13.5px] font-bold text-ink">{item.day} — Dam olish</p>
-          <p className="mt-0.5 text-[11.5px] text-muted">Mushaklarni tiklash va dam olish</p>
+          <p className="text-[13.5px] font-bold text-ink">{day} — {t("workout.restDay")}</p>
+          <p className="mt-0.5 text-[11.5px] text-muted">{t("workout.restDayDesc")}</p>
         </div>
       </div>
     );
@@ -34,9 +36,9 @@ function PlanDayCard({ item, doneCount, onOpen }) {
         {complete ? <Check size={18} className="text-neon" /> : <Dumbbell size={17} className="text-muted" />}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[13.5px] font-bold text-ink">{item.day} — {item.label}</span>
+        <span className="block text-[13.5px] font-bold text-ink">{day} — {item.label}</span>
         <span className="mt-0.5 block text-[11.5px] text-muted">
-          {total} ta mashq • {doneCount}/{total} bajarildi
+          {t("workout.exercisesCount", { total, done: doneCount })}
         </span>
       </span>
       <span
@@ -44,29 +46,20 @@ function PlanDayCard({ item, doneCount, onOpen }) {
           complete ? "bg-neon/12 text-neon" : "bg-neon text-neonOn"
         }`}
       >
-        {complete ? <><Check size={12} /> Bajarildi</> : <><Play size={11} fill="currentColor" /> Boshlash</>}
+        {complete ? <><Check size={12} /> {t("workout.done")}</> : <><Play size={11} fill="currentColor" /> {t("workout.start")}</>}
       </span>
     </button>
   );
 }
 
 function RegenerateSheet({ open, onClose, onDone }) {
-  const { profile, saveWorkoutPlan, showToast } = useApp();
+  const { profile, saveWorkoutPlan, showToast, t } = useApp();
   const [days, setDays] = useState(profile?.daysPerWeek || 3);
   const [equipment, setEquipment] = useState(profile?.equipment || "home-none");
   const [busy, setBusy] = useState(false);
 
-  const dayOptions = [
-    { id: 3, label: "2-3 kun" },
-    { id: 4, label: "4 kun" },
-    { id: 5, label: "5-6 kun" },
-  ];
-  const eqOptions = [
-    { id: "home-none", label: "Jihozsiz" },
-    { id: "home-dumbbell", label: "Gantel" },
-    { id: "gym", label: "Sport zali" },
-    { id: "outdoor", label: "Ochiq havo" },
-  ];
+  const dayOptions = [3, 4, 5];
+  const eqOptions = ["home-none", "home-dumbbell", "gym", "outdoor"];
 
   async function regenerate() {
     setBusy(true);
@@ -94,61 +87,59 @@ function RegenerateSheet({ open, onClose, onDone }) {
       await saveWorkoutPlan(plan);
       await api.patchProfile({ daysPerWeek: days, equipment });
       haptic("success");
-      showToast("Yangi reja tuzildi", "success");
+      showToast(t("workout.planRegenerated"), "success");
       onDone?.();
       onClose();
     } catch (e) {
-      showToast(e.message || "Xatolik", "error");
+      showToast(e.message || t("common.error"), "error");
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <Sheet open={open} onClose={onClose} title="Rejani qayta tuzish">
-      <p className="mb-4 text-[12.5px] leading-relaxed text-muted">
-        Haftalik kun soni yoki jihozni o'zgartiring — reja darhol qayta hisoblanadi.
-      </p>
+    <Sheet open={open} onClose={onClose} title={t("workout.regenerate")}>
+      <p className="mb-4 text-[12.5px] leading-relaxed text-muted">{t("workout.regenerateDesc")}</p>
 
-      <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-faint">Haftasiga</p>
+      <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-faint">{t("workout.perWeek")}</p>
       <div className="mb-4 flex gap-2">
         {dayOptions.map((d) => (
           <button
-            key={d.id}
-            onClick={() => setDays(d.id)}
+            key={d}
+            onClick={() => setDays(d)}
             className={`flex-1 rounded-xl border px-3 py-2.5 text-[12px] font-semibold ${
-              days === d.id ? "border-neon bg-neon/12 text-neon" : "border-borderSoft bg-surfaceAlt text-muted"
+              days === d ? "border-neon bg-neon/12 text-neon" : "border-borderSoft bg-surfaceAlt text-muted"
             }`}
           >
-            {d.label}
+            {t(`onboarding.days.${d}.title`)}
           </button>
         ))}
       </div>
 
-      <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-faint">Jihoz</p>
+      <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-faint">{t("workout.equipmentLabel")}</p>
       <div className="mb-5 grid grid-cols-2 gap-2">
         {eqOptions.map((e) => (
           <button
-            key={e.id}
-            onClick={() => setEquipment(e.id)}
+            key={e}
+            onClick={() => setEquipment(e)}
             className={`rounded-xl border px-3 py-2.5 text-[12px] font-semibold ${
-              equipment === e.id ? "border-neon bg-neon/12 text-neon" : "border-borderSoft bg-surfaceAlt text-muted"
+              equipment === e ? "border-neon bg-neon/12 text-neon" : "border-borderSoft bg-surfaceAlt text-muted"
             }`}
           >
-            {e.label}
+            {t(`workout.eqShort.${e}`)}
           </button>
         ))}
       </div>
 
       <Button full size="lg" loading={busy} onClick={regenerate}>
-        <Sparkles size={16} /> Qayta tuzish
+        <Sparkles size={16} /> {t("workout.regenerateCta")}
       </Button>
     </Sheet>
   );
 }
 
 export default function WorkoutsScreen() {
-  const { workoutPlan, workoutHistory, profile, saveWorkoutPlan, showToast, subscription } = useApp();
+  const { workoutPlan, workoutHistory, profile, saveWorkoutPlan, showToast, subscription, t } = useApp();
   const [view, setView] = useState("plan"); // plan | library
   const [sessionDay, setSessionDay] = useState(null);
   const [regenOpen, setRegenOpen] = useState(false);
@@ -199,9 +190,9 @@ export default function WorkoutsScreen() {
       });
       await saveWorkoutPlan(plan);
       haptic("success");
-      showToast("AI reja tayyor 🚀", "success");
+      showToast(t("workout.planReady"), "success");
     } catch (e) {
-      showToast(e.message || "Xatolik", "error");
+      showToast(e.message || t("common.error"), "error");
     } finally {
       setCreating(false);
     }
@@ -214,7 +205,7 @@ export default function WorkoutsScreen() {
       const res = await api.enhanceWorkoutPlan(workoutPlan);
       setTips(res.enhancement);
     } catch (e) {
-      setTipsError(e.message || "AI maslahat bera olmadi");
+      setTipsError(e.message || t("workout.tipsFailed"));
     } finally {
       setTipsBusy(false);
     }
@@ -223,9 +214,9 @@ export default function WorkoutsScreen() {
   return (
     <Screen>
       <ScreenHeader
-        title="Mashqlar"
-        subtitle={workoutPlan ? "AI shaxsiy dasturingiz" : "Rejangizni tanlang"}
-        action={<IconButton Icon={BookOpen} label="Mashqlar bazasi" onClick={() => setView("library")} />}
+        title={t("workout.title")}
+        subtitle={workoutPlan ? t("workout.subtitlePlan") : t("workout.subtitleNoPlan")}
+        action={<IconButton Icon={BookOpen} label={t("workout.library")} onClick={() => setView("library")} />}
       />
 
       {!workoutPlan ? (
@@ -233,21 +224,21 @@ export default function WorkoutsScreen() {
           <Section>
             <EmptyState
               Icon={Sparkles}
-              title="Mashq rejangiz yo'q"
-              desc="AI vazningiz, tajribangiz va jihozingizga qarab haftalik reja tuzib beradi — og'irliklar kg'da ko'rsatiladi."
-              action={<Button full loading={creating} onClick={createPlan}><Sparkles size={15} /> AI reja tuzish</Button>}
+              title={t("workout.noPlan")}
+              desc={t("workout.noPlanDesc")}
+              action={<Button full loading={creating} onClick={createPlan}><Sparkles size={15} /> {t("workout.createPlan")}</Button>}
             />
           </Section>
 
-          <Section title="Yoki tayyor dasturlar">
+          <Section title={t("workout.readyPrograms")}>
             <div className="flex flex-col gap-2">
               {PROGRAMS.map((p) => (
                 <ListRow
                   key={p.id}
                   emoji={p.emoji}
                   title={p.title}
-                  subtitle={`${p.trainer} • ${p.days} kun/hafta • ${p.weeks} hafta`}
-                  onClick={() => showToast("Tayyor dasturlar tez orada — hozircha AI reja tuzing", "neutral")}
+                  subtitle={`${p.trainer} • ${t("workout.programMeta", { days: p.days, weeks: p.weeks })}`}
+                  onClick={() => showToast(t("workout.programsSoon"), "neutral")}
                 />
               ))}
             </div>
@@ -260,18 +251,22 @@ export default function WorkoutsScreen() {
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <Sparkles size={15} className="shrink-0 text-neon" />
-                  <h2 className="font-display text-[15px] font-bold text-ink">{workoutPlan.title}</h2>
+                  <h2 className="font-display text-[15px] font-bold text-ink">{planTitle(workoutPlan, t)}</h2>
                   <span className="rounded-md bg-neon/15 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wider text-neon">
-                    Faol
+                    {t("workout.active")}
                   </span>
                 </div>
                 <p className="mt-1 text-[11.5px] text-muted">
-                  Haftasiga {workoutPlan.daysPerWeek} kun • {workoutPlan.rules?.reps} takror • {workoutPlan.rules?.rest} dam
+                  {t("workout.planMeta", {
+                    days: workoutPlan.daysPerWeek,
+                    reps: workoutPlan.rules?.reps,
+                    rest: workoutPlan.rules?.rest,
+                  })}
                 </p>
               </div>
               <button
                 onClick={() => setRegenOpen(true)}
-                aria-label="Rejani qayta tuzish"
+                aria-label={t("workout.regenerate")}
                 className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-surfaceAlt active:scale-95"
               >
                 <RefreshCw size={15} className="text-muted" />
@@ -286,32 +281,33 @@ export default function WorkoutsScreen() {
             )}
           </div>
 
-          <Section title="Haftalik jadval">
+          <Section title={t("workout.weeklySchedule")}>
             <div className="flex flex-col gap-2">
               {workoutPlan.days.map((d) => (
                 <PlanDayCard
                   key={d.day}
                   item={d}
                   doneCount={doneByDay[d.day] || 0}
+                  t={t}
                   onOpen={() => setSessionDay(d)}
                 />
               ))}
             </div>
           </Section>
 
-          <Section title="AI maslahat">
+          <Section title={t("workout.aiTips")}>
             {tips ? (
               <div className="card flex flex-col gap-3 px-4 py-4">
                 <p className="text-[13px] leading-relaxed text-ink">{tips.advice}</p>
                 {tips.progressionTip && (
                   <div className="rounded-xl bg-neon/8 px-3 py-2.5">
-                    <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-neon">Og'irlikni oshirish</p>
+                    <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-neon">{t("workout.progression")}</p>
                     <p className="text-[12px] leading-relaxed text-muted">{tips.progressionTip}</p>
                   </div>
                 )}
                 {tips.warmup?.length > 0 && (
                   <div>
-                    <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-faint">Isinish</p>
+                    <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-faint">{t("workout.warmup")}</p>
                     <ul className="flex flex-col gap-1">
                       {tips.warmup.map((w, i) => (
                         <li key={i} className="text-[12px] text-muted">• {w}</li>
@@ -324,17 +320,17 @@ export default function WorkoutsScreen() {
               <>
                 {tipsError && <div className="mb-2"><ErrorNote onRetry={loadTips}>{tipsError}</ErrorNote></div>}
                 <Button full variant="ghost" loading={tipsBusy} onClick={loadTips}>
-                  <Lightbulb size={15} /> Reja bo'yicha AI maslahat olish
+                  <Lightbulb size={15} /> {t("workout.getTips")}
                 </Button>
               </>
             )}
           </Section>
 
-          <Section title="Mashqlar bazasi">
+          <Section title={t("workout.library")}>
             <ListRow
               Icon={BookOpen}
-              title="Barcha mashqlarni ko'rish"
-              subtitle="Bajarish texnikasi, xatolar va videolar"
+              title={t("workout.libraryAll")}
+              subtitle={t("workout.libraryDesc")}
               onClick={() => setView("library")}
             />
           </Section>

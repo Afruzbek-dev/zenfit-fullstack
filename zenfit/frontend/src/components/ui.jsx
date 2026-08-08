@@ -2,6 +2,9 @@ import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { X, ChevronRight, ChevronLeft, Loader2 } from "lucide-react";
 import { haptic } from "../telegram.js";
+// store.jsx does not import this module, so reaching for the context here is
+// safe — no cycle — and it keeps every screen's back button on one label.
+import { useApp } from "../store.jsx";
 
 /** Round 36px header control. Both header slots use this so they stay aligned. */
 export function IconButton({ Icon, label, onClick, tone = "muted", active }) {
@@ -24,8 +27,9 @@ export function IconButton({ Icon, label, onClick, tone = "muted", active }) {
 
 /** Header back affordance for screens that are not in the tab bar. */
 export function BackButton({ onBack }) {
+  const { t } = useApp();
   if (!onBack) return null;
-  return <IconButton Icon={ChevronLeft} label="Orqaga" onClick={onBack} />;
+  return <IconButton Icon={ChevronLeft} label={t("common.back")} onClick={onBack} />;
 }
 
 /* ------------------------------- layout ------------------------------- */

@@ -1,10 +1,20 @@
 /**
  * Cardio / free-activity calorie model.
  *
- * MET values come from the Compendium of Physical Activities. Burn is the
- * standard formula:
+ * MET values come from the Compendium of Physical Activities. The textbook
+ * formula is
  *
- *   kcal = MET × 3.5 × weightKg / 200 × minutes
+ *   gross = MET × 3.5 × weightKg / 200 × minutes
+ *
+ * but what this module returns is the NET figure:
+ *
+ *   net = (MET − 1) × 3.5 × weightKg / 200 × minutes
+ *
+ * The 1 MET removed is the energy the body spends merely existing during those
+ * minutes. That share is already paid for by the daily target, which is built
+ * on BMR — so crediting the gross number back would count resting metabolism
+ * twice. The error is worst exactly where people log the most minutes: an hour
+ * of walking at MET 3.5 is 29% too generous gross, an easy run about 10%.
  *
  * The client never sends a calorie figure — it is always computed here from
  * (activity, intensity, duration, bodyweight), so the number cannot be forged
@@ -69,5 +79,24 @@ function metFor(activityId, intensity, durationMin, distanceKm) {
 export function computeActivityKcal({ activityId, intensity, durationMin, distanceKm, weightKg }) {
   const weight = Number.isFinite(weightKg) && weightKg > 0 ? weightKg : 70;
   const met = metFor(activityId, intensity, durationMin, distanceKm);
-  return Math.max(0, Math.round((met * 3.5 * weight) / 200 * durationMin));
+  return netKcal(met, weight, durationMin);
+}
+
+/** Shared by cardio and strength so both credit the same kind of calorie. */
+export function netKcal(met, weightKg, durationMin) {
+  return Math.max(0, Math.round((Math.max(0, met - 1) * 3.5 * weightKg) / 200 * durationMin));
+}
+
+/**
+ * Strength work, computed from the sets actually completed.
+ *
+ * The compendium puts resistance training at 5.0 MET for a normal session and
+ * 6.0 for a hard one; compound lifts move more mass, so they take the higher
+ * figure. ~1.6 minutes per set covers the set itself plus the rest that
+ * follows it, which is where most of a session's clock actually goes.
+ */
+export function computeStrengthKcal({ setsCompleted, compound, weightKg }) {
+  const weight = Number.isFinite(weightKg) && weightKg > 0 ? weightKg : 70;
+  const sets = Number.isFinite(setsCompleted) && setsCompleted > 0 ? Math.min(setsCompleted, 20) : 3;
+  return netKcal(compound ? 6.0 : 5.0, weight, sets * 1.6);
 }

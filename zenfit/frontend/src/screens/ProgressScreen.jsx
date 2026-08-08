@@ -166,7 +166,7 @@ export default function ProgressScreen({ onBack }) {
 
       <Section title={t("progress.overall")}>
         <div className="mb-2.5 flex gap-2.5">
-          <StatTile Icon={Flame} label="Streak" value={summary?.streak || 0} unit="kun" tone="amber" />
+          <StatTile Icon={Flame} label={t("progress.streak")} value={summary?.streak || 0} unit={t("home.days")} tone="amber" />
           <StatTile Icon={Dumbbell} label={t("progress.workouts")} value={totalWorkouts} unit="ta" tone="cyan" />
         </div>
         <div className="flex gap-2.5">

@@ -119,6 +119,9 @@ router.patch("/", requireAuth, async (req, res, next) => {
       set("activity_level", b.activityLevel);
       metrics.activityLevel = b.activityLevel;
       metricsTouched = true;
+      // Answering the question again is what retires the re-check prompt —
+      // the value now carries its new, training-free meaning.
+      set("neat_confirmed", true);
     }
     if (GOALS.includes(b.goal)) {
       set("goal", b.goal);

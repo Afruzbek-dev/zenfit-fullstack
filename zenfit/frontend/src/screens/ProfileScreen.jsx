@@ -39,9 +39,9 @@ function MenuRow({ Icon, title, subtitle, onClick, tone = "muted", danger }) {
   );
 }
 
-export default function ProfileScreen({ onNavigate }) {
+export default function ProfileScreen({ onNavigate, initialView = null }) {
   const { profile, user, subscription, summary, t } = useApp();
-  const [view, setView] = useState(null);
+  const [view, setView] = useState(initialView);
   const [premiumOpen, setPremiumOpen] = useState(false);
 
   const back = () => setView(null);

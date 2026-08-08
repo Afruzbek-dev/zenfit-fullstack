@@ -21,7 +21,7 @@ export function ExerciseDetail({ exercise, onBack, onAdd }) {
       <div className="mb-5">
         <VideoPlayer
           videoId={exercise.youtubeId}
-          title={`${exercise.name} — bajarish texnikasi`}
+          title={`${exercise.name} — ${t("workout.technique")}`}
           searchUrl={youtubeSearchUrl(exercise)}
         />
       </div>
@@ -29,7 +29,7 @@ export function ExerciseDetail({ exercise, onBack, onAdd }) {
       <section className="mb-5">
         <div className="mb-2.5 flex items-center gap-2">
           <ListChecks size={14} className="text-neon" />
-          <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-faint">Bajarish tartibi</h2>
+          <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-faint">{t("workout.howTo")}</h2>
         </div>
         <ol className="flex flex-col gap-2">
           {exercise.steps.map((s, i) => (
@@ -46,7 +46,7 @@ export function ExerciseDetail({ exercise, onBack, onAdd }) {
       <section className="mb-5">
         <div className="mb-2.5 flex items-center gap-2">
           <AlertTriangle size={14} className="text-amber" />
-          <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-faint">Tez uchraydigan xatolar</h2>
+          <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-faint">{t("workout.mistakes")}</h2>
         </div>
         <div className="rounded-2xl border border-amber/20 bg-amber/[0.07] px-4 py-3">
           <ul className="flex flex-col gap-2">
@@ -62,7 +62,7 @@ export function ExerciseDetail({ exercise, onBack, onAdd }) {
 
       {onAdd && (
         <Button full size="lg" onClick={() => onAdd(exercise)}>
-          <Dumbbell size={17} /> Bugungi mashqqa qo'shish
+          <Dumbbell size={17} /> {t("workout.addToToday")}
         </Button>
       )}
     </Screen>
@@ -87,8 +87,8 @@ export default function ExerciseLibrary({ onBack, onAdd }) {
   return (
     <Screen>
       <ScreenHeader
-        title="Mashqlar bazasi"
-        subtitle={`${EXERCISES.length} ta mashq — texnika va video bilan`}
+        title={t("workout.library")}
+        subtitle={t("workout.librarySubtitle", { count: EXERCISES.length })}
         onBack={onBack}
       />
 
@@ -97,7 +97,7 @@ export default function ExerciseLibrary({ onBack, onAdd }) {
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Mashq qidirish…"
+          placeholder={t("workout.searchPlaceholder")}
           className="w-full bg-transparent text-[14px] text-ink outline-none placeholder:text-faint"
         />
       </div>
@@ -120,7 +120,7 @@ export default function ExerciseLibrary({ onBack, onAdd }) {
       </div>
 
       {list.length === 0 ? (
-        <EmptyState Icon={Search} title="Hech narsa topilmadi" desc="Filtr yoki qidiruv so'zini o'zgartirib ko'ring." />
+        <EmptyState Icon={Search} title={t("workout.nothingFound")} desc={t("workout.nothingFoundDesc")} />
       ) : (
         <div className="flex flex-col gap-2">
           {list.map((e) => (

@@ -79,7 +79,7 @@ function BottomNav({ active, onChange, t }) {
   );
 }
 
-function BootScreen({ error, onRetry }) {
+function BootScreen({ error, onRetry, t }) {
   return (
     <div className="app-atmosphere flex min-h-screen items-center justify-center px-8">
       <div className="relative z-10 flex flex-col items-center text-center">
@@ -88,17 +88,17 @@ function BootScreen({ error, onRetry }) {
             <span className="mb-4 grid h-16 w-16 place-items-center rounded-2xl bg-rose/12">
               <WifiOff size={26} className="text-rose" />
             </span>
-            <h1 className="font-display text-[19px] font-bold text-ink">Ulanib bo'lmadi</h1>
+            <h1 className="font-display text-[19px] font-bold text-ink">{t("common.connectFailed")}</h1>
             <p className="mt-2 max-w-[280px] text-[13px] leading-relaxed text-muted">
-              {error.message || "Serverga ulanishda muammo yuz berdi."}
+              {error.message || t("common.connectFailedDesc")}
             </p>
-            <Button className="mt-5" onClick={onRetry}>Qayta urinish</Button>
+            <Button className="mt-5" onClick={onRetry}>{t("common.retry")}</Button>
           </>
         ) : (
           <>
             <Loader2 size={30} className="animate-spin text-neon" />
             <p className="mt-4 font-display text-[15px] font-bold text-ink">ZenFit</p>
-            <p className="mt-1 text-[12px] text-muted">Yuklanmoqda…</p>
+            <p className="mt-1 text-[12px] text-muted">{t("common.loading")}</p>
           </>
         )}
       </div>
@@ -108,7 +108,15 @@ function BootScreen({ error, onRetry }) {
 
 export default function App() {
   const { status, error, profile, boot, toast, refresh, theme, t } = useApp();
-  const [tab, setTab] = useState("home");
+  const [tab, setTabRaw] = useState("home");
+  // Lets a card elsewhere in the app open a specific profile sub-screen rather
+  // than dumping the user on the profile menu to find it themselves.
+  const [profileView, setProfileView] = useState(null);
+  const setTab = (id) => {
+    const [target, view] = String(id).split(":");
+    setProfileView(view || null);
+    setTabRaw(target);
+  };
   // Decided once when the session first loads. Onboarding saves the profile
   // partway through (to compute targets), so this must not be derived from
   // `onboardingCompleted` on every render or the flow would exit early.
@@ -142,8 +150,8 @@ export default function App() {
 
   // Errors must be checked first: `inOnboarding` stays null when boot fails,
   // so the loading guard would otherwise swallow the error and spin forever.
-  if (status === "error") return <BootScreen error={error} onRetry={boot} />;
-  if (status === "loading" || inOnboarding === null) return <BootScreen />;
+  if (status === "error") return <BootScreen error={error} onRetry={boot} t={t} />;
+  if (status === "loading" || inOnboarding === null) return <BootScreen t={t} />;
   if (inOnboarding) return <Onboarding onFinish={() => setInOnboarding(false)} />;
 
   const screens = {
@@ -151,7 +159,7 @@ export default function App() {
     workouts: <WorkoutsScreen />,
     scan: <ScanScreen onNavigate={setTab} />,
     chat: <ChatScreen onNavigate={setTab} />,
-    profile: <ProfileScreen onNavigate={setTab} />,
+    profile: <ProfileScreen key={profileView || "root"} onNavigate={setTab} initialView={profileView} />,
     recipes: <RecipesScreen onBack={() => setTab("home")} />,
     progress: <ProgressScreen onBack={() => setTab("home")} />,
   };

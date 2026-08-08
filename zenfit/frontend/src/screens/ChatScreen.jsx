@@ -5,13 +5,6 @@ import { api } from "../api.js";
 import { haptic, showConfirm } from "../telegram.js";
 import { useApp } from "../store.jsx";
 
-const SUGGESTIONS = [
-  "Bugun nima yeyishim kerak?",
-  "Tizzam og'riyapti, qanday mashq qilay?",
-  "Oqsil me'yorimni qanday to'ldiraman?",
-  "Rejamdagi og'irliklarni qachon oshiray?",
-];
-
 function Bubble({ role, content }) {
   const isUser = role === "user";
   return (
@@ -130,12 +123,10 @@ export default function ChatScreen({ onNavigate }) {
             <span className="mb-4 grid h-16 w-16 place-items-center rounded-3xl bg-neon/12 ring-1 ring-neon/25">
               <Bot size={28} className="text-neon" />
             </span>
-            <h2 className="font-display text-[18px] font-bold text-ink">Shaxsiy AI treneringiz</h2>
-            <p className="mt-1.5 max-w-[290px] text-[12.5px] leading-relaxed text-muted">
-              Ovqatlanish, mashq va tiklanish bo'yicha savol bering. U sizning profilingiz, bugungi kaloriyangiz va mashq tarixingizni ko'rib turadi.
-            </p>
+            <h2 className="font-display text-[18px] font-bold text-ink">{t("chat.emptyTitle")}</h2>
+            <p className="mt-1.5 max-w-[290px] text-[12.5px] leading-relaxed text-muted">{t("chat.emptyDesc")}</p>
             <div className="mt-6 flex w-full flex-col gap-2">
-              {SUGGESTIONS.map((s) => (
+              {(t("chat.suggestions") || []).map((s) => (
                 <button
                   key={s}
                   onClick={() => send(s)}
@@ -170,8 +161,8 @@ export default function ChatScreen({ onNavigate }) {
         {quotaHit && (
           <div className="card card-lit flex flex-col items-center px-5 py-6 text-center">
             <Crown size={22} className="mb-2 text-amber" />
-            <p className="font-display text-[15px] font-bold text-ink">Bepul xabarlar tugadi</p>
-            <p className="mt-1 text-[12px] text-muted">Cheksiz suhbat uchun Premium'ni faollashtiring.</p>
+            <p className="font-display text-[15px] font-bold text-ink">{t("chat.quotaTitle")}</p>
+            <p className="mt-1 text-[12px] text-muted">{t("chat.quotaDesc")}</p>
             <Button className="mt-3" size="sm" onClick={() => onNavigate("profile")}>
               <Crown size={14} /> Premium
             </Button>
