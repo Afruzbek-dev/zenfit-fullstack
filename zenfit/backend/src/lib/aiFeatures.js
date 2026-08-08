@@ -1,37 +1,12 @@
-const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-5";
+/**
+ * The AI features: prompts and response shapes.
+ *
+ * Which model answers is decided in aiProvider.js — nothing here is written
+ * against a particular vendor, so adding a provider does not mean rewriting
+ * the prompts.
+ */
 
-async function callClaude(messages, { maxTokens = 500, system } = {}) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey || apiKey.startsWith("sk-ant-your-key")) {
-    const err = new Error("ANTHROPIC_API_KEY sozlanmagan. Backend .env fayliga qo'shing.");
-    err.code = "NO_API_KEY";
-    throw err;
-  }
-
-  const body = { model: MODEL, max_tokens: maxTokens, messages };
-  if (system) body.system = system;
-
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify(body),
-  });
-
-  if (!res.ok) {
-    const text = await res.text();
-    const err = new Error(`Anthropic API xatosi (${res.status}): ${text}`);
-    err.code = "ANTHROPIC_ERROR";
-    throw err;
-  }
-
-  const data = await res.json();
-  const textBlock = (data.content || []).find((b) => b.type === "text");
-  return textBlock?.text || "";
-}
+import { callModel } from "./aiProvider.js";
 
 function extractJson(text) {
   const cleaned = text.replace(/```json/gi, "").replace(/```/g, "").trim();
@@ -54,7 +29,7 @@ Milliy taomlar uchun isApprox=true qo'y (uy retsepti bo'yicha farq katta).
 Agar rasmda ovqat aniq ko'rinmasa, "name" maydoniga "Aniqlanmadi" yoz va confidence 0 qo'y.`;
 
 export async function analyzeFoodImage(base64Image, mediaType) {
-  const text = await callClaude(
+  const text = await callModel(
     [
       {
         role: "user",
@@ -64,7 +39,7 @@ export async function analyzeFoodImage(base64Image, mediaType) {
         ],
       },
     ],
-    { maxTokens: 600 }
+    { maxTokens: 600, json: true }
   );
   return extractJson(text);
 }
@@ -75,7 +50,7 @@ FAQAT quyidagi JSON formatda javob ber — boshqa hech qanday matn qo'shma:
 {"name": "taom nomi", "kcalPerServing": number, "carbs": number, "protein": number, "fat": number, "servingDescription": "porsiya tavsifi", "isApprox": boolean, "note": "qisqa izoh"}
 
 Savol: ${query}`;
-  const text = await callClaude([{ role: "user", content: prompt }], { maxTokens: 400 });
+  const text = await callModel([{ role: "user", content: prompt }], { maxTokens: 400, json: true });
   return extractJson(text);
 }
 
@@ -145,7 +120,7 @@ function buildTrainerSystemPrompt(ctx) {
 
 export async function trainerChat({ messages, context }) {
   const system = buildTrainerSystemPrompt(context);
-  const text = await callClaude(messages, { maxTokens: 900, system });
+  const text = await callModel(messages, { maxTokens: 900, system });
   return text;
 }
 
@@ -177,7 +152,7 @@ JSON format:
 }
 meals massivida 4 ta ovqat bo'lsin: Nonushta, Tushlik, Kechki ovqat, Gazak. Jami kaloriya me'yorga yaqin bo'lsin (±100 kcal).`;
 
-  const text = await callClaude([{ role: "user", content: prompt }], { maxTokens: 1600, system });
+  const text = await callModel([{ role: "user", content: prompt }], { maxTokens: 1600, system, json: true });
   return extractJson(text);
 }
 
@@ -207,8 +182,6 @@ JSON format:
   "focusPoints": ["diqqat qaratish kerak bo'lgan nuqta 1", "nuqta 2"]
 }`;
 
-  const text = await callClaude([{ role: "user", content: prompt }], { maxTokens: 900, system });
+  const text = await callModel([{ role: "user", content: prompt }], { maxTokens: 900, system, json: true });
   return extractJson(text);
 }
-
-export { callClaude };

@@ -11,7 +11,7 @@ import {
   trainerChat,
   generateDietPlan,
   enhanceWorkoutPlan,
-} from "../lib/anthropic.js";
+} from "../lib/aiFeatures.js";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -29,7 +29,7 @@ function handleAiError(err, res) {
   if (err.code === "NO_API_KEY") {
     return res.status(503).json({
       error: "ai_not_configured",
-      message: "AI hali sozlanmagan. Backend .env fayliga ANTHROPIC_API_KEY qo'shing.",
+      message: "AI hali sozlanmagan. Backend .env fayliga ANTHROPIC_API_KEY yoki GEMINI_API_KEY qo'shing.",
     });
   }
   if (err instanceof SyntaxError) {

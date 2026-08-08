@@ -42,8 +42,9 @@ Vercel → **Add New → Project** → repoingizni tanlang.
 | `JWT_SECRET` | lokal `.env` dagi qiymat |
 | `ADMIN_SECRET` | lokal `.env` dagi qiymat (64 belgi) |
 | `TELEGRAM_WEBHOOK_SECRET` | lokal `.env` dagi qiymat (48 belgi) |
-| `ANTHROPIC_API_KEY` | console.anthropic.com dan |
-| `ANTHROPIC_MODEL` | `claude-sonnet-5` |
+| `GEMINI_API_KEY` **yoki** `ANTHROPIC_API_KEY` | aistudio.google.com/apikey (bepul tarif bor) yoki console.anthropic.com |
+| `GEMINI_MODEL` | `gemini-2.5-flash` (ixtiyoriy) |
+| `ANTHROPIC_MODEL` | `claude-sonnet-5` (ixtiyoriy) |
 | `USE_TELEGRAM_WEBHOOK` | `1` |
 | `ALLOW_DEV_LOGIN` | `0` ← **production'da albatta 0** |
 | `CRON_SECRET` | lokal `.env` dagi qiymat (48 belgi) — kunlik eslatmalar uchun |
@@ -94,9 +95,13 @@ Deploy qiling va tekshiring:
 curl https://zenfit-backend.vercel.app/api/health
 ```
 
-`{"ok":true,"db":"postgres","ai":true}` chiqishi kerak.
+`{"ok":true,"db":"postgres","ai":true,"aiProvider":"gemini"}` chiqishi kerak.
 `"db":"sqlite"` chiqsa — `DATABASE_URL` o'qilmayapti.
-`"ai":false` chiqsa — `ANTHROPIC_API_KEY` yo'q yoki placeholder.
+`"ai":false` chiqsa — hech qaysi AI kaliti yo'q yoki placeholder qiymat turibdi.
+
+AI kaliti: `GEMINI_API_KEY` yoki `ANTHROPIC_API_KEY` — **bittasi yetadi**.
+Ikkalasi ham qo'yilsa Anthropic tanlanadi; `AI_PROVIDER=gemini` bilan
+majburlash mumkin. `aiProvider` maydoni qaysi biri ishlayotganini ko'rsatadi.
 
 ---
 

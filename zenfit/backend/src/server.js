@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import { initDb, usingPostgres } from "./db.js";
+import { aiConfigured, activeProvider } from "./lib/aiProvider.js";
 import authRoutes from "./routes/auth.js";
 import bootstrapRoutes from "./routes/bootstrap.js";
 import onboardingRoutes from "./routes/onboarding.js";
@@ -40,7 +41,9 @@ app.get("/api/health", (req, res) =>
   res.json({
     ok: true,
     db: usingPostgres ? "postgres" : "sqlite",
-    ai: Boolean(process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_API_KEY.startsWith("sk-ant-your-key")),
+    ai: aiConfigured(),
+    // Which provider answered is worth seeing at a glance after a key change.
+    aiProvider: activeProvider(),
   })
 );
 app.get("/", (req, res) => res.json({ message: "ZenFit Backend API", health: "/api/health" }));
