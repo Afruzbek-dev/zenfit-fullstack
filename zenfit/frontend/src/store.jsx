@@ -15,6 +15,7 @@ export function AppProvider({ children }) {
   const [subscription, setSubscription] = useState({ isPremium: false, plan: "free" });
   const [summary, setSummary] = useState(null);
   const [meals, setMeals] = useState([]);
+  const [recentFoods, setRecentFoods] = useState([]);
   const [activities, setActivities] = useState([]);
   const [workoutPlan, setWorkoutPlan] = useState(null);
   const [dietPlan, setDietPlan] = useState(null);
@@ -42,15 +43,17 @@ export function AppProvider({ children }) {
 
   /** Refetches everything the shell renders from. */
   const refresh = useCallback(async () => {
-    const [s, m, p, w, a] = await Promise.allSettled([
+    const [s, m, p, w, a, r] = await Promise.allSettled([
       api.getSummary(),
       api.getMeals(),
       api.getPlans(),
       api.getWorkoutHistory(),
       api.getActivities(),
+      api.getRecentMeals(),
     ]);
     if (s.status === "fulfilled") setSummary(s.value);
     if (m.status === "fulfilled") setMeals(m.value.meals || []);
+    if (r.status === "fulfilled") setRecentFoods(r.value.foods || []);
     if (p.status === "fulfilled") {
       setWorkoutPlan(p.value.workoutPlan?.plan || null);
       setDietPlan(p.value.dietPlan?.plan || null);
@@ -109,6 +112,7 @@ export function AppProvider({ children }) {
         setDietPlan(data.dietPlan || null);
         setWorkoutHistory(data.workoutLogs || []);
         setActivities(data.activities || []);
+        setRecentFoods(data.recentFoods || []);
       } else if (data.profile?.onboardingCompleted) {
         // The fallback path returns a session only.
         await refresh();
@@ -187,6 +191,24 @@ export function AppProvider({ children }) {
             }
           : prev
       );
+
+      // Keep Home's one-tap strip current without another round trip — the food
+      // just logged is by definition the most recent one. The server reorders by
+      // frequency on the next refresh.
+      setRecentFoods((prev) => {
+        const m = res.meal;
+        const key = (f) => `${f.name}|${f.kcal}|${f.portionG ?? ""}`;
+        const entry = {
+          name: m.name, emoji: m.emoji, kcal: m.kcal, carbs: m.carbs,
+          protein: m.protein, fat: m.fat, portionG: m.portionG, times: 1,
+        };
+        const seen = prev.find((f) => key(f) === key(entry));
+        return [
+          seen ? { ...seen, times: seen.times + 1 } : entry,
+          ...prev.filter((f) => key(f) !== key(entry)),
+        ].slice(0, 8);
+      });
+
       return res.meal;
     },
     []
@@ -329,14 +351,14 @@ export function AppProvider({ children }) {
     () => ({
       status, error, boot, refresh,
       user, profile, setProfile, subscription, setSubscription,
-      summary, meals, activities, workoutPlan, dietPlan, setDietPlan, workoutHistory,
+      summary, meals, recentFoods, activities, workoutPlan, dietPlan, setDietPlan, workoutHistory,
       addMeal, removeMeal, addWater, logWorkout, saveWorkoutPlan, completeOnboarding,
       addActivity, removeActivity, updateProfile,
       lang, setLanguage, theme, setTheme, t,
       toast, showToast,
     }),
     [
-      status, error, boot, refresh, user, profile, subscription, summary, meals,
+      status, error, boot, refresh, user, profile, subscription, summary, meals, recentFoods,
       activities, workoutPlan, dietPlan, workoutHistory, addMeal, removeMeal, addWater,
       logWorkout, saveWorkoutPlan, completeOnboarding, addActivity, removeActivity,
       updateProfile, lang, setLanguage, theme, setTheme, t, toast, showToast,

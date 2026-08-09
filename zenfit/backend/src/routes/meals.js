@@ -2,7 +2,7 @@ import { Router } from "express";
 import { query, queryOne } from "../db.js";
 import { requireAuth } from "../middleware/auth.js";
 import { mapMeal } from "../lib/mappers.js";
-import { dayRange } from "../lib/stats.js";
+import { dayRange, getRecentFoods } from "../lib/stats.js";
 
 const router = Router();
 
@@ -17,6 +17,16 @@ router.get("/", requireAuth, async (req, res, next) => {
       [req.userId, start, end]
     );
     res.json({ meals: rows.map(mapMeal) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** Declared before "/:id" so the literal path is not swallowed by the param route. */
+router.get("/recent", requireAuth, async (req, res, next) => {
+  try {
+    const limit = Math.min(Math.max(Number(req.query.limit) || 8, 1), 20);
+    res.json({ foods: await getRecentFoods(req.userId, limit) });
   } catch (err) {
     next(err);
   }

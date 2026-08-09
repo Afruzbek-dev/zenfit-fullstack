@@ -17,8 +17,15 @@ function adminSecret() {
 
 function secretMatches(provided) {
   const expected = adminSecret();
-  if (!expected || typeof provided !== "string" || provided.length !== expected.length) return false;
-  return crypto.timingSafeEqual(Buffer.from(provided), Buffer.from(expected));
+  if (!expected || typeof provided !== "string") return false;
+  // Compare BYTES, not characters. timingSafeEqual throws when the two buffers
+  // differ in length, and a JS string length is UTF-16 code units — so a guess
+  // containing any non-ASCII character passes a character-length check and then
+  // makes timingSafeEqual throw. In an async handler that rejection is unhandled
+  // and takes the whole process down, which made this an unauthenticated crash.
+  const a = Buffer.from(provided, "utf8");
+  const b = Buffer.from(expected, "utf8");
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
 /**

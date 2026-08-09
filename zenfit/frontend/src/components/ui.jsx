@@ -89,7 +89,11 @@ export function Section({ title, action, children, className = "" }) {
 
 /* ------------------------------ controls ------------------------------ */
 
-export function Button({ children, variant = "primary", size = "md", full, loading, className = "", onClick, ...rest }) {
+// `disabled` must be pulled out of the props: it is spread onto the element
+// last, so leaving it in `rest` re-applied disabled={false} over the loading
+// guard and every call site passing both stayed clickable while its request was
+// in flight — a double tap logged the meal or workout twice.
+export function Button({ children, variant = "primary", size = "md", full, loading, disabled, className = "", onClick, ...rest }) {
   const sizes = { sm: "px-3.5 py-2 text-[13px]", md: "px-5 py-3.5 text-[15px]", lg: "px-6 py-4 text-base" };
   const variants = {
     primary: "btn-primary",
@@ -102,7 +106,7 @@ export function Button({ children, variant = "primary", size = "md", full, loadi
         haptic("light");
         onClick?.(e);
       }}
-      disabled={loading || rest.disabled}
+      disabled={loading || disabled}
       className={`${variants[variant]} ${sizes[size]} ${full ? "w-full" : ""} inline-flex items-center justify-center gap-2 ${className}`}
       {...rest}
     >

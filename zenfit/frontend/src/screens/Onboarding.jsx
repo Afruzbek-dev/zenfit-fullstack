@@ -143,16 +143,27 @@ export default function Onboarding({ onFinish }) {
     [step, goal, level, equipment, days]
   );
 
+  /**
+   * The profile is posted twice — once at step 4 to get the computed targets,
+   * once at the end to store the questionnaire answers. Both must send the same
+   * shape: the server treats a missing targetWeightKg as "no goal" and nulls
+   * out target_weight_kg / target_date, so the second post used to erase the
+   * goal the first one had just saved.
+   */
+  function profilePayload() {
+    return {
+      gender, age: nums.age, heightCm: nums.heightCm, weightKg: nums.weightKg,
+      activityLevel: activity, goal,
+      fitnessLevel: level || "beginner",
+      equipment, daysPerWeek: days, sessionDuration: duration, injuries,
+      targetWeightKg: targetWeight ?? undefined,
+    };
+  }
+
   async function submitProfile() {
     setBusy(true);
     try {
-      const res = await completeOnboarding({
-        gender, age: nums.age, heightCm: nums.heightCm, weightKg: nums.weightKg,
-        activityLevel: activity, goal,
-        fitnessLevel: level || "beginner",
-        equipment, daysPerWeek: days, sessionDuration: duration, injuries,
-        targetWeightKg: targetWeight ?? undefined,
-      });
+      const res = await completeOnboarding(profilePayload());
       setTargets(res.computed);
       return true;
     } catch (e) {
@@ -190,11 +201,7 @@ export default function Onboarding({ onFinish }) {
     setBusy(true);
     try {
       // Persist the questionnaire answers alongside the plan.
-      await completeOnboarding({
-        gender, age: nums.age, heightCm: nums.heightCm, weightKg: nums.weightKg,
-        activityLevel: activity, goal, fitnessLevel: level,
-        equipment, daysPerWeek: days, sessionDuration: duration, injuries,
-      });
+      await completeOnboarding(profilePayload());
       await saveWorkoutPlan(plan);
       haptic("success");
       onFinish?.();

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   Flame, Droplets, Dumbbell, Camera, Plus, Trash2, Minus, Activity,
   UtensilsCrossed, TrendingUp, Sparkles, BarChart3, Info, ChevronRight,
@@ -29,10 +29,76 @@ function QuickAction({ Icon, label, onClick, tone = "surface" }) {
   );
 }
 
+/** Identity of a re-loggable entry — same food at the same portion. */
+const foodKey = (f) => `${f.name}|${f.kcal}|${f.portionG ?? ""}`;
+
+/**
+ * One-tap re-logging of what this person actually eats.
+ *
+ * Uzbek meals repeat heavily — non, choy, qatiq, osh — but the app used to
+ * start from zero every morning: finding yesterday's breakfast again meant
+ * opening Recipes and searching a 126-item catalogue. This turns the second and
+ * every later time into a single tap from the screen the app already opens on.
+ */
+function RecentFoods({ foods, busyKey, onLog, t }) {
+  if (!foods.length) return null;
+  return (
+    <Section title={t("home.recent")}>
+      {/* Bleeds to the screen edge so the row reads as scrollable. */}
+      <div className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {foods.map((f) => (
+          <button
+            key={foodKey(f)}
+            onClick={() => onLog(f)}
+            disabled={busyKey !== null}
+            aria-label={`${f.name} — ${f.kcal} ${t("common.kcal")}`}
+            className="flex shrink-0 items-center gap-2.5 rounded-2xl border border-borderSoft bg-surfaceAlt py-2.5 pl-3 pr-3.5 active:scale-[0.96] disabled:opacity-50"
+          >
+            <span className="text-[18px] leading-none">{f.emoji || "🍽️"}</span>
+            <span className="flex min-w-0 flex-col items-start">
+              <span className="max-w-[130px] truncate text-[12.5px] font-bold leading-tight text-ink">{f.name}</span>
+              <span className="tabular text-[10.5px] leading-tight text-muted">
+                {f.kcal} {t("common.kcal")}
+                {f.portionG ? ` · ${f.portionG} ${t("common.g")}` : ""}
+              </span>
+            </span>
+            <Plus size={14} className={busyKey === foodKey(f) ? "text-faint" : "text-neon"} />
+          </button>
+        ))}
+      </div>
+    </Section>
+  );
+}
+
 export default function HomeScreen({ onNavigate }) {
-  const { profile, summary, meals, activities, removeMeal, removeActivity, addWater, showToast, workoutPlan, t, lang } = useApp();
+  const { profile, summary, meals, recentFoods, activities, addMeal, removeMeal, removeActivity, addWater, showToast, workoutPlan, t, lang } = useApp();
   const [waterBusy, setWaterBusy] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
+  const [recentBusy, setRecentBusy] = useState(null);
+  // The state above drives the disabled prop, but state only takes effect after
+  // a render — two taps landing in the same tick would both read `null` and log
+  // the meal twice. The ref closes that window synchronously.
+  const recentBusyRef = useRef(null);
+
+  async function logRecent(food) {
+    if (recentBusyRef.current) return;
+    recentBusyRef.current = foodKey(food);
+    setRecentBusy(foodKey(food));
+    haptic("light");
+    try {
+      await addMeal({
+        name: food.name, emoji: food.emoji, kcal: food.kcal,
+        carbs: food.carbs, protein: food.protein, fat: food.fat,
+        portionG: food.portionG, source: "recent",
+      });
+      showToast(t("recipesScreen.added"), "success");
+    } catch (e) {
+      showToast(e.message || t("common.error"), "error");
+    } finally {
+      recentBusyRef.current = null;
+      setRecentBusy(null);
+    }
+  }
 
   if (!summary) {
     return (
@@ -257,6 +323,8 @@ export default function HomeScreen({ onNavigate }) {
           </div>
         )}
       </Section>
+
+      <RecentFoods foods={recentFoods} busyKey={recentBusy} onLog={logRecent} t={t} />
 
       {/* Meals */}
       <Section

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import multer from "multer";
-import { query, queryOne } from "../db.js";
+import { query, queryOne, daysAgoIso } from "../db.js";
 import { requireAuth } from "../middleware/auth.js";
 import { rateLimit } from "../middleware/rateLimit.js";
 import { mapChatMessage, mapSubscription } from "../lib/mappers.js";
@@ -22,8 +22,15 @@ const router = Router();
 
 // Free tier allowances, per the launch plan: let people feel the value before
 // the paywall rather than blocking the very first scan.
+//
+// These are per ROLLING 24 HOURS, not per lifetime. Counting for ever meant a
+// user got three photo scans and ten chat messages in total — they hit the wall
+// during the very days they were forming the habit, which is the opposite of
+// what a free tier is for. A rolling window also needs no timezone and has no
+// midnight cliff to game.
 const FREE_SCANS = 3;
 const FREE_CHAT_MESSAGES = 10;
+const QUOTA_WINDOW_DAYS = 1;
 
 function handleAiError(err, res) {
   if (err.code === "NO_API_KEY") {
@@ -45,7 +52,10 @@ async function isPremium(userId) {
 }
 
 async function usageCount(userId, feature) {
-  const row = await queryOne("SELECT COUNT(*) AS c FROM ai_usage WHERE user_id = $1 AND feature = $2", [userId, feature]);
+  const row = await queryOne(
+    "SELECT COUNT(*) AS c FROM ai_usage WHERE user_id = $1 AND feature = $2 AND used_at >= $3",
+    [userId, feature, daysAgoIso(QUOTA_WINDOW_DAYS)]
+  );
   return Number(row?.c || 0);
 }
 
@@ -53,9 +63,15 @@ async function recordUsage(userId, feature) {
   await query("INSERT INTO ai_usage (user_id, feature) VALUES ($1, $2)", [userId, feature]);
 }
 
-/** Returns a 402 when the free allowance is spent and the user is not premium. */
+/**
+ * Returns `{ premium, used }` when the call may proceed, or null after sending
+ * a 402. Callers reuse `used` to report the remaining allowance instead of
+ * asking the database the same two questions a second time.
+ */
 async function checkQuota(req, res, feature, freeLimit) {
-  if (await isPremium(req.userId)) return true;
+  const premium = await isPremium(req.userId);
+  if (premium) return { premium, used: 0 };
+
   const used = await usageCount(req.userId, feature);
   if (used >= freeLimit) {
     res.status(402).json({
@@ -63,11 +79,11 @@ async function checkQuota(req, res, feature, freeLimit) {
       feature,
       used,
       limit: freeLimit,
-      message: "Bepul limit tugadi. Cheksiz foydalanish uchun ZenFit Premium'ni faollashtiring.",
+      message: "Bugungi bepul limit tugadi. Cheksiz foydalanish uchun ZenFit Premium'ni faollashtiring.",
     });
-    return false;
+    return null;
   }
-  return true;
+  return { premium, used };
 }
 
 /* ------------------------------ AI Scan ------------------------------ */
@@ -86,11 +102,18 @@ router.post(
     }
 
     try {
-      if (!(await checkQuota(req, res, "scan", FREE_SCANS))) return;
+      const gate = await checkQuota(req, res, "scan", FREE_SCANS);
+      if (!gate) return;
+
       const result = await analyzeFoodImage(req.file.buffer.toString("base64"), mediaType);
-      await recordUsage(req.userId, "scan");
-      const remaining = (await isPremium(req.userId)) ? null : Math.max(0, FREE_SCANS - (await usageCount(req.userId, "scan")));
-      res.json({ result, freeScansLeft: remaining });
+      // A photo the model could not read is not worth an allowance unit. Two bad
+      // shots of home cooking used to spend most of the free tier.
+      if (result.recognized) await recordUsage(req.userId, "scan");
+
+      res.json({
+        result,
+        freeScansLeft: gate.premium ? null : Math.max(0, FREE_SCANS - gate.used - (result.recognized ? 1 : 0)),
+      });
     } catch (err) {
       handleAiError(err, res);
     }
@@ -103,10 +126,16 @@ router.post("/ask", requireAuth, rateLimit({ key: "ask", windowMs: 60_000, max: 
     return res.status(400).json({ error: "query_required" });
   }
   try {
-    if (!(await checkQuota(req, res, "scan", FREE_SCANS))) return;
+    const gate = await checkQuota(req, res, "scan", FREE_SCANS);
+    if (!gate) return;
+
     const result = await askFoodQuestion(q.trim().slice(0, 300));
-    await recordUsage(req.userId, "scan");
-    res.json({ result });
+    if (result.recognized) await recordUsage(req.userId, "scan");
+
+    res.json({
+      result,
+      freeScansLeft: gate.premium ? null : Math.max(0, FREE_SCANS - gate.used - (result.recognized ? 1 : 0)),
+    });
   } catch (err) {
     handleAiError(err, res);
   }
@@ -138,7 +167,8 @@ router.post("/chat", requireAuth, rateLimit({ key: "chat", windowMs: 60_000, max
   }
 
   try {
-    if (!(await checkQuota(req, res, "chat", FREE_CHAT_MESSAGES))) return;
+    const gate = await checkQuota(req, res, "chat", FREE_CHAT_MESSAGES);
+    if (!gate) return;
 
     const text = message.trim().slice(0, 1000);
 
@@ -161,11 +191,9 @@ router.post("/chat", requireAuth, rateLimit({ key: "chat", windowMs: 60_000, max
     await query("INSERT INTO chat_messages (user_id, role, content) VALUES ($1, 'assistant', $2)", [req.userId, reply]);
     await recordUsage(req.userId, "chat");
 
-    const premium = await isPremium(req.userId);
-    const used = await usageCount(req.userId, "chat");
     res.json({
       reply,
-      freeMessagesLeft: premium ? null : Math.max(0, FREE_CHAT_MESSAGES - used),
+      freeMessagesLeft: gate.premium ? null : Math.max(0, FREE_CHAT_MESSAGES - gate.used - 1),
     });
   } catch (err) {
     handleAiError(err, res);

@@ -246,7 +246,10 @@ export default function ScanScreen({ onNavigate }) {
 
       {result && !busy && (
         <div className="animate-fade-up">
-          {result.name === t("scan.unknown") ? (
+          {/* The server decides this — comparing against a translated label
+              never matched for ru/en, so those users saw a 0 kcal result card
+              instead of the retry prompt. */}
+          {result.recognized === false ? (
             <EmptyState
               Icon={Camera}
               title={t("scan.notDetected")}

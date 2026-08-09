@@ -3,7 +3,7 @@ import { query, queryOne } from "../db.js";
 import { validateTelegramInitData } from "../lib/telegramAuth.js";
 import { signToken, verifyToken } from "../lib/jwt.js";
 import { upsertUser } from "../lib/users.js";
-import { getDayStats, getStreak, dayRange } from "../lib/stats.js";
+import { getDayStats, getStreak, dayRange, getRecentFoods } from "../lib/stats.js";
 import { mapProfile, mapSubscription, mapMeal, mapPlan, mapWorkoutLog, mapActivity } from "../lib/mappers.js";
 
 const router = Router();
@@ -67,7 +67,7 @@ router.post("/", async (req, res, next) => {
     }
 
     const { start, end } = dayRange(null, tz);
-    const [stats, streak, meals, workoutPlan, dietPlan, workoutLogs, activities] = await Promise.all([
+    const [stats, streak, meals, workoutPlan, dietPlan, workoutLogs, activities, recentFoods] = await Promise.all([
       getDayStats(userId, null, tz),
       getStreak(userId, tz),
       query(
@@ -89,6 +89,9 @@ router.post("/", async (req, res, next) => {
         `SELECT * FROM activities WHERE user_id = $1 AND logged_at >= $2 AND logged_at < $3 ORDER BY logged_at DESC`,
         [userId, start, end]
       ),
+      // Home's one-tap re-log strip. Included here rather than fetched separately
+      // so opening the app is still a single round trip.
+      getRecentFoods(userId, 8),
     ]);
 
     res.json({
@@ -100,6 +103,7 @@ router.post("/", async (req, res, next) => {
       dietPlan: mapPlan(dietPlan)?.plan ?? null,
       workoutLogs: workoutLogs.map(mapWorkoutLog),
       activities: activities.map(mapActivity),
+      recentFoods,
     });
   } catch (err) {
     next(err);

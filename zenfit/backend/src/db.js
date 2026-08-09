@@ -8,10 +8,13 @@
  * Every query in the codebase is written in Postgres dialect ($1, $2, now(), ...).
  * The SQLite driver translates placeholders and a small set of functions, so
  * route code never needs to know which engine is live.
+ *
+ * The schema itself lives in schema.js and is shared with scripts/migrate.js.
  */
 
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { buildSchema } from "./schema.js";
 // `node:sqlite` is imported lazily inside initSqlite(): it only exists on
 // Node 22.5+, and the Postgres path must not depend on the host's Node version.
 
@@ -42,209 +45,12 @@ async function initPostgres() {
 
 let sqliteDb = null;
 
-const SQLITE_SCHEMA = `
-CREATE TABLE IF NOT EXISTS users (
-  id            INTEGER PRIMARY KEY AUTOINCREMENT,
-  telegram_id   TEXT UNIQUE NOT NULL,
-  first_name    TEXT,
-  username      TEXT,
-  avatar_url    TEXT,
-  language_code TEXT DEFAULT 'uz',
-  created_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
-  last_seen_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
-);
-
-CREATE TABLE IF NOT EXISTS profiles (
-  user_id              INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-  gender               TEXT,
-  age                  INTEGER,
-  height_cm            REAL,
-  weight_kg            REAL,
-  activity_level       TEXT,
-  goal                 TEXT,
-  daily_calorie_target INTEGER,
-  carbs_target_g       INTEGER,
-  protein_target_g     INTEGER,
-  fat_target_g         INTEGER,
-  fitness_level        TEXT,
-  active_program_id    TEXT,
-  equipment            TEXT,
-  days_per_week        INTEGER,
-  session_duration     TEXT,
-  injuries             TEXT,
-  water_target_ml      INTEGER DEFAULT 2500,
-  target_weight_kg     REAL,
-  target_date          TEXT,
-  display_name         TEXT,
-  language             TEXT DEFAULT 'uz',
-  theme                TEXT DEFAULT 'dark',
-  notif_workout        INTEGER NOT NULL DEFAULT 1,
-  notif_meal           INTEGER NOT NULL DEFAULT 1,
-  notif_water          INTEGER NOT NULL DEFAULT 0,
-  notif_tips           INTEGER NOT NULL DEFAULT 1,
-  neat_confirmed       INTEGER NOT NULL DEFAULT 0,
-  onboarding_completed INTEGER NOT NULL DEFAULT 0,
-  updated_at           TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
-);
-
-CREATE TABLE IF NOT EXISTS meals (
-  id        INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id   INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  name      TEXT NOT NULL,
-  emoji     TEXT,
-  kcal      INTEGER NOT NULL,
-  carbs     INTEGER,
-  protein   INTEGER,
-  fat       INTEGER,
-  portion_g INTEGER,
-  source    TEXT NOT NULL DEFAULT 'manual',
-  logged_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
-);
-
-CREATE TABLE IF NOT EXISTS workout_logs (
-  id             INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id        INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  exercise_id    TEXT,
-  exercise_name  TEXT NOT NULL,
-  emoji          TEXT,
-  kcal           INTEGER NOT NULL DEFAULT 0,
-  sets_completed INTEGER,
-  plan_day       TEXT,
-  logged_at      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
-);
-
-CREATE TABLE IF NOT EXISTS exercise_sets (
-  id             INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id        INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  workout_log_id INTEGER REFERENCES workout_logs(id) ON DELETE CASCADE,
-  exercise_id    TEXT NOT NULL,
-  exercise_name  TEXT NOT NULL,
-  set_number     INTEGER NOT NULL,
-  reps           INTEGER,
-  weight_kg      REAL,
-  logged_at      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
-);
-
-CREATE TABLE IF NOT EXISTS ai_plans (
-  id         INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  plan_type  TEXT NOT NULL,
-  plan_json  TEXT NOT NULL,
-  is_active  INTEGER NOT NULL DEFAULT 1,
-  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
-);
-
-CREATE TABLE IF NOT EXISTS chat_messages (
-  id         INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  role       TEXT NOT NULL,
-  content    TEXT NOT NULL,
-  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
-);
-
-CREATE TABLE IF NOT EXISTS water_logs (
-  id        INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id   INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  ml        INTEGER NOT NULL,
-  logged_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
-);
-
-CREATE TABLE IF NOT EXISTS weight_history (
-  id          INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  weight_kg   REAL NOT NULL,
-  recorded_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
-);
-
-CREATE TABLE IF NOT EXISTS subscriptions (
-  user_id    INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-  plan       TEXT NOT NULL DEFAULT 'free',
-  status     TEXT NOT NULL DEFAULT 'inactive',
-  started_at TEXT,
-  expires_at TEXT,
-  updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
-);
-
-CREATE TABLE IF NOT EXISTS activities (
-  id           INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  activity_id  TEXT NOT NULL,
-  name         TEXT NOT NULL,
-  emoji        TEXT,
-  duration_min INTEGER NOT NULL,
-  distance_km  REAL,
-  intensity    TEXT,
-  kcal         INTEGER NOT NULL DEFAULT 0,
-  note         TEXT,
-  logged_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
-);
-
-CREATE TABLE IF NOT EXISTS payments (
-  id          INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  provider    TEXT NOT NULL,
-  plan_id     TEXT NOT NULL,
-  plan_title  TEXT,
-  amount_uzs  INTEGER NOT NULL,
-  status      TEXT NOT NULL DEFAULT 'pending',
-  external_id TEXT,
-  card_last4  TEXT,
-  method          TEXT DEFAULT 'provider',
-  receipt_file_id TEXT,
-  receipt_note    TEXT,
-  reviewed_at     TEXT,
-  reviewed_by     TEXT,
-  reject_reason   TEXT,
-  created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
-  paid_at     TEXT
-);
-
-CREATE TABLE IF NOT EXISTS app_settings (
-  key        TEXT PRIMARY KEY,
-  value      TEXT,
-  updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
-);
-
--- Only the provider's token and the masked tail are ever stored here.
-CREATE TABLE IF NOT EXISTS payment_cards (
-  id         INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  provider   TEXT NOT NULL,
-  token      TEXT NOT NULL,
-  brand      TEXT,
-  last4      TEXT,
-  expiry     TEXT,
-  is_default INTEGER NOT NULL DEFAULT 0,
-  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
-);
-
-CREATE TABLE IF NOT EXISTS ai_usage (
-  id      INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  feature TEXT NOT NULL,
-  used_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
-);
-
-CREATE INDEX IF NOT EXISTS idx_meals_user_date        ON meals(user_id, logged_at DESC);
-CREATE INDEX IF NOT EXISTS idx_workout_logs_user_date ON workout_logs(user_id, logged_at DESC);
-CREATE INDEX IF NOT EXISTS idx_exercise_sets_user_ex  ON exercise_sets(user_id, exercise_id, logged_at DESC);
-CREATE INDEX IF NOT EXISTS idx_chat_user_time         ON chat_messages(user_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_water_user_date        ON water_logs(user_id, logged_at DESC);
-CREATE INDEX IF NOT EXISTS idx_weight_user_date       ON weight_history(user_id, recorded_at DESC);
-CREATE INDEX IF NOT EXISTS idx_ai_plans_user_active   ON ai_plans(user_id, plan_type, is_active);
-CREATE INDEX IF NOT EXISTS idx_ai_usage_user_feature  ON ai_usage(user_id, feature, used_at DESC);
-CREATE INDEX IF NOT EXISTS idx_activities_user_date   ON activities(user_id, logged_at DESC);
-CREATE INDEX IF NOT EXISTS idx_payments_user_date     ON payments(user_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_cards_user             ON payment_cards(user_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_payments_status        ON payments(status, created_at DESC);
-`;
-
 async function initSqlite() {
   const { DatabaseSync } = await import("node:sqlite");
   const dbPath = process.env.DATABASE_PATH || path.join(__dirname, "..", "data.sqlite");
   sqliteDb = new DatabaseSync(dbPath);
   sqliteDb.exec("PRAGMA foreign_keys = ON;");
-  sqliteDb.exec(SQLITE_SCHEMA);
+  for (const stmt of buildSchema(false)) sqliteDb.exec(stmt);
 }
 
 /**
@@ -259,6 +65,9 @@ function toSqlite(sql, params) {
     return "?";
   });
 
+  // NOTE: these rewrites are textual and apply to the whole statement, string
+  // literals included. No query needs a literal 'true'/'false'/'now()' today;
+  // if one ever does, it will be silently mangled here.
   const translated = text
     .replace(/\bnow\(\)/gi, "strftime('%Y-%m-%dT%H:%M:%SZ','now')")
     .replace(/\btrue\b/gi, "1")

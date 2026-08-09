@@ -6,9 +6,20 @@
  *
  * Every statement is safe to re-run, so this can be applied to production
  * without tracking which migrations have already gone out.
+ *
+ * Two phases:
+ *   1. The base schema from src/schema.js — CREATE TABLE / CREATE INDEX
+ *      IF NOT EXISTS. On an existing database every one of these is a no-op
+ *      apart from indexes that were never created; on an empty database this
+ *      builds the whole thing. Until this was added, the base tables existed
+ *      only in the SQLite path and had to be created by hand in the Supabase
+ *      editor, which meant the repo could not restore or reproduce production.
+ *   2. Column additions for databases created before a column existed. These
+ *      stay because phase 1 cannot alter a table that is already there.
  */
 
 import { initDb, query, usingPostgres } from "../src/db.js";
+import { buildSchema, RLS_TABLES } from "../src/schema.js";
 
 /** Postgres understands ADD COLUMN IF NOT EXISTS; SQLite needs a lookup first. */
 async function addColumn(table, column, pgType, sqliteType) {
@@ -21,21 +32,23 @@ async function addColumn(table, column, pgType, sqliteType) {
   await query(`ALTER TABLE ${table} ADD COLUMN ${column} ${sqliteType}`);
 }
 
-const TS = () => (usingPostgres ? "TIMESTAMPTZ NOT NULL DEFAULT now()" : "TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))");
-const ID = () => (usingPostgres ? "BIGSERIAL PRIMARY KEY" : "INTEGER PRIMARY KEY AUTOINCREMENT");
-const FK = () => (usingPostgres ? "BIGINT" : "INTEGER");
 const BOOL = (def) => (usingPostgres ? `BOOLEAN NOT NULL DEFAULT ${def}` : `INTEGER NOT NULL DEFAULT ${def ? 1 : 0}`);
 
 async function run() {
   await initDb();
   console.log(`[migrate] ${usingPostgres ? "Postgres" : "SQLite"} ustida ishlamoqda`);
 
-  /* ----- profile photo -------------------------------------------------- */
+  /* ----- phase 1: base schema ------------------------------------------- */
+  const statements = buildSchema(usingPostgres);
+  for (const stmt of statements) await query(stmt);
+  console.log(`[migrate] schema: ${statements.length} ta ifoda qo'llandi`);
+
+  /* ----- phase 2: columns added after a table already existed ----------- */
+
   // Stored as a data URI (client resizes to 256px before upload) so the app
   // needs no object storage; Telegram's photo_url is used as the default.
   await addColumn("users", "avatar_url", "TEXT", "TEXT");
 
-  /* ----- profile settings ----------------------------------------------- */
   await addColumn("profiles", "display_name", "TEXT", "TEXT");
   await addColumn("profiles", "language", "TEXT DEFAULT 'uz'", "TEXT DEFAULT 'uz'");
   await addColumn("profiles", "theme", "TEXT DEFAULT 'dark'", "TEXT DEFAULT 'dark'");
@@ -44,76 +57,9 @@ async function run() {
   await addColumn("profiles", "notif_water", BOOL(false), BOOL(false));
   await addColumn("profiles", "notif_tips", BOOL(true), BOOL(true));
 
-  /* ----- free activities / cardio --------------------------------------- */
-  await query(`
-    CREATE TABLE IF NOT EXISTS activities (
-      id           ${ID()},
-      user_id      ${FK()} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      activity_id  TEXT NOT NULL,
-      name         TEXT NOT NULL,
-      emoji        TEXT,
-      duration_min INTEGER NOT NULL,
-      distance_km  REAL,
-      intensity    TEXT,
-      kcal         INTEGER NOT NULL DEFAULT 0,
-      note         TEXT,
-      logged_at    ${TS()}
-    )
-  `);
-  await query(`CREATE INDEX IF NOT EXISTS idx_activities_user_date ON activities(user_id, logged_at DESC)`);
-
-  /* ----- purchase history ----------------------------------------------- */
-  await query(`
-    CREATE TABLE IF NOT EXISTS payments (
-      id          ${ID()},
-      user_id     ${FK()} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      provider    TEXT NOT NULL,
-      plan_id     TEXT NOT NULL,
-      plan_title  TEXT,
-      amount_uzs  INTEGER NOT NULL,
-      status      TEXT NOT NULL DEFAULT 'pending',
-      external_id TEXT,
-      card_last4  TEXT,
-      created_at  ${TS()},
-      paid_at     ${usingPostgres ? "TIMESTAMPTZ" : "TEXT"}
-    )
-  `);
-  await query(`CREATE INDEX IF NOT EXISTS idx_payments_user_date ON payments(user_id, created_at DESC)`);
-
-  /* ----- saved cards ----------------------------------------------------- *
-   * Only the provider's token and the masked tail are ever stored. A raw card
-   * number must never reach this service — see routes/payment.js.
-   * ---------------------------------------------------------------------- */
-  await query(`
-    CREATE TABLE IF NOT EXISTS payment_cards (
-      id         ${ID()},
-      user_id    ${FK()} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      provider   TEXT NOT NULL,
-      token      TEXT NOT NULL,
-      brand      TEXT,
-      last4      TEXT,
-      expiry     TEXT,
-      is_default ${BOOL(false)},
-      created_at ${TS()}
-    )
-  `);
-  await query(`CREATE INDEX IF NOT EXISTS idx_cards_user ON payment_cards(user_id, created_at DESC)`);
-
   /* ----- goal weight and the date it should be reached ------------------ */
   await addColumn("profiles", "target_weight_kg", "REAL", "REAL");
   await addColumn("profiles", "target_date", "TEXT", "TEXT");
-
-  /* ----- admin-editable settings ---------------------------------------- *
-   * Key/value rather than columns: the payment card details change without a
-   * deploy, and adding a new setting should not mean another migration.
-   * ---------------------------------------------------------------------- */
-  await query(`
-    CREATE TABLE IF NOT EXISTS app_settings (
-      key        TEXT PRIMARY KEY,
-      value      TEXT,
-      updated_at ${TS()}
-    )
-  `);
 
   /* ----- manual (card transfer) payments -------------------------------- *
    * Until a payment provider is live, users transfer to a card and upload a
@@ -126,7 +72,6 @@ async function run() {
   await addColumn("payments", "reviewed_at", usingPostgres ? "TIMESTAMPTZ" : "TEXT", "TEXT");
   await addColumn("payments", "reviewed_by", "TEXT", "TEXT");
   await addColumn("payments", "reject_reason", "TEXT", "TEXT");
-  await query(`CREATE INDEX IF NOT EXISTS idx_payments_status ON payments(status, created_at DESC)`);
 
   /* ----- daily-activity level re-confirmation ---------------------------- *
    * The activity question used to mean "how often do you train"; it now means
@@ -138,16 +83,17 @@ async function run() {
    * ---------------------------------------------------------------------- */
   await addColumn("profiles", "neat_confirmed", BOOL(false), BOOL(false));
 
-  /* ----- lock the new tables down --------------------------------------- *
-   * Every existing table has RLS on with zero policies, which denies the anon
-   * and authenticated Supabase roles outright. The backend connects as the
-   * table owner and bypasses RLS, so the new tables must match that posture —
-   * otherwise they would be the only ones readable with a public API key.
+  /* ----- lock every table down ------------------------------------------ *
+   * RLS on with zero policies denies the anon and authenticated Supabase
+   * roles outright. The backend connects as the table owner and bypasses RLS,
+   * so every table must have it — otherwise a table would be readable with a
+   * public API key.
    * ---------------------------------------------------------------------- */
   if (usingPostgres) {
-    for (const t of ["activities", "payments", "payment_cards", "app_settings"]) {
+    for (const t of RLS_TABLES) {
       await query(`ALTER TABLE ${t} ENABLE ROW LEVEL SECURITY`);
     }
+    console.log(`[migrate] RLS: ${RLS_TABLES.length} ta jadval`);
   }
 
   console.log("[migrate] tayyor ✓");

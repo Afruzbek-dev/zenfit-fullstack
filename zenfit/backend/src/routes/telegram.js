@@ -19,11 +19,15 @@ router.post("/webhook", async (req, res) => {
     return res.status(503).json({ error: "webhook_not_configured" });
   }
 
+  // Compared as BYTES: timingSafeEqual throws on a length mismatch, and header
+  // values arrive latin1-decoded, so any byte >= 0x80 makes the UTF-8 re-encoding
+  // longer than the character count. Checking string length instead let an
+  // unauthenticated caller crash the process.
   const provided = req.headers["x-telegram-bot-api-secret-token"];
-  if (typeof provided !== "string" || provided.length !== expected.length) {
-    return res.status(401).json({ error: "unauthorized" });
-  }
-  if (!crypto.timingSafeEqual(Buffer.from(provided), Buffer.from(expected))) {
+  if (typeof provided !== "string") return res.status(401).json({ error: "unauthorized" });
+  const a = Buffer.from(provided, "utf8");
+  const b = Buffer.from(expected, "utf8");
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
     return res.status(401).json({ error: "unauthorized" });
   }
 

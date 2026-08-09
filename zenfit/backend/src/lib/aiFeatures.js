@@ -28,6 +28,22 @@ FAQAT quyidagi JSON formatda javob ber — boshqa hech qanday matn, izoh yoki ma
 Milliy taomlar uchun isApprox=true qo'y (uy retsepti bo'yicha farq katta).
 Agar rasmda ovqat aniq ko'rinmasa, "name" maydoniga "Aniqlanmadi" yoz va confidence 0 qo'y.`;
 
+/**
+ * The prompt asks the model to answer "Aniqlanmadi" with confidence 0 when it
+ * cannot see food. That sentinel is Uzbek, so the client used to detect it by
+ * comparing against a *translated* label — which never matched for Russian or
+ * English users, who were shown a 0 kcal result card instead of the retry
+ * prompt. Deciding it here gives both the client and the quota check one
+ * language-independent answer.
+ */
+function withRecognition(result) {
+  const confidence = Number(result?.confidence);
+  const name = String(result?.name || "").trim().toLowerCase();
+  const recognized =
+    Boolean(name) && name !== "aniqlanmadi" && (!Number.isFinite(confidence) || confidence > 0);
+  return { ...result, recognized };
+}
+
 export async function analyzeFoodImage(base64Image, mediaType) {
   const text = await callModel(
     [
@@ -41,7 +57,7 @@ export async function analyzeFoodImage(base64Image, mediaType) {
     ],
     { maxTokens: 600, json: true }
   );
-  return extractJson(text);
+  return withRecognition(extractJson(text));
 }
 
 export async function askFoodQuestion(query) {
@@ -51,7 +67,7 @@ FAQAT quyidagi JSON formatda javob ber — boshqa hech qanday matn qo'shma:
 
 Savol: ${query}`;
   const text = await callModel([{ role: "user", content: prompt }], { maxTokens: 400, json: true });
-  return extractJson(text);
+  return withRecognition(extractJson(text));
 }
 
 /* ------------------------------------------------------------------ *

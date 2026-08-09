@@ -87,6 +87,7 @@ export const api = {
 
   /* meals */
   getMeals: (date) => request("GET", `/api/meals?tz=${tz()}${date ? `&date=${date}` : ""}`),
+  getRecentMeals: () => request("GET", "/api/meals/recent"),
   addMeal: (body) => request("POST", "/api/meals", { body }),
   deleteMeal: (id) => request("DELETE", `/api/meals/${id}`),
 

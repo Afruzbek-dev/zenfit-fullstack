@@ -37,23 +37,49 @@ export function computeTargets({ gender, age, heightCm, weightKg, activityLevel,
   const multiplier = ACTIVITY_MULTIPLIERS[activityLevel] || ACTIVITY_MULTIPLIERS.light;
   const tdee = bmr * multiplier;
 
+  // Macros are anchored to bodyweight, but a very overweight user should not be
+  // asked to eat protein for fat mass — so the reference is capped at what they
+  // would weigh at BMI 25.
+  const heightM = heightCm / 100;
+  const refKg = Math.min(weightKg, 25 * heightM * heightM);
+
   let target;
-  let macroSplit; // fraction of total kcal
   if (goal === "lose") {
-    target = Math.max(1200, tdee - 500); // ~0.5 kg/hafta arıqlash uchun tipik defitsit
-    macroSplit = { carbs: 0.35, protein: 0.35, fat: 0.3 };
+    /*
+     * Four floors, whichever binds hardest:
+     *   - a flat 500 kcal cut is the starting point;
+     *   - 1200 (women) / 1500 (men) as an absolute minimum. The old code used
+     *     1200 for both, which is the female figure;
+     *   - the user's own BMR. A 62 kg man used to be handed 1345 kcal against a
+     *     BMR of 1537 — a target below the energy his body burns at rest;
+     *   - 75% of TDEE, so the deficit scales with body size. A flat 500 is 14%
+     *     of a large man's TDEE but 36% of a small woman's.
+     */
+    const absoluteFloor = gender === "female" ? 1200 : 1500;
+    target = Math.max(tdee - 500, absoluteFloor, bmr, tdee * 0.75);
   } else if (goal === "gain") {
     target = tdee + 400; // muskul massasi uchun mo''tadil ortiqcha
-    macroSplit = { carbs: 0.45, protein: 0.25, fat: 0.3 };
   } else {
     target = tdee;
-    macroSplit = { carbs: 0.4, protein: 0.3, fat: 0.3 };
   }
 
   target = Math.round(target);
-  const carbsTargetG = Math.round((target * macroSplit.carbs) / 4); // 4 kcal/g
-  const proteinTargetG = Math.round((target * macroSplit.protein) / 4); // 4 kcal/g
-  const fatTargetG = Math.round((target * macroSplit.fat) / 9); // 9 kcal/g
+
+  /*
+   * Protein per kilogram, not as a share of calories.
+   *
+   * Deriving grams from the calorie target meant cutting calories also cut
+   * protein: the same 70 kg woman got 128 g to maintain but only 105 g to lose,
+   * which is backwards — a deficit is exactly when lean mass needs protecting,
+   * and 1.5 g/kg is below the 1.6-2.2 g/kg range the evidence supports.
+   *
+   * Fat gets a real minimum (0.8 g/kg) rather than an incidental one, since
+   * hormone production and fat-soluble vitamin absorption depend on it.
+   * Carbohydrate takes whatever energy is left.
+   */
+  const proteinTargetG = Math.round(refKg * (goal === "lose" ? 2.0 : goal === "gain" ? 1.8 : 1.6));
+  const fatTargetG = Math.max(Math.round(refKg * 0.8), Math.round((target * 0.2) / 9));
+  const carbsTargetG = Math.max(0, Math.round((target - proteinTargetG * 4 - fatTargetG * 9) / 4));
 
   return {
     bmr: Math.round(bmr),

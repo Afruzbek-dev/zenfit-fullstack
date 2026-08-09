@@ -1,4 +1,37 @@
-import { query, queryOne } from "../db.js";
+import { query, queryOne, daysAgoIso } from "../db.js";
+
+/**
+ * The foods this user logs most often, newest-first among equals.
+ *
+ * People eat the same handful of things — non, choy, qatiq, osh — and without
+ * this the app forgot all of it overnight: every morning meant re-finding the
+ * same breakfast in a 126-item catalogue. Grouping on the full macro tuple
+ * keeps "osh 350 g" and "osh 200 g" as separate entries, which is what makes a
+ * row directly re-loggable in one tap.
+ */
+export async function getRecentFoods(userId, limit = 8) {
+  const rows = await query(
+    `SELECT name, emoji, kcal, carbs, protein, fat, portion_g,
+            COUNT(*) AS times, MAX(logged_at) AS last_at
+       FROM meals
+      WHERE user_id = $1 AND logged_at >= $2
+   GROUP BY name, emoji, kcal, carbs, protein, fat, portion_g
+   ORDER BY times DESC, last_at DESC
+      LIMIT $3`,
+    [userId, daysAgoIso(60), limit]
+  );
+  // COUNT() comes back as a string from node-postgres (int8), so coerce.
+  return rows.map((r) => ({
+    name: r.name,
+    emoji: r.emoji,
+    kcal: Number(r.kcal),
+    carbs: r.carbs == null ? null : Number(r.carbs),
+    protein: r.protein == null ? null : Number(r.protein),
+    fat: r.fat == null ? null : Number(r.fat),
+    portionG: r.portion_g == null ? null : Number(r.portion_g),
+    times: Number(r.times),
+  }));
+}
 
 /**
  * Day boundaries are computed in JS from a client-supplied local date so the
