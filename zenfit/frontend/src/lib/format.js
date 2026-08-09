@@ -17,7 +17,12 @@ const WEEKDAYS = {
   en: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
 };
 
-export const WEEKDAYS_SHORT = ["Ya", "Du", "Se", "Ch", "Pa", "Ju", "Sh"];
+/** Chart-axis labels — kept to two characters so seven fit across a phone. */
+const WEEKDAYS_SHORT = {
+  uz: ["Ya", "Du", "Se", "Ch", "Pa", "Ju", "Sh"],
+  ru: ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"],
+  en: ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"],
+};
 
 const pick = (table, lang) => table[lang] || table.uz;
 
@@ -36,8 +41,10 @@ export function shortDate(date = new Date(), lang = "uz") {
   return lang === "uz" ? `${date.getDate()}-${month}` : `${date.getDate()} ${month}`;
 }
 
-export const uzFullDate = (date = new Date()) => fullDate(date, "uz");
-export const uzShortDate = (date = new Date()) => shortDate(date, "uz");
+/** e.g. "Pa" · "Чт" · "Th" — the weekly chart's axis labels. */
+export function weekdayShort(date = new Date(), lang = "uz") {
+  return pick(WEEKDAYS_SHORT, lang)[date.getDay()];
+}
 
 /** Thousands separator that matches local convention (space). */
 export function uzNumber(n) {

@@ -491,6 +491,25 @@ export function translator(lang) {
 
 const KEY = "zenfit_lang";
 
+/**
+ * Whether a language was already stored when the app started.
+ *
+ * Read ONCE at module load, which is the only honest moment: boot() adopts the
+ * server profile and writes its language through, so by the time Onboarding
+ * mounts the key always exists — a fresh account would look like it had chosen
+ * Uzbek when all that happened was the column default. Snapshotting at import
+ * happens before any of that.
+ */
+const HAD_STORED_LANGUAGE = (() => {
+  try {
+    return Boolean(DICTS[localStorage.getItem(KEY)]);
+  } catch {
+    return false; // private mode — ask, it costs one tap
+  }
+})();
+
+export const hasStoredLanguage = () => HAD_STORED_LANGUAGE;
+
 export function storedLanguage() {
   try {
     const v = localStorage.getItem(KEY);

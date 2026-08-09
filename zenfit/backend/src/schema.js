@@ -72,6 +72,9 @@ export function buildSchema(pg) {
       notif_water          ${BOOL(false)},
       notif_tips           ${BOOL(true)},
       neat_confirmed       ${BOOL(false)},
+      -- Pregnant or breastfeeding. Weight loss is contraindicated and the
+      -- requirement is a surplus, so this blocks the deficit path outright.
+      pregnant             ${BOOL(false)},
       onboarding_completed ${BOOL(false)},
       updated_at           ${TS}
     )`,

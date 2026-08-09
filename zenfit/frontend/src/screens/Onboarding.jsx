@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import {
   ChevronLeft, ChevronRight, Sparkles, TrendingDown, TrendingUp, Scale, Award, Zap,
   Home, Building2, Clock, Dumbbell, Check, ShieldAlert, Flame, User2, Users, Trees, Activity,
-  Minus, Plus, CalendarClock,
+  Minus, Plus, CalendarClock, Languages,
 } from "lucide-react";
 import { Button, OptionCard } from "../components/ui.jsx";
 import { generateWorkoutPlan, localizeDay, rulesNote } from "../lib/aiPlanEngine.js";
@@ -10,6 +10,7 @@ import { bestProgram } from "../data/programs.js";
 import { localizeExercise } from "../data/exerciseText.js";
 import { estimateGoal, defaultTarget, targetBounds } from "../lib/goalPlan.js";
 import { shortDate } from "../lib/format.js";
+import { LANGUAGES, hasStoredLanguage } from "../lib/i18n.js";
 import { haptic } from "../telegram.js";
 import { useApp } from "../store.jsx";
 
@@ -47,6 +48,49 @@ const DURATION = ["30", "60", "90"];
 
 const INJURY_TAGS = ["tizza", "bel", "yelka"];
 
+const FLAGS = { uz: "🇺🇿", ru: "🇷🇺", en: "🇬🇧" };
+
+/**
+ * Asked before anything else, because every screen after it — including the
+ * rest of onboarding — renders in whatever is chosen here.
+ *
+ * The heading is trilingual and the options name themselves: at this point the
+ * app has only guessed at a language from the Telegram client, so nothing on
+ * this screen can go through the dictionary without risking being unreadable
+ * to the person it is asking.
+ */
+function LanguageStep({ current, onPick, busy }) {
+  return (
+    <div className="animate-fade-up flex flex-col items-center text-center">
+      <span className="mb-6 grid h-20 w-20 place-items-center rounded-3xl bg-neon/12 ring-1 ring-neon/25">
+        <Languages size={36} className="text-neon" />
+      </span>
+      <h1 className="font-display text-[26px] font-bold leading-[1.15] tracking-tight text-ink">
+        Tilni tanlang
+      </h1>
+      <p className="mt-2 text-[13.5px] leading-relaxed text-muted">Выберите язык · Choose your language</p>
+
+      <div className="mt-8 flex w-full flex-col gap-2.5">
+        {LANGUAGES.map((l) => (
+          <button
+            key={l.id}
+            onClick={() => onPick(l.id)}
+            disabled={busy}
+            aria-label={l.native}
+            className={`flex items-center gap-3 rounded-2xl border px-4 py-4 text-left active:scale-[0.98] disabled:opacity-60 ${
+              current === l.id ? "border-neon/60 bg-neon/10" : "border-borderSoft bg-surface"
+            }`}
+          >
+            <span className="text-[22px] leading-none">{FLAGS[l.id]}</span>
+            <span className="flex-1 text-[15px] font-bold text-ink">{l.native}</span>
+            {current === l.id && <Check size={17} className="shrink-0 text-neon" />}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function StepShell({ title, subtitle, children }) {
   return (
     <div className="animate-fade-up flex flex-col gap-2.5">
@@ -83,7 +127,12 @@ function NumberField({ label, value, onChange, unit, min, max, placeholder, hint
 }
 
 export default function Onboarding({ onFinish }) {
-  const { completeOnboarding, saveWorkoutPlan, showToast, t, lang } = useApp();
+  const { completeOnboarding, saveWorkoutPlan, setLanguage, showToast, t, lang } = useApp();
+
+  // Only asked when the user has never chosen: storedLanguage() otherwise
+  // guesses from the Telegram client, which is often wrong here.
+  const [langPicked, setLangPicked] = useState(() => hasStoredLanguage());
+  const [langBusy, setLangBusy] = useState(false);
 
   const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -160,11 +209,29 @@ export default function Onboarding({ onFinish }) {
     };
   }
 
+  async function pickLanguage(code) {
+    setLangBusy(true);
+    haptic("light");
+    try {
+      // Persists locally straight away; the write-through to the profile is a
+      // no-op until one exists, which is why it is repeated once the profile is
+      // created (see submitProfile).
+      await setLanguage(code);
+      setLangPicked(true);
+    } finally {
+      setLangBusy(false);
+    }
+  }
+
   async function submitProfile() {
     setBusy(true);
     try {
       const res = await completeOnboarding(profilePayload());
       setTargets(res.computed);
+      // The profile row exists only now, so this is the first moment the chosen
+      // language can actually be stored server-side. Without it the next boot
+      // would read the column's 'uz' default and switch the user back.
+      setLanguage(lang).catch(() => {});
       return true;
     } catch (e) {
       showToast(e.message || t("onboarding.saveFailed"), "error");
@@ -213,6 +280,18 @@ export default function Onboarding({ onFinish }) {
   }
 
   const totalDots = 11;
+
+  // Before the step machine, not part of it: the questions below have to be
+  // readable before they can be answered.
+  if (!langPicked) {
+    return (
+      <div className="app-atmosphere relative min-h-screen">
+        <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-lg flex-col justify-center px-5 py-8">
+          <LanguageStep current={lang} onPick={pickLanguage} busy={langBusy} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="app-atmosphere relative min-h-screen">

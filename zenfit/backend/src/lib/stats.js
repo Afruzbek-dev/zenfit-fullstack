@@ -119,19 +119,56 @@ export async function getDayStats(userId, dateStr, tzOffsetMinutes = 0) {
 }
 
 /**
+ * How far back the streak query looks, and so the largest streak reportable.
+ *
+ * Unbounded, this query read every row the account had ever logged — sorted in
+ * the database, shipped to the function, collapsed into a Set — on every app
+ * open, every summary refresh and every /streak in the bot. A year at five
+ * meals a day is 1,800+ rows to produce a two-digit number, and it grew for as
+ * long as the account lived. Bounding the window makes the cost a function of
+ * the window rather than of account age.
+ *
+ * The trade is a ceiling. A run longer than this is reported AS this number,
+ * not as a broken streak: the walk below stops at the edge of the window
+ * instead of reading the absence of data as a missed day. So a 90-day streak
+ * shows 60 and keeps showing 60 while it is alive — capped, never reset.
+ * Raising the cap costs one more day of rows per day added.
+ */
+const STREAK_WINDOW_DAYS = 60;
+
+/**
+ * Hard ceiling on rows transferred, independent of the window — a pathological
+ * account cannot reintroduce the original problem inside 62 days without
+ * logging ~32 entries a day. Rows arrive newest-first, so hitting this can only
+ * shorten a reported streak (the oldest days go missing), never inflate one.
+ */
+const STREAK_MAX_ROWS = 2000;
+
+/**
  * Consecutive days (ending today or yesterday) with at least one meal or
  * workout logged. Yesterday still counts so the streak does not visibly break
  * before the user has had a chance to log anything today.
+ *
+ * Capped at STREAK_WINDOW_DAYS — see the note there.
  */
 export async function getStreak(userId, tzOffsetMinutes = 0) {
+  // Two days wider than the cap. The window is measured from `now`, not from
+  // local midnight, so without the slack the oldest day inside the cap would be
+  // only partially covered — by a margin that shifts with the time of day and
+  // the caller's timezone offset.
+  const since = daysAgoIso(STREAK_WINDOW_DAYS + 2);
+
+  // Every arm is served by idx_<table>_user_date (user_id, logged_at DESC),
+  // which satisfies the range and the ordering both.
   const rows = await query(
-    `SELECT logged_at FROM meals WHERE user_id = $1
+    `SELECT logged_at FROM meals WHERE user_id = $1 AND logged_at >= $2
      UNION ALL
-     SELECT logged_at FROM workout_logs WHERE user_id = $1
+     SELECT logged_at FROM workout_logs WHERE user_id = $1 AND logged_at >= $2
      UNION ALL
-     SELECT logged_at FROM activities WHERE user_id = $1
-     ORDER BY logged_at DESC`,
-    [userId]
+     SELECT logged_at FROM activities WHERE user_id = $1 AND logged_at >= $2
+     ORDER BY logged_at DESC
+     LIMIT $3`,
+    [userId, since, STREAK_MAX_ROWS]
   );
   if (!rows.length) return 0;
 
@@ -152,8 +189,11 @@ export async function getStreak(userId, tzOffsetMinutes = 0) {
     if (!activeDays.has(cursor.toISOString().slice(0, 10))) return 0;
   }
 
+  // The cap is the loop's exit condition rather than a clamp on the result, so
+  // running off the end of the window reads as "at least this long", never as a
+  // missing day that would zero the streak.
   let streak = 0;
-  while (activeDays.has(cursor.toISOString().slice(0, 10))) {
+  while (streak < STREAK_WINDOW_DAYS && activeDays.has(cursor.toISOString().slice(0, 10))) {
     streak += 1;
     cursor.setDate(cursor.getDate() - 1);
   }

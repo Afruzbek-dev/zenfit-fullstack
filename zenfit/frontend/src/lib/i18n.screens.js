@@ -38,8 +38,11 @@ export const uz = {
     overall: "Umumiy", calorieBalance: "Kaloriya balansi", weightDynamics: "Vazn dinamikasi",
     achievements: "Yutuqlar", workouts: "Mashqlar", target: "Me'yor", burned: "Sarflandi",
     consumed: "Yeyildi", streak: "Streak", currentWeight: "Joriy vazn",
-    noWeightData: "Vazn tarixi hali yo'q", noWeightDesc: "Profilda vaznni yangilasangiz, grafik shu yerda chiziladi.",
+    noWeightData: "Vazn tarixi hali yo'q",
+    noWeightDesc: "Grafik uchun kamida ikkita turli o'lchov kerak. Profilda vaznni yangilab boring.",
     goalProgress: "Maqsad sari", toGoal: "maqsadgacha", goalReached: "Maqsadga yetdingiz! 🎉",
+    rangeDays: "{n} kun", earned: "Olindi",
+    tipConsumed: "{kcal} kkal yeyildi", tipBurned: "{kcal} kkal sarflandi",
     badges: {
       streak3: "3 kunlik streak", streak7: "7 kunlik streak",
       burn1000: "1000 kcal sarflandi", meals10: "10 ta ovqat belgilandi",
@@ -194,15 +197,20 @@ export const ru = {
 
   progress: {
     title: "Прогресс", subtitle: "Ваши результаты и статистика",
-    overall: "Общее", calorieBalance: "Баланс калорий", weightDynamics: "Динамика веса",
+    overall: "Итоги", calorieBalance: "Баланс калорий", weightDynamics: "Динамика веса",
     achievements: "Достижения", workouts: "Тренировки", target: "Норма", burned: "Сожжено",
     consumed: "Съедено", streak: "Серия", currentWeight: "Текущий вес",
-    noWeightData: "Истории веса пока нет", noWeightDesc: "Обновите вес в профиле — и здесь появится график.",
+    noWeightData: "Истории веса пока нет",
+    noWeightDesc: "Для графика нужно хотя бы два разных замера. Обновляйте вес в профиле.",
     goalProgress: "Путь к цели", toGoal: "до цели", goalReached: "Цель достигнута! 🎉",
+    // "дн", not день/дня/дней: the translator is a plain string replace with no
+    // plural forms, and the abbreviation stays correct after any number.
+    rangeDays: "{n} дн", earned: "Получено",
+    tipConsumed: "{kcal} ккал съедено", tipBurned: "{kcal} ккал сожжено",
     badges: {
       streak3: "Серия 3 дня", streak7: "Серия 7 дней",
       burn1000: "Сожжено 1000 ккал", meals10: "10 приёмов пищи",
-      workouts10: "10 тренировок", firstScan: "Первый AI скан",
+      workouts10: "10 тренировок", firstScan: "Первый AI-скан",
     },
   },
 
@@ -354,8 +362,11 @@ export const en = {
     overall: "Overall", calorieBalance: "Calorie balance", weightDynamics: "Weight trend",
     achievements: "Achievements", workouts: "Workouts", target: "Target", burned: "Burned",
     consumed: "Eaten", streak: "Streak", currentWeight: "Current weight",
-    noWeightData: "No weight history yet", noWeightDesc: "Update your weight in the profile and the chart appears here.",
+    noWeightData: "No weight history yet",
+    noWeightDesc: "The chart needs at least two different readings. Keep updating your weight in the profile.",
     goalProgress: "Toward your goal", toGoal: "to go", goalReached: "Goal reached! 🎉",
+    rangeDays: "{n}d", earned: "Earned",
+    tipConsumed: "{kcal} kcal eaten", tipBurned: "{kcal} kcal burned",
     badges: {
       streak3: "3-day streak", streak7: "7-day streak",
       burn1000: "1000 kcal burned", meals10: "10 meals logged",

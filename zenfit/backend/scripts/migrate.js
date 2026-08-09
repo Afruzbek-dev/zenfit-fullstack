@@ -83,6 +83,13 @@ async function run() {
    * ---------------------------------------------------------------------- */
   await addColumn("profiles", "neat_confirmed", BOOL(false), BOOL(false));
 
+  /* ----- pregnancy / breastfeeding --------------------------------------- *
+   * Asked once during onboarding. A calorie deficit is contraindicated and the
+   * actual requirement is a surplus (+340 kcal in the second trimester, +450 in
+   * the third), so lib/calorie.js refuses the "lose" path when this is set.
+   * ---------------------------------------------------------------------- */
+  await addColumn("profiles", "pregnant", BOOL(false), BOOL(false));
+
   /* ----- lock every table down ------------------------------------------ *
    * RLS on with zero policies denies the anon and authenticated Supabase
    * roles outright. The backend connects as the table owner and bypasses RLS,

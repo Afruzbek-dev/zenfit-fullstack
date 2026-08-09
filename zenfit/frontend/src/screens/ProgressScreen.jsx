@@ -3,10 +3,10 @@ import { Flame, TrendingUp, Award, Scale, Dumbbell, Target } from "lucide-react"
 import { Screen, ScreenHeader, Section, StatTile, Skeleton, Chip } from "../components/ui.jsx";
 import { api } from "../api.js";
 import { useApp } from "../store.jsx";
-import { WEEKDAYS_SHORT as DAY_LABELS } from "../lib/format.js";
+import { localDateKey, weekdayShort } from "../lib/format.js";
 
 /** Grouped bars: intake vs burn, with the target drawn as a reference line. */
-function WeeklyChart({ days, target }) {
+function WeeklyChart({ days, target, t, lang }) {
   if (!days?.length) return null;
 
   const max = Math.max(target, ...days.map((d) => Math.max(d.consumed, d.burned)), 1);
@@ -16,13 +16,13 @@ function WeeklyChart({ days, target }) {
     <div className="card px-4 py-4">
       <div className="mb-3 flex items-center gap-4">
         <span className="flex items-center gap-1.5 text-[11px] text-muted">
-          <span className="h-2 w-2 rounded-sm bg-neon" /> Iste'mol
+          <span className="h-2 w-2 rounded-sm bg-neon" /> {t("progress.consumed")}
         </span>
         <span className="flex items-center gap-1.5 text-[11px] text-muted">
-          <span className="h-2 w-2 rounded-sm bg-cyan" /> Sarflandi
+          <span className="h-2 w-2 rounded-sm bg-cyan" /> {t("progress.burned")}
         </span>
         <span className="flex items-center gap-1.5 text-[11px] text-muted">
-          <span className="h-0.5 w-3 bg-faint" /> Me'yor
+          <span className="h-0.5 w-3 bg-faint" /> {t("progress.target")}
         </span>
       </div>
 
@@ -34,23 +34,25 @@ function WeeklyChart({ days, target }) {
         <div className="flex h-full items-end gap-1.5">
           {days.map((d) => {
             const date = new Date(`${d.date}T00:00:00`);
-            const isToday = d.date === new Date().toISOString().slice(0, 10);
+            // The device's own date, not UTC: `toISOString()` would highlight
+            // yesterday's bar until 05:00 every Tashkent morning.
+            const isToday = d.date === localDateKey();
             return (
               <div key={d.date} className="flex flex-1 flex-col items-center justify-end gap-1" style={{ height: H }}>
                 <div className="flex h-full w-full items-end justify-center gap-0.5">
                   <div
                     className="w-1/2 rounded-t bg-neon transition-[height] duration-700"
                     style={{ height: `${(d.consumed / max) * 100}%`, opacity: isToday ? 1 : 0.55 }}
-                    title={`${d.consumed} kcal iste'mol`}
+                    title={t("progress.tipConsumed", { kcal: d.consumed })}
                   />
                   <div
                     className="w-1/2 rounded-t bg-cyan transition-[height] duration-700"
                     style={{ height: `${(d.burned / max) * 100}%`, opacity: isToday ? 1 : 0.55 }}
-                    title={`${d.burned} kcal sarflandi`}
+                    title={t("progress.tipBurned", { kcal: d.burned })}
                   />
                 </div>
                 <span className={`text-[9.5px] font-semibold ${isToday ? "text-neon" : "text-faint"}`}>
-                  {DAY_LABELS[date.getDay()]}
+                  {weekdayShort(date, lang)}
                 </span>
               </div>
             );
@@ -61,7 +63,7 @@ function WeeklyChart({ days, target }) {
   );
 }
 
-function WeightChart({ history }) {
+function WeightChart({ history, t }) {
   const distinct = new Set(history.map((h) => h.weightKg)).size;
   // A single logged value (or several identical ones) has no trend to draw —
   // show the current number rather than an empty box or a flat filled block.
@@ -73,12 +75,14 @@ function WeightChart({ history }) {
           <Scale size={20} className="text-muted" />
         </span>
         <div className="min-w-0">
-          <p className="tabular text-[24px] font-bold leading-none text-ink">
-            {current ?? "—"}<span className="text-[12px] text-faint"> kg</span>
-          </p>
-          <p className="mt-1.5 text-[11.5px] leading-relaxed text-muted">
-            Grafik uchun kamida ikkita turli o'lchov kerak. Profil → “Vaznni yangilash” orqali qo'shib boring.
-          </p>
+          {current == null ? (
+            <p className="text-[15px] font-bold leading-none text-ink">{t("progress.noWeightData")}</p>
+          ) : (
+            <p className="tabular text-[24px] font-bold leading-none text-ink">
+              {current}<span className="text-[12px] text-faint"> {t("common.kg")}</span>
+            </p>
+          )}
+          <p className="mt-1.5 text-[11.5px] leading-relaxed text-muted">{t("progress.noWeightDesc")}</p>
         </div>
       </div>
     );
@@ -105,16 +109,16 @@ function WeightChart({ history }) {
       <div className="mb-3 flex items-baseline justify-between">
         <div>
           <p className="tabular text-[24px] font-bold text-ink">
-            {values.at(-1)}<span className="text-[12px] text-faint"> kg</span>
+            {values.at(-1)}<span className="text-[12px] text-faint"> {t("common.kg")}</span>
           </p>
-          <p className="text-[11px] text-muted">Joriy vazn</p>
+          <p className="text-[11px] text-muted">{t("progress.currentWeight")}</p>
         </div>
         <span
           className={`tabular rounded-lg px-2 py-1 text-[12px] font-bold ${
             delta < 0 ? "bg-neon/12 text-neon" : delta > 0 ? "bg-amber/12 text-amber" : "bg-surfaceAlt text-muted"
           }`}
         >
-          {delta > 0 ? "+" : ""}{delta.toFixed(1)} kg
+          {delta > 0 ? "+" : ""}{delta.toFixed(1)} {t("common.kg")}
         </span>
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} className="h-[110px] w-full" preserveAspectRatio="none">
@@ -132,7 +136,7 @@ function WeightChart({ history }) {
 }
 
 export default function ProgressScreen({ onBack }) {
-  const { summary, profile, workoutHistory, t } = useApp();
+  const { summary, profile, workoutHistory, t, lang } = useApp();
   const [range, setRange] = useState(7);
   const [weekly, setWeekly] = useState(null);
   const [weights, setWeights] = useState([]);
@@ -154,10 +158,10 @@ export default function ProgressScreen({ onBack }) {
   const totalBurned = workoutHistory.reduce((s, w) => s + (w.kcal || 0), 0);
 
   const badges = [
-    { id: "streak3", Icon: Flame, title: "3 kunlik streak", earned: (summary?.streak || 0) >= 3 },
-    { id: "streak7", Icon: Award, title: "7 kunlik streak", earned: (summary?.streak || 0) >= 7 },
-    { id: "w10", Icon: Dumbbell, title: "10 ta mashq", earned: totalWorkouts >= 10 },
-    { id: "burn1000", Icon: TrendingUp, title: "1000 kcal sarflandi", earned: totalBurned >= 1000 },
+    { id: "streak3", Icon: Flame, title: t("progress.badges.streak3"), earned: (summary?.streak || 0) >= 3 },
+    { id: "streak7", Icon: Award, title: t("progress.badges.streak7"), earned: (summary?.streak || 0) >= 7 },
+    { id: "w10", Icon: Dumbbell, title: t("progress.badges.workouts10"), earned: totalWorkouts >= 10 },
+    { id: "burn1000", Icon: TrendingUp, title: t("progress.badges.burn1000"), earned: totalBurned >= 1000 },
   ];
 
   return (
@@ -167,11 +171,11 @@ export default function ProgressScreen({ onBack }) {
       <Section title={t("progress.overall")}>
         <div className="mb-2.5 flex gap-2.5">
           <StatTile Icon={Flame} label={t("progress.streak")} value={summary?.streak || 0} unit={t("home.days")} tone="amber" />
-          <StatTile Icon={Dumbbell} label={t("progress.workouts")} value={totalWorkouts} unit="ta" tone="cyan" />
+          <StatTile Icon={Dumbbell} label={t("progress.workouts")} value={totalWorkouts} unit={t("home.ta")} tone="cyan" />
         </div>
         <div className="flex gap-2.5">
-          <StatTile Icon={TrendingUp} label={t("progress.burned")} value={totalBurned} unit="kcal" tone="neon" />
-          <StatTile Icon={Target} label={t("progress.target")} value={profile?.dailyCalorieTarget || 0} unit="kcal" tone="neon" />
+          <StatTile Icon={TrendingUp} label={t("progress.burned")} value={totalBurned} unit={t("common.kcal")} tone="neon" />
+          <StatTile Icon={Target} label={t("progress.target")} value={profile?.dailyCalorieTarget || 0} unit={t("common.kcal")} tone="neon" />
         </div>
       </Section>
 
@@ -180,16 +184,20 @@ export default function ProgressScreen({ onBack }) {
         action={
           <div className="flex gap-1.5">
             {[7, 14, 30].map((d) => (
-              <Chip key={d} active={range === d} onClick={() => setRange(d)}>{d} kun</Chip>
+              <Chip key={d} active={range === d} onClick={() => setRange(d)}>{t("progress.rangeDays", { n: d })}</Chip>
             ))}
           </div>
         }
       >
-        {weekly ? <WeeklyChart days={weekly} target={profile?.dailyCalorieTarget || 2000} /> : <Skeleton className="h-48" />}
+        {weekly ? (
+          <WeeklyChart days={weekly} target={profile?.dailyCalorieTarget || 2000} t={t} lang={lang} />
+        ) : (
+          <Skeleton className="h-48" />
+        )}
       </Section>
 
       <Section title={t("progress.weightDynamics")}>
-        <WeightChart history={weights} />
+        <WeightChart history={weights} t={t} />
       </Section>
 
       <Section title={t("progress.achievements")}>
@@ -205,7 +213,7 @@ export default function ProgressScreen({ onBack }) {
                 <b.Icon size={19} className={b.earned ? "text-neon" : "text-faint"} />
               </span>
               <p className={`text-[11.5px] font-bold leading-tight ${b.earned ? "text-ink" : "text-muted"}`}>{b.title}</p>
-              {b.earned && <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-neon">Olindi</p>}
+              {b.earned && <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-neon">{t("progress.earned")}</p>}
             </div>
           ))}
         </div>
