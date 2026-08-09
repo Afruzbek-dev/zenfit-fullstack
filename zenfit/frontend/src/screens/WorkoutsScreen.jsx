@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Sparkles, Dumbbell, Coffee, Check, Play, RefreshCw, BookOpen, ShieldAlert, Lightbulb } from "lucide-react";
-import { Screen, ScreenHeader, Section, Button, Sheet, EmptyState, ListRow, ErrorNote, IconButton } from "../components/ui.jsx";
+import { Screen, ScreenActions, Section, Button, Sheet, EmptyState, ListRow, ErrorNote, IconButton } from "../components/ui.jsx";
 import WorkoutSession from "./WorkoutSession.jsx";
 import ExerciseLibrary from "./ExerciseLibrary.jsx";
 import { generateWorkoutPlan, localizeDay, planTitle } from "../lib/aiPlanEngine.js";
@@ -212,12 +212,10 @@ export default function WorkoutsScreen() {
   }
 
   return (
-    <Screen>
-      <ScreenHeader
-        title={t("workout.title")}
-        subtitle={workoutPlan ? t("workout.subtitlePlan") : t("workout.subtitleNoPlan")}
-        action={<IconButton Icon={BookOpen} label={t("workout.library")} onClick={() => setView("library")} />}
-      />
+    <Screen topPad>
+      <ScreenActions>
+        <IconButton Icon={BookOpen} label={t("workout.library")} onClick={() => setView("library")} />
+      </ScreenActions>
 
       {!workoutPlan ? (
         <>

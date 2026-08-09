@@ -34,12 +34,28 @@ export function BackButton({ onBack }) {
 
 /* ------------------------------- layout ------------------------------- */
 
-export function Screen({ children, className = "" }) {
+/**
+ * `topPad` is for screens that render no ScreenHeader. The header used to be
+ * the only thing supplying the top safe-area inset, so without it content
+ * would slide under the status bar and Telegram's own chrome.
+ */
+export function Screen({ children, className = "", topPad = false }) {
   return (
-    <div className={`relative z-10 mx-auto w-full max-w-lg px-5 ${className}`} style={{ paddingBottom: "calc(var(--nav-h) + var(--safe-bottom) + 24px)" }}>
+    <div
+      className={`relative z-10 mx-auto w-full max-w-lg px-5 ${className}`}
+      style={{
+        paddingTop: topPad ? "calc(var(--safe-top) + 12px)" : undefined,
+        paddingBottom: "calc(var(--nav-h) + var(--safe-bottom) + 24px)",
+      }}
+    >
       {children}
     </div>
   );
+}
+
+/** Right-aligned controls for a screen that has no header bar to hang them on. */
+export function ScreenActions({ children }) {
+  return <div className="mb-3 flex min-h-9 items-center justify-end gap-1.5">{children}</div>;
 }
 
 /**

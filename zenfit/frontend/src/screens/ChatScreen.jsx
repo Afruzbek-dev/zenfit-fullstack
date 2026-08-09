@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Send, Sparkles, Trash2, Crown, Loader2, Bot } from "lucide-react";
-import { ScreenHeader, Button, ErrorNote, IconButton } from "../components/ui.jsx";
+import { ScreenActions, Button, ErrorNote, IconButton } from "../components/ui.jsx";
 import { api } from "../api.js";
 import { haptic, showConfirm } from "../telegram.js";
 import { useApp } from "../store.jsx";
@@ -95,23 +95,20 @@ export default function ChatScreen({ onNavigate }) {
   }
 
   return (
-    <div className="relative z-10 mx-auto flex h-screen w-full max-w-lg flex-col px-5">
-      <ScreenHeader
-        title={t("chat.title")}
-        subtitle={t("chat.subtitle")}
-        action={
-          <div className="flex shrink-0 items-center gap-1.5">
-            {freeLeft !== null && !subscription?.isPremium && (
-              <span className="tabular rounded-full border border-borderSoft bg-surfaceAlt px-2 py-1 text-[11px] font-semibold text-muted">
-                {freeLeft}
-              </span>
-            )}
-            {messages.length > 0 && (
-              <IconButton Icon={Trash2} label={t("chat.clearHistory")} onClick={clearChat} />
-            )}
-          </div>
-        }
-      />
+    <div
+      className="relative z-10 mx-auto flex h-screen w-full max-w-lg flex-col px-5"
+      style={{ paddingTop: "calc(var(--safe-top) + 12px)" }}
+    >
+      <ScreenActions>
+        {freeLeft !== null && !subscription?.isPremium && (
+          <span className="tabular rounded-full border border-borderSoft bg-surfaceAlt px-2 py-1 text-[11px] font-semibold text-muted">
+            {freeLeft}
+          </span>
+        )}
+        {messages.length > 0 && (
+          <IconButton Icon={Trash2} label={t("chat.clearHistory")} onClick={clearChat} />
+        )}
+      </ScreenActions>
 
       <div className="-mx-5 flex-1 space-y-2.5 overflow-y-auto px-5 pb-4">
         {loading ? (

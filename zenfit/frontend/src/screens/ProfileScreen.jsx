@@ -3,7 +3,7 @@ import {
   Crown, LogOut, ChevronRight, UserCog, HeartPulse, CreditCard, Settings2,
   HelpCircle, Building2, FileText,
 } from "lucide-react";
-import { Screen, ScreenHeader, Section } from "../components/ui.jsx";
+import { Screen, Section } from "../components/ui.jsx";
 import Avatar from "../components/Avatar.jsx";
 import { setToken } from "../api.js";
 import { haptic, showConfirm } from "../telegram.js";
@@ -66,9 +66,7 @@ export default function ProfileScreen({ onNavigate, initialView = null }) {
   }
 
   return (
-    <Screen>
-      <ScreenHeader title={t("profile.title")} />
-
+    <Screen topPad>
       {/* Identity — avatar centred, everything else reads beneath it. */}
       <div className="card card-lit mb-4 flex flex-col items-center px-5 py-6">
         <Avatar size={104} editable onChanged={() => {}} />

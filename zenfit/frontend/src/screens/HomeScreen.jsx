@@ -3,12 +3,11 @@ import {
   Flame, Droplets, Dumbbell, Camera, Plus, Trash2, Minus, Activity,
   UtensilsCrossed, TrendingUp, Sparkles, BarChart3, Info, ChevronRight,
 } from "lucide-react";
-import { Screen, ScreenHeader, Section, StatTile, ProgressRing, MacroBar, EmptyState, Skeleton, Button, ListRow } from "../components/ui.jsx";
+import { Screen, Section, StatTile, ProgressRing, MacroBar, EmptyState, Skeleton, Button, ListRow } from "../components/ui.jsx";
 import ActivitySheet from "../components/ActivitySheet.jsx";
 import { ACTIVITY_BY_ID } from "../data/activities.js";
 import { useApp } from "../store.jsx";
 import { haptic } from "../telegram.js";
-import { fullDate } from "../lib/format.js";
 
 function QuickAction({ Icon, label, onClick, tone = "surface" }) {
   const tones = {
@@ -71,7 +70,7 @@ function RecentFoods({ foods, busyKey, onLog, t }) {
 }
 
 export default function HomeScreen({ onNavigate }) {
-  const { profile, summary, meals, recentFoods, activities, addMeal, removeMeal, removeActivity, addWater, showToast, workoutPlan, t, lang } = useApp();
+  const { user, profile, summary, meals, recentFoods, activities, addMeal, removeMeal, removeActivity, addWater, showToast, workoutPlan, t } = useApp();
   const [waterBusy, setWaterBusy] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
   const [recentBusy, setRecentBusy] = useState(null);
@@ -102,8 +101,8 @@ export default function HomeScreen({ onNavigate }) {
 
   if (!summary) {
     return (
-      <Screen>
-        <ScreenHeader title={t("home.day")} subtitle={t("common.loading")} />
+      <Screen topPad>
+        <Skeleton className="mb-4 h-7 w-48" />
         <Skeleton className="mb-4 h-64" />
         <Skeleton className="mb-3 h-24" />
         <Skeleton className="h-40" />
@@ -136,23 +135,26 @@ export default function HomeScreen({ onNavigate }) {
     return t("home.evening");
   })();
 
+  // The name the user set in the app wins over the one Telegram supplied.
+  const name = (profile?.displayName || user?.firstName || "").trim();
+
   const activityLabel = (a) =>
     a.activityId === "custom" ? a.name : t(`activity.names.${a.activityId}`);
 
   return (
-    <Screen>
-      <ScreenHeader
-        title={greeting}
-        subtitle={fullDate(new Date(), lang)}
-        action={
-          summary.streak > 0 && (
-            <span className="flex shrink-0 items-center gap-1 rounded-full border border-amber/30 bg-amber/12 px-2.5 py-1.5">
-              <Flame size={13} className="text-amber" />
-              <span className="tabular text-[12.5px] font-bold text-amber">{summary.streak}</span>
-            </span>
-          )
-        }
-      />
+    <Screen topPad>
+      {/* Greeting left, streak right — no title bar, no date line. */}
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h1 className="min-w-0 truncate font-display text-[19px] font-bold leading-tight tracking-tight text-ink">
+          {name ? `${greeting}, ${name}` : greeting}
+        </h1>
+        {summary.streak > 0 && (
+          <span className="flex shrink-0 items-center gap-1 rounded-full border border-amber/30 bg-amber/12 px-2.5 py-1.5">
+            <Flame size={13} className="text-amber" />
+            <span className="tabular text-[12.5px] font-bold text-amber">{summary.streak}</span>
+          </span>
+        )}
+      </div>
 
       {/* Calorie hero */}
       <div className="card card-lit mb-3 flex flex-col items-center px-5 py-6">

@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { Camera, ImageIcon, Sparkles, Type, Check, RotateCcw, Info, Loader2, Crown } from "lucide-react";
-import { Screen, ScreenHeader, Section, Button, ErrorNote, EmptyState } from "../components/ui.jsx";
+import { Screen, ScreenActions, Section, Button, ErrorNote, EmptyState } from "../components/ui.jsx";
 import { api } from "../api.js";
 import { haptic } from "../telegram.js";
 import { useApp } from "../store.jsx";
@@ -119,18 +119,14 @@ export default function ScanScreen({ onNavigate }) {
     : null;
 
   return (
-    <Screen>
-      <ScreenHeader
-        title={t("scan.title")}
-        subtitle={t("scan.subtitle")}
-        action={
-          freeLeft !== null && !subscription?.isPremium ? (
-            <span className="tabular shrink-0 rounded-full border border-borderSoft bg-surfaceAlt px-2.5 py-1.5 text-[11px] font-semibold text-muted">
-              {freeLeft}
-            </span>
-          ) : null
-        }
-      />
+    <Screen topPad>
+      <ScreenActions>
+        {freeLeft !== null && !subscription?.isPremium && (
+          <span className="tabular shrink-0 rounded-full border border-borderSoft bg-surfaceAlt px-2.5 py-1.5 text-[11px] font-semibold text-muted">
+            {freeLeft}
+          </span>
+        )}
+      </ScreenActions>
 
       <div className="mb-5 flex gap-2 rounded-2xl border border-borderSoft bg-surfaceAlt p-1">
         {[
