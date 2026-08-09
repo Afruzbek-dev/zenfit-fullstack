@@ -34,8 +34,36 @@ async function initPostgres() {
     connectionString: process.env.DATABASE_URL,
     // Supabase requires TLS but serves a cert chain Node doesn't ship by default.
     ssl: process.env.DATABASE_URL.includes("localhost") ? false : { rejectUnauthorized: false },
-    max: 5,
+
+    // Every concurrent Vercel invocation is its own process with its own pool,
+    // so the real number of client connections is max × warm instances. The
+    // pooler caps that (a couple of hundred on the smaller tiers), and a
+    // request that cannot get a connection does not fail — it waits. Keeping
+    // max small trades a few milliseconds of queueing inside one request for
+    // far more headroom before the whole app starts timing out. Queries here
+    // run against a co-located database, so the queueing is not noticeable.
+    max: 3,
+
+    // Hand idle sockets back to the pooler rather than holding them across the
+    // long gaps between serverless invocations.
+    idleTimeoutMillis: 5_000,
+
+    // The pg default is 0 — wait forever. With no timeout a saturated pooler
+    // turned into a 30-second spinner (Vercel's maxDuration) instead of an
+    // error, and the function billed for every second of it.
+    connectionTimeoutMillis: 5_000,
+    query_timeout: 10_000,
   });
+
+  // Supavisor drops idle server connections routinely. When that happens pg
+  // emits 'error' on the pool, and an EventEmitter with no 'error' listener
+  // throws — which on Node kills the process and every request in flight on
+  // that instance. This listener is the difference between a logged blip and
+  // an outage.
+  pgPool.on("error", (err) => {
+    console.error("[db] bo'sh ulanishda xato:", err.message);
+  });
+
   await pgPool.query("select 1");
 }
 

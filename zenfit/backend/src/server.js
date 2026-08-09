@@ -25,17 +25,34 @@ const allowedOrigins = (process.env.CORS_ORIGIN || "*").split(",").map((s) => s.
 app.use(cors({ origin: allowedOrigins.includes("*") ? true : allowedOrigins }));
 app.use(express.json({ limit: "2mb" }));
 
-// Connection is established once per process. On Vercel every cold start re-runs
-// this module, so requests wait on the same promise instead of racing it.
-const ready = initDb().catch((err) => {
-  console.error("[db] ulanib bo'lmadi:", err.message);
-  throw err;
-});
+/**
+ * Connection is established once per process and shared by every request, so
+ * concurrent requests wait on the same promise instead of racing it.
+ *
+ * The failure is the interesting part. This used to be a `const` holding the
+ * promise, which meant one bad connect — a two-second Supabase restart, a
+ * pooler hiccup — was cached for the lifetime of the instance: every later
+ * request re-awaited the same rejection and got a 503, long after the database
+ * had recovered, and Vercel keeps instances warm for minutes. Clearing the
+ * handle on failure lets the next request try again.
+ */
+let ready = null;
 
-// Without a terminal handler this rejection is "unhandled" until the first
-// request awaits it, which crashes the process on a cold start. The middleware
-// below still awaits `ready` and turns the failure into a 503 per request.
-ready.catch(() => {});
+function ensureDb() {
+  if (!ready) {
+    ready = initDb().catch((err) => {
+      console.error("[db] ulanib bo'lmadi:", err.message);
+      ready = null; // next request reconnects rather than replaying this failure
+      throw err;
+    });
+  }
+  return ready;
+}
+
+// Start connecting during the cold boot rather than on the first request. The
+// terminal handler keeps an early failure from counting as an unhandled
+// rejection, which would kill the process before any request could see it.
+ensureDb().catch(() => {});
 
 app.get("/api/health", (req, res) =>
   res.json({
@@ -50,7 +67,7 @@ app.get("/", (req, res) => res.json({ message: "ZenFit Backend API", health: "/a
 
 app.use(async (req, res, next) => {
   try {
-    await ready;
+    await ensureDb();
     next();
   } catch {
     res.status(503).json({ error: "db_unavailable", message: "Ma'lumotlar bazasiga ulanib bo'lmadi." });
@@ -85,7 +102,7 @@ const PORT = process.env.PORT || 8787;
 const isServerless = process.env.VERCEL === "1" || Boolean(process.env.VERCEL_ENV);
 
 if (!isServerless) {
-  ready
+  ensureDb()
     .then(() => {
       app.listen(PORT, () => {
         console.log(`ZenFit backend: http://localhost:${PORT}`);

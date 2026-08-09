@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Sparkles, Dumbbell, Coffee, Check, Play, RefreshCw, BookOpen, ShieldAlert, Lightbulb } from "lucide-react";
-import { Screen, ScreenActions, Section, Button, Sheet, EmptyState, ListRow, ErrorNote, IconButton } from "../components/ui.jsx";
+import { Screen, Section, Button, Sheet, EmptyState, ListRow, ErrorNote } from "../components/ui.jsx";
 import WorkoutSession from "./WorkoutSession.jsx";
 import ExerciseLibrary from "./ExerciseLibrary.jsx";
 import { generateWorkoutPlan, localizeDay, planTitle } from "../lib/aiPlanEngine.js";
@@ -213,10 +213,6 @@ export default function WorkoutsScreen() {
 
   return (
     <Screen topPad>
-      <ScreenActions>
-        <IconButton Icon={BookOpen} label={t("workout.library")} onClick={() => setView("library")} />
-      </ScreenActions>
-
       {!workoutPlan ? (
         <>
           <Section>
@@ -323,17 +319,20 @@ export default function WorkoutsScreen() {
               </>
             )}
           </Section>
-
-          <Section title={t("workout.library")}>
-            <ListRow
-              Icon={BookOpen}
-              title={t("workout.libraryAll")}
-              subtitle={t("workout.libraryDesc")}
-              onClick={() => setView("library")}
-            />
-          </Section>
         </>
       )}
+
+      {/* Outside the branch on purpose: this section used to render only for
+          users who already had a plan, and the header icon was the sole route
+          for everyone else. With that icon gone it has to be reachable here. */}
+      <Section title={t("workout.library")}>
+        <ListRow
+          Icon={BookOpen}
+          title={t("workout.libraryAll")}
+          subtitle={t("workout.libraryDesc")}
+          onClick={() => setView("library")}
+        />
+      </Section>
 
       <RegenerateSheet open={regenOpen} onClose={() => setRegenOpen(false)} />
     </Screen>
