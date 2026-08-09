@@ -16,12 +16,17 @@
  * differ per household — so those carry `approx: true` and the UI says so
  * rather than implying a precision the number does not have.
  *
- * Numbers are stored as [kcal, carbs, protein, fat] to keep 130 entries
- * readable; `macros()` unpacks them.
+ * Numbers are stored as [kcal, carbs, protein, fat] to keep the list readable;
+ * `macros()` unpacks them.
+ *
+ * The four figures should reconcile at 4/4/9 kcal per gram. Fruit and vegetables
+ * are the honest exception: composition tables count fibre as carbohydrate, and
+ * fibre yields almost nothing, so spinach and mushrooms overshoot by a quarter
+ * and are still right. Anywhere else a mismatch is a typo.
  */
 
 /* Category ids are stable; the labels are looked up per language. */
-export const CATEGORIES = ["all", "national", "meat", "fish", "dairy", "grain", "veg", "fruit", "nut", "sweet", "drink", "fast"];
+export const CATEGORIES = ["all", "national", "meat", "fish", "dairy", "grain", "veg", "fruit", "nut", "oil", "sweet", "drink", "fast"];
 
 const dish = (id, n, emoji, portionG, macros, opts = {}) => ({
   id, kind: "dish", n, emoji, portionG, macros, approx: true, ...opts,
@@ -34,12 +39,12 @@ const product = (id, n, emoji, cat, macros, servingG, opts = {}) => ({
 /* ------------------------------------------------------------------ dishes */
 
 const DISHES = [
-  dish("osh", { uz: "Osh (palov)", ru: "Плов", en: "Plov (pilaf)" }, "🍚", 350, [480, 55, 24, 18], {
+  dish("osh", { uz: "Osh (palov)", ru: "Плов", en: "Plov (pilaf)" }, "🍚", 350, [730, 73, 30, 36], {
     cat: "national", uzbek: true, minutes: 90,
     note: {
-      uz: "Uy retseptiga qarab 350-550 kcal oralig'ida bo'lishi mumkin — yog' va go'sht miqdoriga bog'liq.",
-      ru: "В зависимости от рецепта — от 350 до 550 ккал: всё решает количество масла и мяса.",
-      en: "Anywhere from 350 to 550 kcal depending on the recipe — oil and meat decide it.",
+      uz: "Bir tovoq (350 g). Uy retseptiga qarab 600-850 kcal oralig'ida — yog' va go'sht miqdoriga bog'liq.",
+      ru: "Одна тарелка (350 г). В зависимости от рецепта — от 600 до 850 ккал: всё решает количество масла и мяса.",
+      en: "One plate (350g). Anywhere from 600 to 850 kcal depending on the recipe — oil and meat decide it.",
     },
     ingredients: {
       uz: ["Guruch 120g", "Mol yoki qo'y go'shti 100g", "Sabzi 100g", "Piyoz, sarimsoq, ziravorlar"],
@@ -47,12 +52,12 @@ const DISHES = [
       en: ["Rice 120g", "Beef or lamb 100g", "Carrot 100g", "Onion, garlic, spices"],
     },
   }),
-  dish("lagmon", { uz: "Qovurma lag'mon", ru: "Лагман (жареный)", en: "Fried lagman" }, "🍜", 400, [420, 45, 24, 14], {
+  dish("lagmon", { uz: "Qovurma lag'mon", ru: "Лагман (жареный)", en: "Fried lagman" }, "🍜", 400, [700, 76, 32, 29], {
     cat: "national", uzbek: true, minutes: 60,
     note: {
-      uz: "Qo'lda tortilgan xamir va go'sht miqdoriga qarab ±80 kcal farq qilishi mumkin.",
-      ru: "Из-за теста ручной тяжки и количества мяса возможна разница ±80 ккал.",
-      en: "Hand-pulled noodles and the meat portion swing this by about ±80 kcal.",
+      uz: "Qovurilgani — xamir yog'da qoviriladi. Sho'rvali lag'mon shu portsiyada ~250 kcal yengilroq.",
+      ru: "Жареный — лапша обжаривается в масле. Суповой лагман в той же порции примерно на 250 ккал легче.",
+      en: "The fried version — the noodles go through oil. Soup lagman is about 250 kcal lighter at the same portion.",
     },
     ingredients: {
       uz: ["Lag'mon xamiri 150g", "Mol go'shti 100g", "Bolgar qalampiri, pomidor, sabzi"],
@@ -60,12 +65,12 @@ const DISHES = [
       en: ["Noodles 150g", "Beef 100g", "Pepper, tomato, carrot"],
     },
   }),
-  dish("somsa", { uz: "Go'shtli somsa", ru: "Самса с мясом", en: "Meat samsa" }, "🥟", 120, [280, 26, 13, 16], {
+  dish("somsa", { uz: "Go'shtli somsa", ru: "Самса с мясом", en: "Meat samsa" }, "🥟", 150, [405, 32, 16, 23], {
     cat: "national", uzbek: true, minutes: 45,
     note: {
-      uz: "Moyda qovurilgan versiyasi 350+ kcal bo'lishi mumkin — tandirdagisi yengilroq.",
-      ru: "Жаренная в масле — 350+ ккал; тандырная легче.",
-      en: "The deep-fried version runs past 350 kcal; the tandoor one is lighter.",
+      uz: "Bitta tandir somsasi (~150 g). Qatlamali xamirdan tayyorlangani yog'liroq bo'ladi.",
+      ru: "Одна тандырная самса (~150 г). Из слоёного теста получается жирнее.",
+      en: "One tandoor samsa (~150g). Made with puff pastry it comes out fattier.",
     },
     ingredients: {
       uz: ["Xamir 60g", "Mol/qo'y fars 50g", "Piyoz", "Ziravorlar"],
@@ -73,12 +78,12 @@ const DISHES = [
       en: ["Pastry 60g", "Minced meat 50g", "Onion", "Spices"],
     },
   }),
-  dish("manti", { uz: "Manti", ru: "Манты", en: "Manti" }, "🥟", 280, [380, 40, 20, 15], {
+  dish("manti", { uz: "Manti", ru: "Манты", en: "Manti" }, "🥟", 280, [655, 62, 31, 31], {
     cat: "national", uzbek: true, minutes: 90,
     note: {
-      uz: "5-6 dona, qatiq bilan. Bug'da pishirilgani qovurilganidan yengilroq.",
-      ru: "5-6 штук с катыком. На пару легче, чем жареные.",
-      en: "5-6 pieces with yoghurt. Steamed is lighter than fried.",
+      uz: "3 dona (~90 g dan). Qovoqli manti go'shtlisidan ~150 kcal yengilroq.",
+      ru: "3 штуки (по ~90 г). Тыквенные манты примерно на 150 ккал легче мясных.",
+      en: "3 pieces (~90g each). Pumpkin manti run about 150 kcal lighter than meat.",
     },
     ingredients: {
       uz: ["Xamir", "Mol fars yoki qovoq + go'sht", "Piyoz", "Qatiq"],
@@ -151,7 +156,7 @@ const DISHES = [
       en: ["Beef 150g", "Onion", "Spices, vinegar"],
     },
   }),
-  dish("norin", { uz: "Norin", ru: "Норин", en: "Norin" }, "🍝", 300, [430, 46, 26, 15], {
+  dish("norin", { uz: "Norin", ru: "Норин", en: "Norin" }, "🍝", 300, [560, 62, 29, 22], {
     cat: "national", uzbek: true, minutes: 120,
     note: {
       uz: "Qazi bilan tayyorlangani ancha yog'liroq bo'ladi.",
@@ -164,7 +169,7 @@ const DISHES = [
       en: ["Dough 150g", "Boiled meat 120g", "Onion", "Broth"],
     },
   }),
-  dish("tovuq-guruch", { uz: "Grilangan tovuq + guruch", ru: "Курица гриль с рисом", en: "Grilled chicken with rice" }, "🍗", 250, [420, 45, 40, 8], {
+  dish("tovuq-guruch", { uz: "Grilangan tovuq + guruch", ru: "Курица гриль с рисом", en: "Grilled chicken with rice" }, "🍗", 250, [370, 26, 49, 6], {
     cat: "meat", minutes: 30, approx: false,
     note: {
       uz: "Moysiz pishirilgan variant uchun barqaror qiymat.",
@@ -203,7 +208,7 @@ const DISHES = [
       en: ["Fish fillet 180g", "Broccoli, carrot, pepper 200g", "Olive oil", "Lemon"],
     },
   }),
-  dish("tvorog-asal", { uz: "Tvorog + asal", ru: "Творог с мёдом", en: "Cottage cheese with honey" }, "🥣", 165, [180, 10, 24, 5], {
+  dish("tvorog-asal", { uz: "Tvorog + asal", ru: "Творог с мёдом", en: "Cottage cheese with honey" }, "🥣", 165, [225, 17, 25, 7], {
     cat: "dairy", minutes: 2, approx: false,
     note: {
       uz: "Past yog'li tvorog uchun barqaror qiymat.",
@@ -251,8 +256,9 @@ const PRODUCTS = [
   /* -- meat and poultry --------------------------------------------------- */
   product("tovuq-kokrak", { uz: "Tovuq ko'krak (pishgan)", ru: "Куриная грудка (варёная)", en: "Chicken breast (cooked)" }, "🍗", "meat", [165, 0, 31, 3.6], 150),
   product("tovuq-son", { uz: "Tovuq son (pishgan)", ru: "Куриное бедро (варёное)", en: "Chicken thigh (cooked)" }, "🍗", "meat", [209, 0, 26, 11], 150),
-  product("tovuq-qovurilgan", { uz: "Qovurilgan tovuq (teri bilan)", ru: "Жареная курица с кожей", en: "Fried chicken with skin" }, "🍗", "meat", [240, 0, 27, 14], 150),
-  product("mol-goshti", { uz: "Mol go'shti (yog'siz, pishgan)", ru: "Говядина постная (варёная)", en: "Lean beef (cooked)" }, "🥩", "meat", [250, 0, 26, 15], 150),
+  product("tovuq-qovurilgan", { uz: "Qovurilgan tovuq (teri bilan)", ru: "Жареная курица с кожей", en: "Fried chicken with skin" }, "🍗", "meat", [265, 0, 26, 18], 150),
+  // "Lean" has to mean lean: at 15 g fat this was fattier than the lamb below it.
+  product("mol-goshti", { uz: "Mol go'shti (yog'siz, pishgan)", ru: "Говядина постная (варёная)", en: "Lean beef (cooked)" }, "🥩", "meat", [215, 0, 30, 10], 150),
   product("mol-farsh", { uz: "Mol farshi (pishgan)", ru: "Говяжий фарш (жареный)", en: "Ground beef (cooked)" }, "🥩", "meat", [254, 0, 26, 17], 120),
   product("qoy-goshti", { uz: "Qo'y go'shti (pishgan)", ru: "Баранина (варёная)", en: "Lamb (cooked)" }, "🍖", "meat", [294, 0, 25, 21], 150),
   product("jigar", { uz: "Mol jigari", ru: "Говяжья печень", en: "Beef liver" }, "🥩", "meat", [175, 5, 27, 5], 120),
@@ -274,7 +280,7 @@ const PRODUCTS = [
   product("sut25", { uz: "Sut 2.5%", ru: "Молоко 2,5%", en: "Milk 2.5%" }, "🥛", "dairy", [52, 4.8, 3, 2.5], 250),
   product("kefir", { uz: "Kefir 1%", ru: "Кефир 1%", en: "Kefir 1%" }, "🥛", "dairy", [40, 4, 3, 1], 250),
   product("tvorog5", { uz: "Tvorog 5%", ru: "Творог 5%", en: "Curd cheese 5%" }, "🧀", "dairy", [121, 3, 17, 5], 150),
-  product("tvorog9", { uz: "Tvorog 9%", ru: "Творог 9%", en: "Curd cheese 9%" }, "🧀", "dairy", [169, 3, 16, 9], 150),
+  product("tvorog9", { uz: "Tvorog 9%", ru: "Творог 9%", en: "Curd cheese 9%" }, "🧀", "dairy", [169, 3, 18, 9], 150),
   product("grek-yogurt", { uz: "Yunon yogurti (shirinsiz)", ru: "Греческий йогурт без сахара", en: "Greek yoghurt, plain" }, "🥣", "dairy", [59, 3.6, 10, 0.4], 170),
   product("pishloq", { uz: "Qattiq pishloq", ru: "Твёрдый сыр", en: "Hard cheese" }, "🧀", "dairy", [356, 1.3, 25, 28], 30),
   product("mozzarella", { uz: "Mosarella", ru: "Моцарелла", en: "Mozzarella" }, "🧀", "dairy", [280, 3, 22, 20], 50),
@@ -327,7 +333,11 @@ const PRODUCTS = [
   product("nok", { uz: "Nok", ru: "Груша", en: "Pear" }, "🍐", "fruit", [57, 15, 0.4, 0.1], 180),
   product("apelsin", { uz: "Apelsin", ru: "Апельсин", en: "Orange" }, "🍊", "fruit", [47, 12, 0.9, 0.1], 150),
   product("qulupnay", { uz: "Qulupnay", ru: "Клубника", en: "Strawberry" }, "🍓", "fruit", [32, 8, 0.7, 0.3], 150),
-  product("xurmo", { uz: "Xurmo (quritilgan)", ru: "Финики сушёные", en: "Dried dates" }, "🌴", "fruit", [282, 75, 2.5, 0.4], 40),
+  // Two different fruits used to share one entry. In Uzbek "xurmo" is the
+  // persimmon eaten fresh every autumn; the dried dates the macros described are
+  // "finik". Anyone logging a persimmon was charged 282 kcal for a 70 kcal fruit.
+  product("xurmo", { uz: "Xurmo", ru: "Хурма", en: "Persimmon" }, "🟠", "fruit", [70, 18, 0.6, 0.2], 170, { uzbek: true }),
+  product("finik", { uz: "Finik (quritilgan)", ru: "Финики сушёные", en: "Dried dates" }, "🌴", "fruit", [282, 75, 2.5, 0.4], 40),
   product("mayiz", { uz: "Mayiz", ru: "Изюм", en: "Raisins" }, "🍇", "fruit", [299, 79, 3.1, 0.5], 40),
   product("quruq-orik", { uz: "Quritilgan o'rik", ru: "Курага", en: "Dried apricots" }, "🍑", "fruit", [241, 63, 3.4, 0.5], 40),
   product("avokado", { uz: "Avokado", ru: "Авокадо", en: "Avocado" }, "🥑", "fruit", [160, 9, 2, 15], 100),
@@ -339,8 +349,11 @@ const PRODUCTS = [
   product("pista", { uz: "Pista", ru: "Фисташки", en: "Pistachios" }, "🥜", "nut", [560, 28, 20, 45], 30),
   product("kungaboqar-urugi", { uz: "Kungaboqar urug'i", ru: "Семечки подсолнуха", en: "Sunflower seeds" }, "🌻", "nut", [584, 20, 21, 51], 30),
   product("yeryongoq-moyi", { uz: "Yeryong'oq moyi (pastasi)", ru: "Арахисовая паста", en: "Peanut butter" }, "🥜", "nut", [588, 20, 25, 50], 20),
-  product("zaytun-moyi", { uz: "Zaytun moyi", ru: "Оливковое масло", en: "Olive oil" }, "🫒", "nut", [884, 0, 0, 100], 10),
-  product("kungaboqar-moyi", { uz: "Kungaboqar moyi", ru: "Подсолнечное масло", en: "Sunflower oil" }, "🌻", "nut", [884, 0, 0, 100], 10),
+  // Cooking oils, not nuts — filtering "yong'oqlar" for a snack should not
+  // return a bottle of sunflower oil.
+  product("zaytun-moyi", { uz: "Zaytun moyi", ru: "Оливковое масло", en: "Olive oil" }, "🫒", "oil", [884, 0, 0, 100], 10),
+  product("kungaboqar-moyi", { uz: "Kungaboqar moyi", ru: "Подсолнечное масло", en: "Sunflower oil" }, "🌻", "oil", [884, 0, 0, 100], 10),
+  product("paxta-moyi", { uz: "Paxta moyi", ru: "Хлопковое масло", en: "Cottonseed oil" }, "🫗", "oil", [884, 0, 0, 100], 10, { uzbek: true }),
   product("asal", { uz: "Asal", ru: "Мёд", en: "Honey" }, "🍯", "sweet", [304, 82, 0.3, 0], 20),
 
   /* -- drinks -------------------------------------------------------------- */
@@ -354,8 +367,9 @@ const PRODUCTS = [
   product("gamburger", { uz: "Gamburger", ru: "Гамбургер", en: "Hamburger" }, "🍔", "fast", [295, 30, 17, 12], 110),
   product("chizburger", { uz: "Chizburger", ru: "Чизбургер", en: "Cheeseburger" }, "🍔", "fast", [303, 27, 16, 15], 120),
   product("pitsa", { uz: "Pitsa (Margarita)", ru: "Пицца «Маргарита»", en: "Pizza margherita" }, "🍕", "fast", [266, 33, 11, 10], 120),
-  product("lavash", { uz: "Lavash (tovuqli)", ru: "Лаваш с курицей", en: "Chicken lavash wrap" }, "🌯", "fast", [215, 20, 12, 10], 250),
-  product("shaurma", { uz: "Shaurma", ru: "Шаурма", en: "Shawarma" }, "🌯", "fast", [230, 18, 13, 12], 250),
+  // 300 g is what a street portion actually weighs here; 250 was a light one.
+  product("lavash", { uz: "Lavash (tovuqli)", ru: "Лаваш с курицей", en: "Chicken lavash wrap" }, "🌯", "fast", [215, 20, 12, 10], 300),
+  product("shaurma", { uz: "Shaurma", ru: "Шаурма", en: "Shawarma" }, "🌯", "fast", [230, 18, 13, 12], 300),
   product("hot-dog", { uz: "Hot-dog", ru: "Хот-дог", en: "Hot dog" }, "🌭", "fast", [290, 27, 11, 15], 100),
   product("nagets", { uz: "Nagets", ru: "Наггетсы", en: "Chicken nuggets" }, "🍗", "fast", [296, 16, 15, 20], 100),
 

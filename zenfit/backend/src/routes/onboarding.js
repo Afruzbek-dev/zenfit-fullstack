@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { query, queryOne } from "../db.js";
 import { requireAuth } from "../middleware/auth.js";
-import { computeTargets } from "../lib/calorie.js";
+import { computeTargets, AGE_MIN, AGE_MAX } from "../lib/calorie.js";
 import { estimateGoal, isValidTarget } from "../lib/goalPlan.js";
 import { mapProfile } from "../lib/mappers.js";
 
@@ -18,11 +18,14 @@ router.post("/", requireAuth, async (req, res, next) => {
     const {
       gender, age, heightCm, weightKg, activityLevel, goal,
       fitnessLevel, equipment, daysPerWeek, sessionDuration, injuries, targetWeightKg,
+      pregnant,
     } = req.body || {};
 
+    // AGE_MIN/AGE_MAX come from the calorie engine so this route and the profile
+    // editor cannot disagree about who is allowed to have a target computed.
     if (
       !VALID_GENDERS.includes(gender) ||
-      !Number.isFinite(age) || age < 10 || age > 100 ||
+      !Number.isFinite(age) || age < AGE_MIN || age > AGE_MAX ||
       !Number.isFinite(heightCm) || heightCm < 100 || heightCm > 250 ||
       !Number.isFinite(weightKg) || weightKg < 30 || weightKg > 300 ||
       !VALID_ACTIVITY.includes(activityLevel) ||
@@ -31,12 +34,27 @@ router.post("/", requireAuth, async (req, res, next) => {
       return res.status(400).json({ error: "invalid_or_missing_fields" });
     }
 
-    const targets = computeTargets({ gender, age, heightCm, weightKg, activityLevel, goal });
+    // Only asked of, and only meaningful for, female users — a stray `true` from
+    // anywhere else must not buy a 340 kcal surplus.
+    const isPregnant = gender === "female" && pregnant === true;
+
+    /*
+     * The goal is not refused, it is corrected. computeTargets downgrades an
+     * unsafe "lose" to "maintain" internally and reports why in `safety`, so
+     * what gets stored below is already the safe goal. Answering a 400 here
+     * instead would strand the user mid-onboarding on a screen whose only
+     * choices are the one that was just rejected — the explanation the client
+     * renders from `safety.reasons` is the useful half of a refusal without
+     * the dead end.
+     */
+    const targets = computeTargets({ gender, age, heightCm, weightKg, activityLevel, goal, pregnant: isPregnant });
+    const effectiveGoal = targets.goal;
 
     // The date is derived here rather than trusted from the client, so the
-    // promise the user sees is always the safe-rate one.
-    const target = isValidTarget({ goal, currentKg: weightKg, targetKg: Number(targetWeightKg) })
-      ? estimateGoal({ goal, currentKg: weightKg, targetKg: Number(targetWeightKg) })
+    // promise the user sees is always the safe-rate one. Keyed off the
+    // effective goal: a downgraded "lose" must not keep a slimming deadline.
+    const target = isValidTarget({ goal: effectiveGoal, currentKg: weightKg, targetKg: Number(targetWeightKg) })
+      ? estimateGoal({ goal: effectiveGoal, currentKg: weightKg, targetKg: Number(targetWeightKg) })
       : null;
 
     await query(
@@ -46,11 +64,11 @@ router.post("/", requireAuth, async (req, res, next) => {
          daily_calorie_target = $7, carbs_target_g = $8, protein_target_g = $9, fat_target_g = $10,
          fitness_level = $11, equipment = $12, days_per_week = $13,
          session_duration = $14, injuries = $15,
-         target_weight_kg = $16, target_date = $17,
+         target_weight_kg = $16, target_date = $17, pregnant = $18,
          neat_confirmed = true, onboarding_completed = true, updated_at = now()
-       WHERE user_id = $18`,
+       WHERE user_id = $19`,
       [
-        gender, age, heightCm, weightKg, activityLevel, goal,
+        gender, age, heightCm, weightKg, activityLevel, effectiveGoal,
         targets.dailyCalorieTarget, targets.carbsTargetG, targets.proteinTargetG, targets.fatTargetG,
         VALID_LEVELS.includes(fitnessLevel) ? fitnessLevel : null,
         VALID_EQUIPMENT.includes(equipment) ? equipment : null,
@@ -59,6 +77,7 @@ router.post("/", requireAuth, async (req, res, next) => {
         injuries || null,
         target ? Number(targetWeightKg) : null,
         target ? target.targetDate : null,
+        isPregnant,
         req.userId,
       ]
     );
@@ -74,7 +93,9 @@ router.post("/", requireAuth, async (req, res, next) => {
     }
 
     const profile = await queryOne("SELECT * FROM profiles WHERE user_id = $1", [req.userId]);
-    res.json({ profile: mapProfile(profile), computed: targets, goalPlan: target });
+    // `safety` is what lets the client say why the goal it sent back is not the
+    // goal it asked for. Without it the downgrade is silent.
+    res.json({ profile: mapProfile(profile), computed: targets, goalPlan: target, safety: targets.safety });
   } catch (err) {
     next(err);
   }

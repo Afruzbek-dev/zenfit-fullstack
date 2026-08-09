@@ -28,6 +28,7 @@ export default {
     qaScan: "AI Scan", qaRecipes: "Recipes", qaProgress: "Progress", qaTrainer: "AI Trainer", qaActivity: "Activity",
     planNudge: "Build your AI workout plan", planNudgeDesc: "A weekly plan with weights matched to you",
     days: "d", ta: "",
+    burnCapped: "Your logged sessions come to {raw} kcal, but {cap} kcal went into today's budget — that's the daily ceiling.",
     neatTitle: "We changed the daily-activity question",
     neatDesc: "It now describes your day without training — sessions are added separately when you log them. Worth re-checking your level.",
   },
@@ -104,6 +105,27 @@ export default {
       maintain: "Balanced volume — keep the technique clean.",
       gain: "Add a little weight every week.",
       beginner: "Start light — the last 2-3 reps should be hard but doable.",
+    },
+  },
+
+  safety: {
+    adjustedTitle: "Goal changed",
+    adjustedDesc: "For safety we switched you to “{goal}”.",
+    reasons: {
+      lose_blocked_pregnancy:
+        "Losing weight is not advised during pregnancy or breastfeeding. Your daily target is calculated with a +{kcal} kcal allowance instead. Ask your doctor for guidance specific to you.",
+      lose_blocked_underweight:
+        "Your body mass index is {bmi}, which is below the healthy range (under {minBmi}). At your height a healthy weight starts at {minKg} kg, so we are not enabling a weight-loss plan. Choose “Maintain weight” or “Build muscle”, or speak to a doctor.",
+      lose_blocked_minor:
+        "Setting your own calorie restriction under {minAge} is not advised. You can still track food and training, but if weight loss is needed, talk to a doctor or dietitian first.",
+    },
+    advisories: {
+      pregnancy_surplus_applied:
+        "A +{kcal} kcal pregnancy allowance was added to your daily target, and protein was raised to {proteinPerKg} g/kg.",
+      age_minor_estimate:
+        "Under {minAge} the calculation is an estimate — the formula was derived for adults. Have the numbers checked by a doctor.",
+      age_senior_caution:
+        "Past {age} the calorie and protein figures become estimates. Check with a doctor before starting a new diet or training plan.",
     },
   },
 

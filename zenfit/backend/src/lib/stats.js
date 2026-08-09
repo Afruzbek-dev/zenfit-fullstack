@@ -1,11 +1,12 @@
 import { query, queryOne, daysAgoIso } from "../db.js";
+import { capExerciseCredit, tdeeFromProfileRow } from "./calorie.js";
 
 /**
  * The foods this user logs most often, newest-first among equals.
  *
  * People eat the same handful of things — non, choy, qatiq, osh — and without
  * this the app forgot all of it overnight: every morning meant re-finding the
- * same breakfast in a 126-item catalogue. Grouping on the full macro tuple
+ * same breakfast in a catalogue of over a hundred items. Grouping on the full macro tuple
  * keeps "osh 350 g" and "osh 200 g" as separate entries, which is what makes a
  * row directly re-loggable in one tap.
  */
@@ -99,13 +100,28 @@ export async function getDayStats(userId, dateStr, tzOffsetMinutes = 0) {
   // Strength sets and free activities both burn into the same daily budget.
   const workoutKcal = workouts.reduce((sum, w) => sum + (w.kcal || 0), 0);
   const activityKcal = activities.reduce((sum, a) => sum + (a.kcal || 0), 0);
-  const burned = workoutKcal + activityKcal;
+
+  /*
+   * Capped here rather than at insert time, because the cap belongs to the DAY,
+   * not to any one entry: three plausible 200-minute sessions add up to the same
+   * absurdity as one 600-minute typo, and only the total can see that. Capping
+   * on the read path also means the stored rows stay a faithful record of what
+   * the user actually entered — the cap changes the budget, not the history.
+   */
+  const credit = capExerciseCredit(workoutKcal + activityKcal, { tdee: tdeeFromProfileRow(profile) });
+  const burned = credit.kcal;
   const target = profile?.daily_calorie_target || 2000;
 
   return {
     date: day,
     ...totals,
     burned,
+    // What was logged before the cap, and whether it bound — so the client can
+    // say "we only counted this much" instead of silently showing a lower number
+    // than the sum of the entries listed right below it.
+    burnedRaw: credit.rawKcal,
+    burnedCapped: credit.capped,
+    burnedCap: credit.cap,
     activityKcal,
     activityMinutes: activities.reduce((sum, a) => sum + (a.duration_min || 0), 0),
     waterMl: Number(water?.total || 0),

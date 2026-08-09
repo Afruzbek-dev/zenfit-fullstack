@@ -1,7 +1,8 @@
 import { Router } from "express";
-import { query, daysAgoIso } from "../db.js";
+import { query, queryOne, daysAgoIso } from "../db.js";
 import { requireAuth } from "../middleware/auth.js";
 import { getDayStats, getStreak, dayRange } from "../lib/stats.js";
+import { capExerciseCredit, tdeeFromProfileRow } from "../lib/calorie.js";
 
 const router = Router();
 
@@ -26,7 +27,7 @@ router.get("/weekly", requireAuth, async (req, res, next) => {
     const tz = Number(req.query.tz) || 0;
     const since = daysAgoIso(days);
 
-    const [meals, workouts, activities] = await Promise.all([
+    const [meals, workouts, activities, profile] = await Promise.all([
       query(
         `SELECT kcal, logged_at FROM meals WHERE user_id = $1 AND logged_at >= $2`,
         [req.userId, since]
@@ -39,6 +40,7 @@ router.get("/weekly", requireAuth, async (req, res, next) => {
         `SELECT kcal, logged_at FROM activities WHERE user_id = $1 AND logged_at >= $2`,
         [req.userId, since]
       ),
+      queryOne(`SELECT gender, age, height_cm, weight_kg, activity_level FROM profiles WHERE user_id = $1`, [req.userId]),
     ]);
 
     const localDay = (ts) => {
@@ -66,6 +68,14 @@ router.get("/weekly", requireAuth, async (req, res, next) => {
       const b = buckets.get(localDay(a.logged_at));
       if (b) b.burned += a.kcal || 0;
     });
+
+    // Same daily ceiling the dashboard applies (see getDayStats). The chart
+    // scales its y-axis to the tallest bar, so one 9,900 kcal typo would not
+    // just be wrong — it would flatten every honest day beside it to a stub.
+    const tdee = tdeeFromProfileRow(profile);
+    for (const b of buckets.values()) {
+      b.burned = capExerciseCredit(b.burned, { tdee }).kcal;
+    }
 
     res.json({ days: [...buckets.values()] });
   } catch (err) {

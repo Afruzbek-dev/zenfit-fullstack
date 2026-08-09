@@ -36,7 +36,7 @@ const foodKey = (f) => `${f.name}|${f.kcal}|${f.portionG ?? ""}`;
  *
  * Uzbek meals repeat heavily — non, choy, qatiq, osh — but the app used to
  * start from zero every morning: finding yesterday's breakfast again meant
- * opening Recipes and searching a 126-item catalogue. This turns the second and
+ * opening Recipes and searching the whole catalogue. This turns the second and
  * every later time into a single tap from the screen the app already opens on.
  */
 function RecentFoods({ foods, busyKey, onLog, t }) {
@@ -185,6 +185,14 @@ export default function HomeScreen({ onNavigate }) {
             <p className="tabular text-[15px] font-bold text-amber">{eaten}</p>
           </div>
         </div>
+
+        {/* The activity list below shows entries summing to more than this. Say
+            so, rather than letting the difference read as a bug. */}
+        {summary.burnedCapped && (
+          <p className="mt-2.5 text-center text-[10.5px] leading-relaxed text-faint">
+            {t("home.burnCapped", { raw: summary.burnedRaw, cap: summary.burnedCap })}
+          </p>
+        )}
 
         <div className="mt-5 flex w-full gap-3">
           <MacroBar label={t("home.protein")} value={summary.protein} target={profile?.proteinTargetG} color="rgb(var(--c-neon))" />

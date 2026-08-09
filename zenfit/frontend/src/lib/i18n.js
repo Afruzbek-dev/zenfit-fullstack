@@ -43,6 +43,7 @@ const uz = {
     qaScan: "AI Skan", qaRecipes: "Retseptlar", qaProgress: "Progress", qaTrainer: "AI Trener", qaActivity: "Faollik",
     planNudge: "AI mashq rejasini tuzing", planNudgeDesc: "Vazningizga mos kg'lar bilan haftalik reja",
     days: "kun", ta: "ta",
+    burnCapped: "Belgilangan mashqlar {raw} kkal beradi, lekin kunlik hisobga {cap} kkal qo'shildi — bir kunlik chegara.",
     neatTitle: "Kunlik faollik savolini yangiladik",
     neatDesc: "Endi u faqat mashqsiz kundalik hayotni bildiradi — mashqlar belgilaganingizda alohida qo'shiladi. Darajangizni bir tekshirib chiqing.",
   },
@@ -119,6 +120,32 @@ const uz = {
       maintain: "Muvozanatli hajm — texnikaga e'tibor bering.",
       gain: "Og'irlikni har hafta asta oshirib boring.",
       beginner: "Yengil vazndan boshlang — oxirgi 2-3 takror qiyin, lekin bajarilishi mumkin bo'lsin.",
+    },
+  },
+
+  /*
+   * Keyed by the codes the backend's assessGoalSafety() returns. The figures in
+   * {braces} arrive with the code, so the thresholds live in one place — the
+   * engine — and never have to be kept in step across three languages.
+   */
+  safety: {
+    adjustedTitle: "Maqsad o'zgartirildi",
+    adjustedDesc: "Xavfsizlik uchun «{goal}» rejimiga o'tkazdik.",
+    reasons: {
+      lose_blocked_pregnancy:
+        "Homiladorlik yoki emizish davrida vazn kamaytirish tavsiya etilmaydi. Kunlik normangiz +{kcal} kkal bilan hisoblanadi. Aniq ko'rsatma uchun shifokoringiz bilan maslahatlashing.",
+      lose_blocked_underweight:
+        "Tana vazni indeksingiz {bmi} — bu me'yordan past ({minBmi} dan kam). Sizning bo'yingizda sog'lom vazn {minKg} kg dan boshlanadi, shuning uchun ozish rejasini yoqmaymiz. «Vaznni saqlash» yoki «Massa yig'ish» ni tanlang, yoki shifokorga murojaat qiling.",
+      lose_blocked_minor:
+        "{minAge} yoshgacha kaloriya cheklovini mustaqil belgilash tavsiya etilmaydi. Ovqatlanish va mashg'ulotlarni kuzatib borishingiz mumkin, lekin vazn kamaytirish kerak bo'lsa shifokor yoki nutritsiolog bilan maslahatlashing.",
+    },
+    advisories: {
+      pregnancy_surplus_applied:
+        "Homiladorlik uchun kunlik normaga +{kcal} kkal qo'shildi va oqsil {proteinPerKg} g/kg gacha oshirildi.",
+      age_minor_estimate:
+        "{minAge} yoshgacha bo'lganlar uchun hisob-kitob taxminiy — formula kattalar uchun ishlab chiqilgan. Ko'rsatkichlarni shifokor bilan tekshiring.",
+      age_senior_caution:
+        "{age} yoshdan keyin kaloriya va oqsil me'yorlari taxminiy bo'ladi. Yangi ovqatlanish yoki mashg'ulot rejasini boshlashdan oldin shifokor bilan maslahatlashing.",
     },
   },
 
@@ -267,6 +294,7 @@ const ru = {
     qaScan: "AI Скан", qaRecipes: "Рецепты", qaProgress: "Прогресс", qaTrainer: "AI Тренер", qaActivity: "Активность",
     planNudge: "Составьте план тренировок", planNudgeDesc: "Недельный план с весами под вас",
     days: "дн", ta: "шт",
+    burnCapped: "Отмеченные тренировки дают {raw} ккал, но в дневной расчёт вошло {cap} ккал — это предел за сутки.",
     neatTitle: "Мы обновили вопрос о дневной активности",
     neatDesc: "Теперь он про жизнь без тренировок — сами тренировки добавляются отдельно, когда вы их отмечаете. Проверьте свой уровень.",
   },
@@ -343,6 +371,27 @@ const ru = {
       maintain: "Сбалансированный объём — следите за техникой.",
       gain: "Каждую неделю понемногу повышайте вес.",
       beginner: "Начните с лёгкого веса — последние 2-3 повтора должны даваться тяжело, но выполнимо.",
+    },
+  },
+
+  safety: {
+    adjustedTitle: "Цель изменена",
+    adjustedDesc: "Ради безопасности мы перевели вас в режим «{goal}».",
+    reasons: {
+      lose_blocked_pregnancy:
+        "Во время беременности и кормления снижать вес не рекомендуется. Ваша норма рассчитана с прибавкой +{kcal} ккал. За точными указаниями обратитесь к своему врачу.",
+      lose_blocked_underweight:
+        "Ваш индекс массы тела {bmi} — это ниже нормы (меньше {minBmi}). При вашем росте здоровый вес начинается с {minKg} кг, поэтому план похудения мы не включаем. Выберите «Поддержание веса» или «Набор массы», либо обратитесь к врачу.",
+      lose_blocked_minor:
+        "До {minAge} лет самостоятельно ограничивать калории не рекомендуется. Вести дневник питания и тренировок можно, но если нужно снизить вес — посоветуйтесь с врачом или диетологом.",
+    },
+    advisories: {
+      pregnancy_surplus_applied:
+        "Для беременности к дневной норме добавлено +{kcal} ккал, а белок повышен до {proteinPerKg} г/кг.",
+      age_minor_estimate:
+        "До {minAge} лет расчёт приблизительный — формула выведена для взрослых. Проверьте показатели у врача.",
+      age_senior_caution:
+        "После {age} лет нормы калорий и белка становятся приблизительными. Перед началом новой диеты или тренировок посоветуйтесь с врачом.",
     },
   },
 

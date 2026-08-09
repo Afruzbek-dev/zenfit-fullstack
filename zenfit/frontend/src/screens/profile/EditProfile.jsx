@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Check, User2, Ruler, Scale, ShieldAlert, Droplets } from "lucide-react";
 import { Screen, ScreenHeader, Section, Button, Chip, ErrorNote } from "../../components/ui.jsx";
+import SafetyNotice from "../../components/SafetyNotice.jsx";
 import Avatar from "../../components/Avatar.jsx";
 import { useApp } from "../../store.jsx";
 import { useBackButton } from "../../lib/useBackButton.js";
@@ -45,6 +46,7 @@ export default function EditProfile({ onBack }) {
   const [form, setForm] = useState({
     displayName: profile?.displayName || user?.firstName || "",
     gender: profile?.gender || "male",
+    pregnant: profile?.pregnant ?? false,
     age: profile?.age ?? 25,
     heightCm: profile?.heightCm ?? 175,
     weightKg: profile?.weightKg ?? 70,
@@ -55,6 +57,7 @@ export default function EditProfile({ onBack }) {
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  const [safety, setSafety] = useState(null);
 
   const patch = (p) => setForm((prev) => ({ ...prev, ...p }));
 
@@ -68,9 +71,10 @@ export default function EditProfile({ onBack }) {
     setBusy(true);
     setError(null);
     try {
-      await updateProfile({
+      const res = await updateProfile({
         displayName: form.displayName.trim(),
         gender: form.gender,
+        pregnant: form.gender === "female" && form.pregnant,
         age: Number(form.age),
         heightCm: Number(form.heightCm),
         weightKg: Number(form.weightKg),
@@ -79,6 +83,16 @@ export default function EditProfile({ onBack }) {
         injuries: form.injuries.trim(),
         waterTargetMl: Number(form.waterTargetMl),
       });
+
+      // Saving new metrics can make the stored goal unsafe — a weight edit that
+      // drops BMI below 18.5 retires an active "lose". Stay on the screen and
+      // say so; closing it would make the change look like it did not happen.
+      if (res?.safety?.blocked) {
+        setSafety(res.safety);
+        haptic("warning");
+        return;
+      }
+      setSafety(null);
       haptic("success");
       showToast(t("profile.targetsRecalc"), "success");
       onBack();
@@ -112,9 +126,24 @@ export default function EditProfile({ onBack }) {
 
       <Section title={t("profile.gender")}>
         <div className="flex gap-2">
-          <Chip active={form.gender === "male"} onClick={() => patch({ gender: "male" })}>{t("profile.male")}</Chip>
+          <Chip active={form.gender === "male"} onClick={() => patch({ gender: "male", pregnant: false })}>{t("profile.male")}</Chip>
           <Chip active={form.gender === "female"} onClick={() => patch({ gender: "female" })}>{t("profile.female")}</Chip>
         </div>
+
+        {form.gender === "female" && (
+          <label className="mt-2 flex cursor-pointer items-start gap-3 rounded-2xl border border-borderSoft bg-surface px-4 py-3.5">
+            <input
+              type="checkbox"
+              checked={form.pregnant}
+              onChange={(e) => patch({ pregnant: e.target.checked })}
+              className="mt-0.5 h-[18px] w-[18px] shrink-0 accent-[color:rgb(var(--c-neon))]"
+            />
+            <span className="min-w-0">
+              <span className="block text-[13.5px] font-bold text-ink">{t("onboarding.pregnantTitle")}</span>
+              <span className="mt-0.5 block text-[11.5px] leading-relaxed text-muted">{t("onboarding.pregnantDesc")}</span>
+            </span>
+          </label>
+        )}
       </Section>
 
       <Section title={t("profile.bodyMetrics")}>
@@ -174,6 +203,8 @@ export default function EditProfile({ onBack }) {
           />
         </div>
       </Section>
+
+      <SafetyNotice safety={safety} t={t} className="mb-4" />
 
       {error && (
         <div className="mb-4">

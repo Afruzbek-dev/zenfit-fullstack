@@ -30,11 +30,13 @@ const ACTIVITY_MULTIPLIERS = {
  * pregnant/breastfeeding, still a child — are the only ones gated. Every
  * other user walks the same path they always did.
  *
- * The gate lives here rather than in the routes so that no caller can
- * produce a deficit by accident: computeTargets() itself downgrades an
- * unsafe goal before it does any arithmetic. Routes layer an HTTP refusal
- * on top of that (see routes/onboarding.js) — the engine is the backstop,
- * not the error message.
+ * The gate lives here rather than in the routes so that no caller can produce
+ * a deficit by accident: computeTargets() itself downgrades an unsafe goal
+ * before it does any arithmetic. The routes do not refuse the request on top
+ * of that — they store the downgraded goal and return `safety` so the client
+ * can say what changed and why (see routes/onboarding.js and routes/profile.js).
+ * A 400 would leave the user on a screen offering only the choice just
+ * rejected; the explanation is the useful half of a refusal, the dead end is not.
  * ------------------------------------------------------------------ */
 
 /** Shared by routes/onboarding.js and routes/profile.js so they cannot drift apart again. */
@@ -82,6 +84,30 @@ export const PREGNANCY_PROTEIN_G_PER_KG = 1.8;
 /** Absolute fallback for the exercise-credit cap when no TDEE is known. */
 export const EXERCISE_CREDIT_FALLBACK_KCAL = 1500;
 
+/**
+ * How many times the user's own TDEE a single day of logged exercise may add
+ * back to the budget.
+ *
+ * A flat 1.0× was the first attempt and it was too tight: a 70 kg user on a
+ * light NEAT level has a TDEE of 2168, and a marathon nets around 2600, so the
+ * cap silently ate 430 kcal off a real one. 1.5× clears a marathon for every
+ * bodyweight in range — including a 45 kg woman, whose cap lands at ~2040
+ * against a net cost near 1400 — while still cutting the 600-minute MET-12.8
+ * typo from 9,900 to about 3,200.
+ */
+export const EXERCISE_CREDIT_TDEE_MULTIPLE = 1.5;
+
+/**
+ * Absolute ceiling, applied on top of the multiple.
+ *
+ * The multiple alone scales badly at the top end: a 120 kg very-active user has
+ * a TDEE near 4,000, so 1.5× let the same typo through at 6,000 — a claimed
+ * 10,000 kcal day. This clamps that to 4,000, which is still above what any
+ * marathon in the range above costs (the heaviest case nets ~3,200), so it
+ * binds on data-entry errors and on nothing a recreational user actually did.
+ */
+export const EXERCISE_CREDIT_MAX_KCAL = 4000;
+
 export function bmiFor({ heightCm, weightKg }) {
   if (!Number.isFinite(heightCm) || !Number.isFinite(weightKg) || heightCm <= 0) return null;
   const m = heightCm / 100;
@@ -102,10 +128,16 @@ export function minHealthyWeightKg(heightCm) {
  * downgraded to "maintain" with the reasons attached, so a caller that ignores
  * `blocked` still cannot hand out a deficit.
  *
+ * Every reason and advisory carries a stable `code`, an Uzbek `message` and the
+ * numbers that message quotes in `vars`. The client translates by code and
+ * interpolates `vars`, falling back to `message` when it has no string for that
+ * code — so a new code reaches the user as a real sentence on the day it ships,
+ * and no figure has to be duplicated into three dictionaries where it could drift.
+ *
  * @returns {{
  *   requestedGoal: string, goal: string, blocked: boolean, goalAdjusted: boolean,
- *   reasons: Array<{code: string, message: string}>,
- *   advisories: Array<{code: string, message: string}>,
+ *   reasons: Array<{code: string, message: string, vars?: object}>,
+ *   advisories: Array<{code: string, message: string, vars?: object}>,
  *   allowedGoals: string[], suggestedGoal: string,
  *   bmi: number|null, minHealthyWeightKg: number|null, pregnant: boolean
  * }}
@@ -127,8 +159,12 @@ export function assessGoalSafety({ gender, age, heightCm, weightKg, goal, pregna
         code: "lose_blocked_pregnancy",
         message:
           "Homiladorlik yoki emizish davrida vazn kamaytirish tavsiya etilmaydi. " +
-          "«Saqlash» maqsadini tanlang — kunlik normangiz +340 kkal bilan hisoblanadi. " +
+          `Kunlik normangiz +${PREGNANCY_SURPLUS_KCAL} kkal bilan hisoblanadi. ` +
           "Aniq ko'rsatma uchun shifokoringiz bilan maslahatlashing.",
+        // This reason is the only place the surplus gets mentioned when the
+        // request was "lose" — the pregnancy_surplus_applied advisory is
+        // suppressed in that case to avoid saying it twice.
+        vars: { kcal: PREGNANCY_SURPLUS_KCAL },
       });
     }
     // Strict `<`: exactly 18.5 is not underweight.
@@ -139,6 +175,7 @@ export function assessGoalSafety({ gender, age, heightCm, weightKg, goal, pregna
           `Tana vazni indeksingiz ${Math.round(bmiRaw * 10) / 10} — bu me'yordan past (18.5 dan kam). ` +
           "Vazn kamaytirish rejasi sog'ligingizga zarar yetkazishi mumkin, shuning uchun uni yoqmaymiz. " +
           "«Saqlash» yoki «Vazn olish» maqsadini tanlang, yoki shifokorga murojaat qiling.",
+        vars: { bmi: Math.round(bmiRaw * 10) / 10, minBmi: MIN_HEALTHY_BMI, minKg: floorKg },
       });
     }
     if (Number.isFinite(age) && age < LOSE_MIN_AGE) {
@@ -148,6 +185,7 @@ export function assessGoalSafety({ gender, age, heightCm, weightKg, goal, pregna
           "18 yoshgacha kaloriya cheklovini ilova orqali mustaqil belgilash tavsiya etilmaydi. " +
           "«Saqlash» maqsadini tanlang — ovqatlanish va mashg'ulotlarni kuzatib borishingiz mumkin. " +
           "Vazn kamaytirish kerak bo'lsa, shifokor yoki nutritsiolog bilan maslahatlashing.",
+        vars: { minAge: LOSE_MIN_AGE },
       });
     }
   }
@@ -157,6 +195,7 @@ export function assessGoalSafety({ gender, age, heightCm, weightKg, goal, pregna
     advisories.push({
       code: "pregnancy_surplus_applied",
       message: `Homiladorlik uchun kunlik normaga +${PREGNANCY_SURPLUS_KCAL} kkal qo'shildi (2-trimestr me'yori) va oqsil oshirildi.`,
+      vars: { kcal: PREGNANCY_SURPLUS_KCAL, proteinPerKg: PREGNANCY_PROTEIN_G_PER_KG },
     });
   }
   if (Number.isFinite(age) && age < LOSE_MIN_AGE) {
@@ -164,6 +203,7 @@ export function assessGoalSafety({ gender, age, heightCm, weightKg, goal, pregna
     advisories.push({
       code: "age_minor_estimate",
       message: "18 yoshgacha bo'lganlar uchun hisob-kitob taxminiy. Ko'rsatkichlarni shifokor bilan tekshiring.",
+      vars: { minAge: LOSE_MIN_AGE },
     });
   }
   if (Number.isFinite(age) && age >= SENIOR_AGE) {
@@ -172,6 +212,7 @@ export function assessGoalSafety({ gender, age, heightCm, weightKg, goal, pregna
       message:
         "65 yoshdan keyin kaloriya va oqsil me'yorlari taxminiy bo'ladi. " +
         "Yangi ovqatlanish yoki mashg'ulot rejasini boshlashdan oldin shifokor bilan maslahatlashing.",
+      vars: { age: SENIOR_AGE },
     });
   }
 
@@ -302,9 +343,14 @@ export function computeTargets({ gender, age, heightCm, weightKg, activityLevel,
  * "eat more"; the failure mode of under-crediting is "eat slightly less than
  * you could have", and only one of those is worth defending against.
  *
- * The cap is the user's own TDEE: nobody may claim to have burned, on top of
- * living, more than a second full day of living. That still clears a marathon
- * (~2,600 kcal net at 70 kg) for most users and clips only the absurd.
+ * The cap is a multiple of the user's own TDEE rather than a flat number, so it
+ * scales with body size the way the effort does — see
+ * EXERCISE_CREDIT_TDEE_MULTIPLE for why the multiple is 1.5 and not 1.
+ *
+ * When the profile is too incomplete to have a TDEE the flat fallback applies.
+ * That one CAN clip a genuine endurance day, and is left tight on purpose: a
+ * user with no age, height or weight on file has no real calorie target either,
+ * so the credit is being subtracted from a guess in the first place.
  *
  * @param {number} rawKcal  summed credit before capping
  * @param {{tdee?: number}} ctx
@@ -312,7 +358,10 @@ export function computeTargets({ gender, age, heightCm, weightKg, activityLevel,
  */
 export function capExerciseCredit(rawKcal, { tdee } = {}) {
   const raw = Number.isFinite(rawKcal) && rawKcal > 0 ? Math.round(rawKcal) : 0;
-  const cap = Number.isFinite(tdee) && tdee > 0 ? Math.round(tdee) : EXERCISE_CREDIT_FALLBACK_KCAL;
+  const cap =
+    Number.isFinite(tdee) && tdee > 0
+      ? Math.min(Math.round(tdee * EXERCISE_CREDIT_TDEE_MULTIPLE), EXERCISE_CREDIT_MAX_KCAL)
+      : EXERCISE_CREDIT_FALLBACK_KCAL;
   return { kcal: Math.min(raw, cap), rawKcal: raw, cap, capped: raw > cap };
 }
 

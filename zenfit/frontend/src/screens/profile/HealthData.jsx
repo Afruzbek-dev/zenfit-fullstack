@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Target, Dumbbell, UtensilsCrossed, Info, ShieldAlert, Sparkles } from "lucide-react";
 import { Screen, ScreenHeader, Section, OptionCard, ListRow, EmptyState, Button } from "../../components/ui.jsx";
+import SafetyNotice from "../../components/SafetyNotice.jsx";
 import { useApp } from "../../store.jsx";
 import { useBackButton } from "../../lib/useBackButton.js";
 import { haptic } from "../../telegram.js";
@@ -57,6 +58,7 @@ export default function HealthData({ onBack, onNavigate }) {
   const { profile, workoutPlan, dietPlan, updateProfile, showToast, t } = useApp();
   useBackButton(onBack);
   const [savingGoal, setSavingGoal] = useState(null);
+  const [safety, setSafety] = useState(null);
 
   const bmi = bmiInfo(profile?.weightKg, profile?.heightCm);
   const tone = bmi ? BMI_TONE[bmi.key] : BMI_TONE.normal;
@@ -65,9 +67,14 @@ export default function HealthData({ onBack, onNavigate }) {
     if (goal === profile?.goal) return;
     setSavingGoal(goal);
     try {
-      await updateProfile({ goal });
-      haptic("success");
-      showToast(t("profile.targetsRecalc"), "success");
+      const res = await updateProfile({ goal });
+      // The tick may land on a different card than the one that was tapped:
+      // the engine can refuse "lose". Show why instead of letting the selection
+      // appear to bounce back on its own.
+      setSafety(res?.safety || null);
+      const refused = res?.safety?.blocked;
+      haptic(refused ? "warning" : "success");
+      if (!refused) showToast(t("profile.targetsRecalc"), "success");
     } catch (e) {
       showToast(e.message || t("common.error"), "error");
     } finally {
@@ -121,6 +128,7 @@ export default function HealthData({ onBack, onNavigate }) {
             />
           ))}
         </div>
+        <SafetyNotice safety={safety} t={t} className="mt-2.5" />
       </Section>
 
       {/* Daily targets */}

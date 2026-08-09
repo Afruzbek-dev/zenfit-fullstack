@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { query, queryOne } from "../db.js";
 import { requireAuth } from "../middleware/auth.js";
-import { computeTargets } from "../lib/calorie.js";
+import { computeTargets, AGE_MIN, AGE_MAX } from "../lib/calorie.js";
 import { mapProfile, mapSubscription } from "../lib/mappers.js";
 
 const router = Router();
@@ -56,8 +56,22 @@ router.patch("/", requireAuth, async (req, res, next) => {
     const b = req.body || {};
     const sets = [];
     const params = [];
+    const slotOf = new Map();
+    /**
+     * Assigning the same column twice revises it instead of appending a second
+     * clause: Postgres rejects `SET goal = $1, goal = $7` outright, and two
+     * places below legitimately change their mind — the calorie engine can
+     * refuse the goal that was just accepted, and switching to male clears a
+     * pregnancy flag the same request may have set.
+     */
     const set = (column, value) => {
+      const slot = slotOf.get(column);
+      if (slot !== undefined) {
+        params[slot] = value;
+        return;
+      }
       params.push(value);
+      slotOf.set(column, params.length - 1);
       sets.push(`${column} = $${params.length}`);
     };
 
@@ -90,6 +104,7 @@ router.patch("/", requireAuth, async (req, res, next) => {
       weightKg: existing.weight_kg,
       activityLevel: existing.activity_level,
       goal: existing.goal,
+      pregnant: existing.pregnant === true || existing.pregnant === 1,
     };
     let metricsTouched = false;
 
@@ -97,8 +112,20 @@ router.patch("/", requireAuth, async (req, res, next) => {
       set("gender", b.gender);
       metrics.gender = b.gender;
       metricsTouched = true;
+      // Switching to male retires the flag rather than leaving a stale `true`
+      // quietly paying out a pregnancy surplus for the rest of the account's life.
+      if (b.gender !== "female" && metrics.pregnant) {
+        set("pregnant", false);
+        metrics.pregnant = false;
+      }
     }
-    if (Number.isFinite(b.age) && b.age >= 12 && b.age <= 100) {
+    if (typeof b.pregnant === "boolean") {
+      const value = b.pregnant && metrics.gender === "female";
+      set("pregnant", value);
+      metrics.pregnant = value;
+      metricsTouched = true;
+    }
+    if (Number.isFinite(b.age) && b.age >= AGE_MIN && b.age <= AGE_MAX) {
       set("age", Math.round(b.age));
       metrics.age = Math.round(b.age);
       metricsTouched = true;
@@ -129,12 +156,21 @@ router.patch("/", requireAuth, async (req, res, next) => {
       metricsTouched = true;
     }
 
+    let safety = null;
     if (metricsTouched && metrics.age && metrics.heightCm && metrics.weightKg) {
       const t = computeTargets(metrics);
+      safety = t.safety;
       set("daily_calorie_target", t.dailyCalorieTarget);
       set("carbs_target_g", t.carbsTargetG);
       set("protein_target_g", t.proteinTargetG);
       set("fat_target_g", t.fatTargetG);
+      // The engine may have refused the requested goal. Store the one it
+      // actually used, or the row would claim "lose" while carrying a
+      // maintenance target — and the next edit would recompute from that lie.
+      if (t.goal !== metrics.goal) {
+        set("goal", t.goal);
+        metrics.goal = t.goal;
+      }
     }
 
     /* ----- training preferences ----------------------------------------- */
@@ -171,7 +207,10 @@ router.patch("/", requireAuth, async (req, res, next) => {
       queryOne("SELECT * FROM profiles WHERE user_id = $1", [req.userId]),
       queryOne("SELECT id, first_name, username, avatar_url FROM users WHERE id = $1", [req.userId]),
     ]);
-    res.json({ profile: mapProfile(profile), user: userPayload(user) });
+    // Present only when the metrics were recomputed — the settings screen
+    // patches language and notifications through here too, and those have
+    // nothing to explain.
+    res.json({ profile: mapProfile(profile), user: userPayload(user), safety });
   } catch (err) {
     next(err);
   }

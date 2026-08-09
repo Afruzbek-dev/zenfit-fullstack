@@ -5,6 +5,7 @@ import {
   Minus, Plus, CalendarClock, Languages,
 } from "lucide-react";
 import { Button, OptionCard } from "../components/ui.jsx";
+import SafetyNotice from "../components/SafetyNotice.jsx";
 import { generateWorkoutPlan, localizeDay, rulesNote } from "../lib/aiPlanEngine.js";
 import { bestProgram } from "../data/programs.js";
 import { localizeExercise } from "../data/exerciseText.js";
@@ -16,6 +17,14 @@ import { useApp } from "../store.jsx";
 
 /** Bounds only make sense once a plausible bodyweight has been entered. */
 const bodyValidFor = (kg) => Number.isFinite(kg) && kg >= 30 && kg <= 300;
+
+/**
+ * Must match AGE_MIN / AGE_MAX in the backend's lib/calorie.js. The server
+ * answers 400 outside this range, and a form that accepts 10 only to be
+ * rejected on submit is worse than one that never offered it.
+ */
+const AGE_MIN = 12;
+const AGE_MAX = 100;
 
 /**
  * Only the id and the icon live here — every label comes from the dictionary,
@@ -139,6 +148,8 @@ export default function Onboarding({ onFinish }) {
   const [thinking, setThinking] = useState(false);
 
   const [gender, setGender] = useState(null);
+  const [pregnant, setPregnant] = useState(false);
+  const [safety, setSafety] = useState(null);
   const [age, setAge] = useState("");
   const [height, setHeight] = useState("");
   const [weight, setWeight] = useState("");
@@ -169,7 +180,7 @@ export default function Onboarding({ onFinish }) {
   );
 
   const bodyValid =
-    nums.age >= 10 && nums.age <= 100 &&
+    nums.age >= AGE_MIN && nums.age <= AGE_MAX &&
     nums.heightCm >= 100 && nums.heightCm <= 250 &&
     nums.weightKg >= 30 && nums.weightKg <= 300;
 
@@ -202,7 +213,7 @@ export default function Onboarding({ onFinish }) {
   function profilePayload() {
     return {
       gender, age: nums.age, heightCm: nums.heightCm, weightKg: nums.weightKg,
-      activityLevel: activity, goal,
+      activityLevel: activity, goal, pregnant: gender === "female" && pregnant,
       fitnessLevel: level || "beginner",
       equipment, daysPerWeek: days, sessionDuration: duration, injuries,
       targetWeightKg: targetWeight ?? undefined,
@@ -228,6 +239,9 @@ export default function Onboarding({ onFinish }) {
     try {
       const res = await completeOnboarding(profilePayload());
       setTargets(res.computed);
+      // May carry a refusal: the engine downgrades an unsafe "lose" rather than
+      // erroring, so this is the only place the user finds out it happened.
+      setSafety(res.safety || null);
       // The profile row exists only now, so this is the first moment the chosen
       // language can actually be stored server-side. Without it the next boot
       // would read the column's 'uz' default and switch the user back.
@@ -347,8 +361,39 @@ export default function Onboarding({ onFinish }) {
 
           {!thinking && step === 1 && (
             <StepShell title={t("onboarding.genderTitle")} subtitle={t("onboarding.genderDesc")}>
-              <OptionCard active={gender === "male"} Icon={User2} title={t("onboarding.male")} onClick={() => setGender("male")} />
+              <OptionCard
+                active={gender === "male"}
+                Icon={User2}
+                title={t("onboarding.male")}
+                onClick={() => {
+                  setGender("male");
+                  setPregnant(false); // never carry the answer across a change of mind
+                }}
+              />
               <OptionCard active={gender === "female"} Icon={Users} title={t("onboarding.female")} onClick={() => setGender("female")} />
+
+              {/* Asked here rather than as its own step: it is a follow-up to
+                  one answer, and a whole screen for a question most users skip
+                  is a screen most users would abandon on. */}
+              {gender === "female" && (
+                <label className="animate-fade-up mt-2 flex cursor-pointer items-start gap-3 rounded-2xl border border-borderSoft bg-surface px-4 py-3.5">
+                  <input
+                    type="checkbox"
+                    checked={pregnant}
+                    onChange={(e) => {
+                      haptic("select");
+                      setPregnant(e.target.checked);
+                    }}
+                    className="mt-0.5 h-[18px] w-[18px] shrink-0 accent-[color:rgb(var(--c-neon))]"
+                  />
+                  <span className="min-w-0">
+                    <span className="block text-[13.5px] font-bold text-ink">{t("onboarding.pregnantTitle")}</span>
+                    <span className="mt-0.5 block text-[11.5px] leading-relaxed text-muted">
+                      {t("onboarding.pregnantDesc")}
+                    </span>
+                  </span>
+                </label>
+              )}
             </StepShell>
           )}
 
@@ -356,7 +401,8 @@ export default function Onboarding({ onFinish }) {
             <StepShell title={t("onboarding.bodyTitle")} subtitle={t("onboarding.bodyDesc")}>
               <NumberField
                 label={t("onboarding.age")} value={age} onChange={setAge} unit={t("onboarding.ageUnit")}
-                min={10} max={100} placeholder="25" hint={t("onboarding.rangeHint", { min: 10, max: 100 })}
+                min={AGE_MIN} max={AGE_MAX} placeholder="25"
+                hint={t("onboarding.rangeHint", { min: AGE_MIN, max: AGE_MAX })}
               />
               <NumberField
                 label={t("onboarding.height")} value={height} onChange={setHeight} unit={t("common.cm")}
@@ -478,8 +524,12 @@ export default function Onboarding({ onFinish }) {
               </span>
               <h2 className="font-display text-[22px] font-bold text-ink">{t("onboarding.targetsReady")}</h2>
               <p className="mt-1 text-[13px] text-muted">
-                {t("onboarding.targetsFor", { goal: t(`onboarding.goals.${goal}.title`) })}
+                {/* The goal the numbers were actually built from, which is not
+                    always the one that was picked. */}
+                {t("onboarding.targetsFor", { goal: t(`onboarding.goals.${safety?.goal || goal}.title`) })}
               </p>
+
+              <SafetyNotice safety={safety} t={t} className="mt-5 w-full text-left" />
 
               <div className="card card-lit mt-6 w-full px-5 py-6">
                 <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-faint">{t("onboarding.dailyCalories")}</p>

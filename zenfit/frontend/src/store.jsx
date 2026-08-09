@@ -303,13 +303,20 @@ export function AppProvider({ children }) {
     }
   }, [activities]);
 
-  /** Single entry point for profile edits — keeps profile and user in sync. */
+  /**
+   * Single entry point for profile edits — keeps profile and user in sync.
+   *
+   * Returns the whole response, not just the profile: a body-metric edit can
+   * come back with `safety`, explaining that the calorie engine refused the
+   * goal it was handed. Callers that only care about success can keep ignoring
+   * the return value.
+   */
   const updateProfile = useCallback(async (patch) => {
     const res = await api.patchProfile(patch);
     setProfile(res.profile);
     if (res.user) setUser(res.user);
     adoptPreferences(res.profile);
-    return res.profile;
+    return res;
   }, [adoptPreferences]);
 
   const setLanguage = useCallback(async (next) => {
