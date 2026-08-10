@@ -83,7 +83,11 @@ function ReviewModal({ payment, onClose, onDone }) {
           {payment.receipt_file_id ? (
             <ReceiptImage paymentId={payment.id} />
           ) : (
-            <EmptyState Icon={ImageIcon} title="Chek yuklanmagan" desc="Foydalanuvchi hali chek rasmini yubormagan." />
+            <EmptyState
+              Icon={ImageIcon}
+              title="Chek bu yerda yo'q"
+              desc="Foydalanuvchi chekni to'g'ridan-to'g'ri sizning Telegram chatingizga yuborgan. Tasdiqlashdan oldin o'sha chatdan tekshiring."
+            />
           )}
           {payment.receipt_note && (
             <p className="mt-3 rounded-xl border border-borderSoft bg-surfaceAlt px-4 py-3 text-[12.5px] text-muted">

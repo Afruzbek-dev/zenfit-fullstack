@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from "react";
-import { Camera, Sparkles, Dumbbell, BarChart3, Zap, CreditCard, Copy, Check, Upload, Clock, ChevronLeft } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Camera, Sparkles, Dumbbell, BarChart3, Zap, CreditCard, Copy, Check, Send, Clock, ChevronLeft } from "lucide-react";
 import { Sheet, Button, ErrorNote } from "../../components/ui.jsx";
 import { api } from "../../api.js";
-import { haptic } from "../../telegram.js";
+import { haptic, openTelegramLink } from "../../telegram.js";
 import { uzNumber } from "../../lib/format.js";
 import { useApp } from "../../store.jsx";
 
@@ -14,10 +14,9 @@ const FEATURES = [
   { Icon: Zap, key: "noAds" },
 ];
 
-/** Card number, copy button and receipt upload. */
-function CardStep({ order, card, plan, onBack, onSent }) {
+/** Card number, copy button and the Telegram hand-off to the admin. */
+function CardStep({ order, card, plan, adminUsername, onBack, onSent }) {
   const { t, showToast } = useApp();
-  const fileRef = useRef(null);
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -34,16 +33,14 @@ function CardStep({ order, card, plan, onBack, onSent }) {
     }
   }
 
-  async function upload(e) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-
+  async function sendToAdmin() {
     setBusy(true);
     setError(null);
     try {
-      await api.uploadReceipt(order.id, file);
+      await api.markPaymentSent(order.id);
       haptic("success");
+      const message = t("premium.telegramMessage", { plan: plan.title, amount: uzNumber(plan.amountUzs) });
+      openTelegramLink(`https://t.me/${adminUsername}?text=${encodeURIComponent(message)}`);
       onSent();
     } catch (err) {
       setError(err.message || t("common.error"));
@@ -99,10 +96,9 @@ function CardStep({ order, card, plan, onBack, onSent }) {
         </div>
       )}
 
-      <Button full size="lg" loading={busy} onClick={() => fileRef.current?.click()}>
-        <Upload size={17} /> {t("premium.sendReceipt")}
+      <Button full size="lg" loading={busy} onClick={sendToAdmin}>
+        <Send size={17} /> {t("premium.sendReceipt")}
       </Button>
-      <input ref={fileRef} type="file" accept="image/*" onChange={upload} className="hidden" />
     </>
   );
 }
@@ -130,6 +126,7 @@ export default function PremiumSheet({ open, onClose }) {
   const [step, setStep] = useState("plans"); // plans | card | sent
   const [order, setOrder] = useState(null);
   const [card, setCard] = useState(null);
+  const [adminUsername, setAdminUsername] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
 
@@ -152,6 +149,7 @@ export default function PremiumSheet({ open, onClose }) {
       const res = await api.startManualPayment(selected);
       setOrder(res.payment);
       setCard(res.card);
+      setAdminUsername(res.adminUsername);
       setStep("card");
     } catch (e) {
       setError(
@@ -176,6 +174,7 @@ export default function PremiumSheet({ open, onClose }) {
           order={order}
           card={card}
           plan={plan}
+          adminUsername={adminUsername}
           onBack={() => setStep("plans")}
           onSent={() => setStep("sent")}
         />

@@ -1,18 +1,11 @@
 import { Router } from "express";
 import crypto from "node:crypto";
-import multer from "multer";
 import { query, queryOne } from "../db.js";
 import { requireAuth } from "../middleware/auth.js";
 import { rateLimit } from "../middleware/rateLimit.js";
 import { mapSubscription, mapPayment, mapCard } from "../lib/mappers.js";
-import { getSettings, getAdminChatId, manualPaymentReady } from "../lib/settings.js";
-import { sendReceiptToAdmin } from "../bot.js";
-
-const receiptUpload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 6 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => cb(null, file.mimetype.startsWith("image/")),
-});
+import { getSettings, getAdminChatId, getAdminUsername, manualPaymentReady } from "../lib/settings.js";
+import { sendTelegramNotification } from "../bot.js";
 
 const router = Router();
 
@@ -92,22 +85,26 @@ router.post("/manual/start", requireAuth, async (req, res, next) => {
         bank: settings.payment_card_bank,
         instructions: settings.payment_instructions,
       },
+      adminUsername: await getAdminUsername(),
     });
   } catch (err) {
     next(err);
   }
 });
 
-/** Receipt upload. Pushes the screenshot to the admin and queues it for review. */
+/**
+ * Marks an order as sent to the admin. The receipt itself now travels
+ * user-to-admin directly inside Telegram (opened client-side via a
+ * t.me deep link) rather than through an in-app upload, so this just
+ * queues the order for review and gives the admin a heads-up — the
+ * admin panel's approve/reject flow doesn't need a receipt image to work.
+ */
 router.post(
-  "/manual/:id/receipt",
+  "/manual/:id/mark-sent",
   requireAuth,
-  rateLimit({ key: "receipt", windowMs: 600_000, max: 6 }),
-  receiptUpload.single("receipt"),
+  rateLimit({ key: "mark-sent", windowMs: 600_000, max: 10 }),
   async (req, res, next) => {
     try {
-      if (!req.file) return res.status(400).json({ error: "image_required", message: "Chek rasmini tanlang." });
-
       const order = await queryOne(
         "SELECT * FROM payments WHERE id = $1 AND user_id = $2 AND method = 'manual'",
         [req.params.id, req.userId]
@@ -120,40 +117,24 @@ router.post(
         getAdminChatId(),
       ]);
 
-      if (!adminChatId) {
-        return res.status(503).json({
-          error: "admin_chat_not_configured",
-          message: "Admin hali sozlanmagan. Iltimos, qo'llab-quvvatlashga yozing.",
-        });
+      if (adminChatId) {
+        const who = user?.username ? `@${user.username}` : user?.first_name || `ID ${req.userId}`;
+        // Best-effort heads-up only — the user's own Telegram message to the
+        // admin is the actual delivery, so a push failure here must not block
+        // the order from queuing for review.
+        await sendTelegramNotification(
+          adminChatId,
+          `💳 <b>To'lov: Telegramda yuborildi</b>\n` +
+            `Foydalanuvchi: ${who}\n` +
+            `Reja: ${order.plan_title} — ${order.amount_uzs} so'm\n` +
+            `Buyurtma: #${order.id}\n\n` +
+            `Chek foydalanuvchidan to'g'ridan-to'g'ri Telegramda keladi. Tekshirib, admin panelda tasdiqlang.`
+        ).catch(() => {});
       }
 
-      const who = user?.username ? `@${user.username}` : user?.first_name || `ID ${req.userId}`;
-      const fileId = await sendReceiptToAdmin(adminChatId, {
-        buffer: req.file.buffer,
-        filename: req.file.originalname,
-        mimeType: req.file.mimetype,
-        caption:
-          `💳 <b>Yangi to'lov cheki</b>\n` +
-          `Foydalanuvchi: ${who}\n` +
-          `Reja: ${order.plan_title} — ${order.amount_uzs} so'm\n` +
-          `Buyurtma: #${order.id}\n\n` +
-          `Admin panelda tasdiqlang.`,
-      });
-
-      // Queueing a receipt the admin cannot see would leave the user believing
-      // they are done while nothing is reviewable, so delivery has to succeed.
-      if (!fileId) {
-        return res.status(502).json({
-          error: "receipt_delivery_failed",
-          message: "Chekni yuborib bo'lmadi. Qaytadan urinib ko'ring yoki qo'llab-quvvatlashga yozing.",
-        });
-      }
-
-      const note = typeof req.body?.note === "string" ? req.body.note.trim().slice(0, 300) : null;
       const updated = await queryOne(
-        `UPDATE payments SET status = 'awaiting_review', receipt_file_id = $1, receipt_note = $2
-          WHERE id = $3 RETURNING *`,
-        [fileId, note || null, order.id]
+        `UPDATE payments SET status = 'awaiting_review' WHERE id = $1 RETURNING *`,
+        [order.id]
       );
 
       res.status(201).json({ payment: mapPayment(updated) });

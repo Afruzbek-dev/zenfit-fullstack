@@ -345,36 +345,6 @@ export async function sendTelegramNotification(chatId, text) {
   return tgApi("sendMessage", { chat_id: chatId, text, parse_mode: "HTML" });
 }
 
-/**
- * Uploads a payment receipt to the admin's chat and returns Telegram's file_id.
- *
- * Telegram becomes the store for these screenshots: the admin sees the image
- * immediately, and the app only has to keep a short id to show it again later.
- * That avoids standing up object storage for what is a handful of files.
- */
-export async function sendReceiptToAdmin(chatId, { buffer, filename, mimeType, caption }) {
-  if (!BOT_TOKEN) return null;
-
-  const form = new FormData();
-  form.append("chat_id", String(chatId));
-  if (caption) {
-    form.append("caption", caption.slice(0, 1024));
-    form.append("parse_mode", "HTML");
-  }
-  form.append("photo", new Blob([buffer], { type: mimeType || "image/jpeg" }), filename || "receipt.jpg");
-
-  const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, { method: "POST", body: form });
-  const json = await res.json().catch(() => null);
-  if (!json?.ok) {
-    console.error("[telegram] chekni yuborib bo'lmadi:", json?.description || res.status);
-    return null;
-  }
-
-  // Telegram returns several sizes; the last is the largest.
-  const sizes = json.result?.photo || [];
-  return sizes.length ? sizes[sizes.length - 1].file_id : null;
-}
-
 /** Resolves a stored file_id to a temporary download URL for the admin panel. */
 export async function getTelegramFileUrl(fileId) {
   if (!BOT_TOKEN || !fileId) return null;

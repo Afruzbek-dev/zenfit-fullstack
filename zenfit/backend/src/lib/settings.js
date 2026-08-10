@@ -17,7 +17,12 @@ export const SETTING_KEYS = [
   "payment_card_bank",
   "payment_instructions",
   "admin_chat_id",
+  "admin_username",
 ];
+
+// The Telegram handle users are sent to for manual payment confirmation.
+// Hardcoded default so the flow works out of the box; admin panel can override.
+const DEFAULT_ADMIN_USERNAME = "zenfituz_admin";
 
 export async function getSettings({ fresh = false } = {}) {
   if (!fresh && cache && Date.now() - cachedAt < TTL_MS) return cache;
@@ -53,6 +58,12 @@ export async function getAdminChatId() {
 export async function manualPaymentReady() {
   const s = await getSettings();
   return Boolean(s.payment_card_number);
+}
+
+/** Where the "send to admin" button in the payment flow deep-links to. */
+export async function getAdminUsername() {
+  const settings = await getSettings();
+  return settings.admin_username || process.env.ADMIN_TELEGRAM_USERNAME || DEFAULT_ADMIN_USERNAME;
 }
 
 export async function getSetting(key) {

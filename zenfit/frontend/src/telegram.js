@@ -65,6 +65,13 @@ export function openLink(url) {
   else window.open(url, "_blank", "noopener,noreferrer");
 }
 
+/** t.me links need openTelegramLink — openLink sends them to an in-app browser instead of the chat. */
+export function openTelegramLink(url) {
+  const w = tg();
+  if (w?.openTelegramLink) w.openTelegramLink(url);
+  else window.open(url, "_blank", "noopener,noreferrer");
+}
+
 export function showConfirm(message) {
   const w = tg();
   return new Promise((resolve) => {

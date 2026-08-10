@@ -16,7 +16,13 @@ const FIELDS = [
     key: "admin_chat_id",
     label: "Admin Telegram chat ID",
     placeholder: "123456789",
-    hint: "Chek rasmlari shu chatga keladi. @userinfobot orqali ID'ingizni bilib oling.",
+    hint: "To'lov haqida xabar shu chatga keladi. @userinfobot orqali ID'ingizni bilib oling.",
+  },
+  {
+    key: "admin_username",
+    label: "Admin Telegram username",
+    placeholder: "zenfituz_admin",
+    hint: "Foydalanuvchi 'Adminga yuborish' tugmasini bosganda shu username bilan chat ochiladi (@ belgisiz).",
   },
 ];
 
