@@ -49,6 +49,11 @@ const MESSAGES = {
     ru: "⏰ <b>Не забыли про тренировку?</b>\n\nВремя ещё есть — даже 20 минут дадут результат. Не пропускайте сегодняшний день!",
     en: "⏰ <b>Forgot your workout?</b>\n\nThere's still time — even 20 minutes counts. Don't let today go by!",
   },
+  trialEnding: {
+    uz: "⏳ <b>Bepul sinov muddati tugayapti!</b>\n\n3 kunlik Premium sinovingiz 24 soatdan kamroq vaqtda tugaydi. Maqsadingizga erishish uchun vaqtni behuda ketkazmang — rejangizni yo'qotmaslik uchun hozir obuna bo'ling.",
+    ru: "⏳ <b>Пробный период скоро закончится!</b>\n\nВаш 3-дневный Premium доступ истекает менее чем через 24 часа. Не теряйте время на пути к цели — оформите подписку сейчас, чтобы не потерять свой план.",
+    en: "⏳ <b>Your free trial is ending soon!</b>\n\nYour 3-day Premium trial ends in less than 24 hours. Don't lose momentum toward your goal — subscribe now to keep your plan.",
+  },
 };
 
 /**
@@ -140,15 +145,18 @@ async function reminders(req, res, next) {
 
   try {
     const { start, end } = dayRange(null, tz);
+    const runStarted = Date.now();
 
     const rows = await query(
-      `SELECT u.id, u.telegram_id, p.language, p.notif_meal, p.notif_workout, p.notif_water,
+      `SELECT u.id, u.telegram_id, p.language, p.notif_meal, p.notif_workout, p.notif_water, p.notif_tips,
+              s.plan AS sub_plan, s.status AS sub_status, s.expires_at AS sub_expires_at,
               (SELECT COUNT(*) FROM meals m WHERE m.user_id = u.id AND m.logged_at >= $1 AND m.logged_at < $2) AS meals,
               (SELECT COUNT(*) FROM workout_logs w WHERE w.user_id = u.id AND w.logged_at >= $1 AND w.logged_at < $2) AS workouts,
               (SELECT COUNT(*) FROM activities a WHERE a.user_id = u.id AND a.logged_at >= $1 AND a.logged_at < $2) AS activities,
               (SELECT COALESCE(SUM(ml), 0) FROM water_logs wl WHERE wl.user_id = u.id AND wl.logged_at >= $1 AND wl.logged_at < $2) AS water
          FROM users u
          JOIN profiles p ON p.user_id = u.id
+         LEFT JOIN subscriptions s ON s.user_id = u.id
         WHERE p.onboarding_completed = true`,
       [start, end]
     );
@@ -159,11 +167,22 @@ async function reminders(req, res, next) {
       const on = (v) => v === true || v === 1;
       const trainedToday = Number(r.workouts) > 0 || Number(r.activities) > 0;
 
+      // Within 24h of the 3-day trial expiring. Only checked in the evening
+      // slot, so it fires once — the trial is shorter than the 3 daily slots'
+      // combined span, and this is the only slot not already claimed by a
+      // time-of-day-specific message.
+      const msLeft = r.sub_expires_at ? new Date(r.sub_expires_at).getTime() - runStarted : null;
+      const trialEndingSoon =
+        slot === "evening" && r.sub_plan === "trial" && r.sub_status === "active" &&
+        msLeft != null && msLeft > 0 && msLeft < 24 * 3600 * 1000;
+
       let kind = null;
       if (slot === "morning" || slot === "morningLate") {
         // Morning slots are only about training, and anyone who already moved
         // today should not be nagged about it.
         if (on(r.notif_workout) && !trainedToday) kind = slot;
+      } else if (trialEndingSoon && on(r.notif_tips)) {
+        kind = "trialEnding";
       } else if (on(r.notif_meal) && Number(r.meals) === 0) {
         kind = "meal";
       } else if (on(r.notif_workout) && !trainedToday) {
@@ -179,17 +198,21 @@ async function reminders(req, res, next) {
     if (dry) return res.json({ dryRun: true, slot, candidates: planned.length, planned });
 
     let sent = 0;
-    for (const p of planned) {
-      // One failure (blocked bot, deleted chat) must not stop the rest.
-      try {
-        const ok = await sendTelegramNotification(p.telegramId, MESSAGES[p.kind][p.lang]);
-        if (ok !== false) sent += 1;
-      } catch (err) {
-        console.error("[cron] eslatma yuborilmadi:", p.telegramId, err.message);
-      }
-    }
+    const { started, stopped } = await runPool(
+      planned,
+      async (p) => {
+        // One failure (blocked bot, deleted chat) must not stop the rest.
+        try {
+          const ok = await sendTelegramNotification(p.telegramId, MESSAGES[p.kind][p.lang]);
+          if (ok !== false) sent += 1;
+        } catch (err) {
+          console.error("[cron] eslatma yuborilmadi:", p.telegramId, err.message);
+        }
+      },
+      { shouldStop: () => Date.now() - runStarted > SEND_DEADLINE_MS }
+    );
 
-    res.json({ slot, candidates: planned.length, sent });
+    res.json({ slot, candidates: planned.length, started, sent, stopped });
   } catch (err) {
     next(err);
   }
