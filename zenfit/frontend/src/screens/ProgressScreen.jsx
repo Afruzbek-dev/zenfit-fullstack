@@ -24,10 +24,9 @@ function monFirstInitials(lang) {
 /**
  * Calendar heatmap for the current month: which days had a meal, workout or
  * activity logged. Restyled from a reference screenshot into the app's own
- * language — amber/flame for "active" (the color and icon already used for
- * `streak` everywhere else) rather than the reference's flat orange, and a
- * card rather than a standalone panel so it sits like every other Progress
- * widget.
+ * language — neon/flame (the primary accent, `text-neonOn` on the filled
+ * cells for contrast) rather than the reference's flat orange, and a card
+ * rather than a standalone panel so it sits like every other Progress widget.
  */
 function MonthlyHeatmap({ month, t, lang }) {
   if (!month) return null;
@@ -39,9 +38,9 @@ function MonthlyHeatmap({ month, t, lang }) {
     <div className="card px-4 py-4">
       <div className="mb-3.5 flex items-center justify-between gap-3">
         <p className="min-w-0 text-[11.5px] leading-relaxed text-muted">{t("progress.monthlyHeatmapDesc")}</p>
-        <span className="flex shrink-0 items-center gap-1 rounded-full border border-amber/30 bg-amber/12 px-2.5 py-1">
-          <Flame size={13} className="text-amber" />
-          <span className="tabular text-[12.5px] font-bold text-amber">{activeDays.length}</span>
+        <span className="flex shrink-0 items-center gap-1 rounded-full border border-neon/30 bg-neon/[0.12] px-2.5 py-1">
+          <Flame size={13} className="text-neon" />
+          <span className="tabular text-[12.5px] font-bold text-neon">{activeDays.length}</span>
         </span>
       </div>
 
@@ -63,13 +62,13 @@ function MonthlyHeatmap({ month, t, lang }) {
               key={day}
               className={`tabular grid aspect-square place-items-center rounded-xl text-[11px] font-bold ${
                 active
-                  ? "bg-amber text-white"
+                  ? "bg-neon text-neonOn"
                   : isToday
-                    ? "border border-amber/50 text-ink"
+                    ? "border border-neon/50 text-ink"
                     : "bg-surfaceAlt text-faint"
               }`}
             >
-              {active ? <Flame size={12} strokeWidth={2.5} className="text-white" /> : day}
+              {active ? <Flame size={12} strokeWidth={2.5} className="text-neonOn" /> : day}
             </span>
           );
         })}
