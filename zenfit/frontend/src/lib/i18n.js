@@ -161,7 +161,7 @@ const uz = {
     about: "Biz haqimizda", aboutDesc: "ZenFit haqida",
     offer: "Ommaviy oferta", offerDesc: "Foydalanish shartlari",
     logout: "Hisobdan chiqish", logoutConfirm: "Hisobdan chiqasizmi?",
-    premium: "ZenFit Premium", premiumDesc: "Cheksiz AI skaner va AI trener",
+    premium: "ZenFit Premium", premiumDesc: "Cheksiz AI skaner va AI trener", premiumTrial: "Premium (sinov muddati)",
     dailyTarget: "Kunlik me'yor",
 
     name: "Ism", namePlaceholder: "Ismingiz", gender: "Jins", male: "Erkak", female: "Ayol",
@@ -223,6 +223,11 @@ const uz = {
     sentDesc: "U yerda chekning skrinshotini adminimizga yuboring. Admin tasdiqlagach, premium avtomatik faollashadi va sizga Telegram orqali xabar keladi. Odatda bu 1-2 soat ichida bo'ladi.",
     manualHint: "To'lov karta orqali amalga oshiriladi. Karta ma'lumotlaringiz ilovaga kiritilmaydi.",
     notReady: "To'lov hali sozlanmagan. Iltimos, keyinroq urinib ko'ring.",
+    trialCtaTitle: "3 kunlik bepul sinab ko'ring",
+    trialCtaDesc: "Karta shart emas. 3 kundan so'ng avtomatik yakunlanadi — xohlasangiz shu paytda davom ettirasiz.",
+    trialStart: "Bepul sinovni boshlash",
+    trialStartedTitle: "Sinov boshlandi!",
+    trialStartedDesc: "3 kun davomida barcha premium imkoniyatlardan bepul foydalanasiz. Muddat tugagach, oddiy rejaga qaytasiz.",
     features: {
       unlimitedScan: { title: "Cheksiz AI skaner", desc: "Taom rasmini istagancha skanerlang" },
       unlimitedTrainer: { title: "Cheksiz AI trener", desc: "Suhbat limitisiz, istalgan vaqtda savol bering" },
@@ -409,7 +414,7 @@ const ru = {
     about: "О нас", aboutDesc: "О ZenFit",
     offer: "Публичная оферта", offerDesc: "Условия использования",
     logout: "Выйти из аккаунта", logoutConfirm: "Выйти из аккаунта?",
-    premium: "ZenFit Premium", premiumDesc: "Безлимитный AI сканер и тренер",
+    premium: "ZenFit Premium", premiumDesc: "Безлимитный AI сканер и тренер", premiumTrial: "Premium (пробный период)",
     dailyTarget: "Дневная норма",
 
     name: "Имя", namePlaceholder: "Ваше имя", gender: "Пол", male: "Мужской", female: "Женский",
@@ -471,6 +476,11 @@ const ru = {
     sentDesc: "Отправьте там скриншот чека администратору. После подтверждения премиум активируется автоматически, и вы получите уведомление в Telegram. Обычно это занимает 1–2 часа.",
     manualHint: "Оплата проходит переводом на карту. Данные вашей карты в приложение не вводятся.",
     notReady: "Оплата пока не настроена. Попробуйте позже.",
+    trialCtaTitle: "Попробуйте бесплатно 3 дня",
+    trialCtaDesc: "Карта не нужна. Через 3 дня пробный период автоматически закончится — при желании сможете продлить.",
+    trialStart: "Начать бесплатный пробный период",
+    trialStartedTitle: "Пробный период начат!",
+    trialStartedDesc: "В течение 3 дней вам доступны все премиум-функции бесплатно. По окончании вы вернётесь на бесплатный план.",
     features: {
       unlimitedScan: { title: "Безлимитный AI сканер", desc: "Сканируйте блюда без ограничений" },
       unlimitedTrainer: { title: "Безлимитный AI тренер", desc: "Задавайте вопросы в любое время без лимита" },

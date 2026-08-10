@@ -82,7 +82,11 @@ export default function Billing({ onBack, onOpenPremium }) {
           </span>
           <div className="min-w-0 flex-1">
             <p className="text-[13.5px] font-bold text-ink">
-              {subscription?.isPremium ? t("profile.premium") : t("profile.freePlan")}
+              {subscription?.isPremium
+                ? subscription.plan === "trial"
+                  ? t("profile.premiumTrial")
+                  : t("profile.premium")
+                : t("profile.freePlan")}
             </p>
             <p className="mt-0.5 text-[11.5px] text-muted">
               {subscription?.isPremium && subscription.expiresAt

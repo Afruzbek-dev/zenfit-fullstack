@@ -143,7 +143,7 @@ export function mapChatMessage(m) {
 }
 
 export function mapSubscription(s) {
-  if (!s) return { plan: "free", status: "inactive", isPremium: false };
+  if (!s) return { plan: "free", status: "inactive", isPremium: false, trialUsed: false };
   const active = s.status === "active" && (!s.expires_at || new Date(s.expires_at) > new Date());
   return {
     plan: s.plan,
@@ -151,5 +151,6 @@ export function mapSubscription(s) {
     startedAt: s.started_at,
     expiresAt: s.expires_at,
     isPremium: active,
+    trialUsed: Boolean(s.trial_used_at),
   };
 }

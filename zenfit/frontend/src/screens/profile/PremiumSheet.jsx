@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Camera, Sparkles, Dumbbell, BarChart3, Zap, CreditCard, Copy, Check, Send, Clock, ChevronLeft } from "lucide-react";
+import { Camera, Sparkles, Dumbbell, BarChart3, Zap, CreditCard, Copy, Check, Send, Clock, ChevronLeft, Gift, PartyPopper } from "lucide-react";
 import { Sheet, Button, ErrorNote } from "../../components/ui.jsx";
 import { api } from "../../api.js";
 import { haptic, openTelegramLink } from "../../telegram.js";
@@ -119,15 +119,32 @@ function SentStep({ onClose }) {
   );
 }
 
-export default function PremiumSheet({ open, onClose }) {
+function TrialStartedStep({ onClose }) {
   const { t } = useApp();
+  return (
+    <div className="flex flex-col items-center py-6 text-center">
+      <span className="mb-4 grid h-16 w-16 place-items-center rounded-2xl bg-neon/[0.12] ring-1 ring-neon/30">
+        <PartyPopper size={26} className="text-neon" />
+      </span>
+      <p className="font-display text-[17px] font-bold text-ink">{t("premium.trialStartedTitle")}</p>
+      <p className="mt-2 max-w-[290px] text-[12.5px] leading-relaxed text-muted">{t("premium.trialStartedDesc")}</p>
+      <Button full size="lg" className="mt-6" onClick={onClose}>
+        {t("common.close")}
+      </Button>
+    </div>
+  );
+}
+
+export default function PremiumSheet({ open, onClose }) {
+  const { t, subscription, setSubscription } = useApp();
   const [plans, setPlans] = useState([]);
   const [selected, setSelected] = useState("monthly");
-  const [step, setStep] = useState("plans"); // plans | card | sent
+  const [step, setStep] = useState("plans"); // plans | card | sent | trialStarted
   const [order, setOrder] = useState(null);
   const [card, setCard] = useState(null);
   const [adminUsername, setAdminUsername] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [trialBusy, setTrialBusy] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -162,12 +179,30 @@ export default function PremiumSheet({ open, onClose }) {
     }
   }
 
+  async function startTrial() {
+    setTrialBusy(true);
+    setError(null);
+    try {
+      const res = await api.startTrial();
+      setSubscription(res.subscription);
+      haptic("success");
+      setStep("trialStarted");
+    } catch (e) {
+      setError(e.message || t("common.error"));
+    } finally {
+      setTrialBusy(false);
+    }
+  }
+
   const plan = plans.find((p) => p.id === selected);
   const title = step === "card" ? t("premium.payTitle") : t("profile.premium");
+  const trialAvailable = !subscription?.isPremium && !subscription?.trialUsed;
 
   return (
     <Sheet open={open} onClose={onClose} title={title} maxHeight="92vh">
-      {step === "sent" ? (
+      {step === "trialStarted" ? (
+        <TrialStartedStep onClose={onClose} />
+      ) : step === "sent" ? (
         <SentStep onClose={onClose} />
       ) : step === "card" && card && plan ? (
         <CardStep
@@ -193,6 +228,23 @@ export default function PremiumSheet({ open, onClose }) {
               </div>
             ))}
           </div>
+
+          {trialAvailable && (
+            <div className="mb-5 rounded-2xl border border-neon/30 bg-neon/[0.07] px-4 py-4">
+              <div className="flex items-start gap-3">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-neon/[0.15]">
+                  <Gift size={16} className="text-neon" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-[13px] font-bold text-ink">{t("premium.trialCtaTitle")}</p>
+                  <p className="mt-0.5 text-[11.5px] leading-relaxed text-muted">{t("premium.trialCtaDesc")}</p>
+                </div>
+              </div>
+              <Button full variant="ghost" className="mt-3" loading={trialBusy} onClick={startTrial}>
+                <Gift size={16} /> {t("premium.trialStart")}
+              </Button>
+            </div>
+          )}
 
           <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-faint">{t("premium.choosePlan")}</p>
           <div className="mb-4 flex flex-col gap-2">

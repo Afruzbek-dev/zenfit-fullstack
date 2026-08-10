@@ -37,6 +37,41 @@ router.get("/subscription", requireAuth, async (req, res, next) => {
   }
 });
 
+const TRIAL_DAYS = 3;
+
+/**
+ * One-time 3-day trial, started by the user's own tap rather than granted
+ * automatically at onboarding — see trial_used_at, which makes this a single
+ * use per account regardless of how many times the trial itself lapses.
+ */
+router.post("/trial/start", requireAuth, async (req, res, next) => {
+  try {
+    const row = await queryOne("SELECT * FROM subscriptions WHERE user_id = $1", [req.userId]);
+    if (row?.trial_used_at) {
+      return res.status(409).json({
+        error: "trial_already_used",
+        message: "Bepul sinov muddati allaqachon ishlatilgan.",
+      });
+    }
+    if (row && row.status === "active" && (!row.expires_at || new Date(row.expires_at) > new Date())) {
+      return res.status(409).json({ error: "already_premium", message: "Sizda allaqachon premium mavjud." });
+    }
+
+    const expires = new Date();
+    expires.setDate(expires.getDate() + TRIAL_DAYS);
+    const updated = await queryOne(
+      `UPDATE subscriptions
+          SET plan = 'trial', status = 'active', started_at = now(), expires_at = $1,
+              trial_used_at = now(), updated_at = now()
+        WHERE user_id = $2 RETURNING *`,
+      [expires.toISOString(), req.userId]
+    );
+    res.status(201).json({ subscription: mapSubscription(updated) });
+  } catch (err) {
+    next(err);
+  }
+});
+
 /* --------------------- manual card transfer ------------------------- *
  * Used until a payment provider is connected: the user transfers to the
  * card shown here, uploads a screenshot, and an admin confirms it. Nothing

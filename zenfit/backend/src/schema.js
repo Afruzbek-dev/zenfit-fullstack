@@ -149,12 +149,15 @@ export function buildSchema(pg) {
     )`,
 
     `CREATE TABLE IF NOT EXISTS subscriptions (
-      user_id    ${FK} PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-      plan       TEXT NOT NULL DEFAULT 'free',
-      status     TEXT NOT NULL DEFAULT 'inactive',
-      started_at ${TS_NULL},
-      expires_at ${TS_NULL},
-      updated_at ${TS}
+      user_id        ${FK} PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      plan           TEXT NOT NULL DEFAULT 'free',
+      status         TEXT NOT NULL DEFAULT 'inactive',
+      started_at     ${TS_NULL},
+      expires_at     ${TS_NULL},
+      -- Set once, the first (and only) time this user starts the 3-day trial —
+      -- distinct from expires_at so a lapsed trial can't just be restarted.
+      trial_used_at  ${TS_NULL},
+      updated_at     ${TS}
     )`,
 
     `CREATE TABLE IF NOT EXISTS activities (

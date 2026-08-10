@@ -136,6 +136,7 @@ export const api = {
   checkout: (planId) => request("POST", "/api/payment/checkout", { body: { planId } }),
   devActivate: (planId) => request("POST", "/api/payment/dev-activate", { body: { planId } }),
   getPaymentHistory: () => request("GET", "/api/payment/history"),
+  startTrial: () => request("POST", "/api/payment/trial/start", { body: {} }),
   startManualPayment: (planId) => request("POST", "/api/payment/manual/start", { body: { planId } }),
   markPaymentSent: (paymentId) => request("POST", `/api/payment/manual/${paymentId}/mark-sent`, { body: {} }),
   getCards: () => request("GET", "/api/payment/cards"),

@@ -141,7 +141,7 @@ export default {
     about: "About us", aboutDesc: "About ZenFit",
     offer: "Terms of service", offerDesc: "Terms of use",
     logout: "Log out", logoutConfirm: "Log out of your account?",
-    premium: "ZenFit Premium", premiumDesc: "Unlimited AI scanner and trainer",
+    premium: "ZenFit Premium", premiumDesc: "Unlimited AI scanner and trainer", premiumTrial: "Premium (trial)",
     dailyTarget: "Daily target",
 
     name: "Name", namePlaceholder: "Your name", gender: "Gender", male: "Male", female: "Female",
@@ -203,6 +203,11 @@ export default {
     sentDesc: "Send the receipt screenshot to our admin there. Premium activates automatically once an admin reviews it, and you'll get a message on Telegram. This usually takes 1–2 hours.",
     manualHint: "Payment is made by card transfer. Your card details are never entered in the app.",
     notReady: "Payments are not set up yet. Please try again later.",
+    trialCtaTitle: "Try 3 days for free",
+    trialCtaDesc: "No card needed. It ends automatically after 3 days — you can continue then if you like it.",
+    trialStart: "Start free trial",
+    trialStartedTitle: "Trial started!",
+    trialStartedDesc: "You have full premium access for 3 days. When it ends, you'll return to the free plan.",
     features: {
       unlimitedScan: { title: "Unlimited AI scanner", desc: "Scan as many meals as you like" },
       unlimitedTrainer: { title: "Unlimited AI trainer", desc: "Ask anything, any time, with no message limit" },

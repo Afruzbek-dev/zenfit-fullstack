@@ -90,6 +90,12 @@ async function run() {
    * ---------------------------------------------------------------------- */
   await addColumn("profiles", "pregnant", BOOL(false), BOOL(false));
 
+  /* ----- one-time 3-day trial -------------------------------------------- *
+   * Set the first (and only) time a user starts the trial, so routes/payment.js
+   * can refuse a second one once it lapses. See POST /payment/trial/start.
+   * ---------------------------------------------------------------------- */
+  await addColumn("subscriptions", "trial_used_at", usingPostgres ? "TIMESTAMPTZ" : "TEXT", "TEXT");
+
   /* ----- lock every table down ------------------------------------------ *
    * RLS on with zero policies denies the anon and authenticated Supabase
    * roles outright. The backend connects as the table owner and bypasses RLS,
