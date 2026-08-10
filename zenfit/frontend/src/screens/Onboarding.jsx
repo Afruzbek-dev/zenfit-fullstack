@@ -2,12 +2,13 @@ import { useMemo, useState } from "react";
 import {
   ChevronLeft, ChevronRight, Sparkles, TrendingDown, TrendingUp, Scale, Award, Zap,
   Home, Building2, Clock, Dumbbell, Check, ShieldAlert, Flame, User2, Users, Trees, Activity,
-  Minus, Plus, CalendarClock, Languages,
+  Minus, Plus, CalendarClock, Languages, Crown,
 } from "lucide-react";
 import { Button, OptionCard } from "../components/ui.jsx";
 import SafetyNotice from "../components/SafetyNotice.jsx";
+import PremiumSheet from "./profile/PremiumSheet.jsx";
 import { generateWorkoutPlan, localizeDay, rulesNote } from "../lib/aiPlanEngine.js";
-import { bestProgram } from "../data/programs.js";
+import { bestProgram, PROGRAMS } from "../data/programs.js";
 import { localizeExercise } from "../data/exerciseText.js";
 import { estimateGoal, defaultTarget, targetBounds } from "../lib/goalPlan.js";
 import { shortDate } from "../lib/format.js";
@@ -136,7 +137,7 @@ function NumberField({ label, value, onChange, unit, min, max, placeholder, hint
 }
 
 export default function Onboarding({ onFinish }) {
-  const { completeOnboarding, saveWorkoutPlan, setLanguage, showToast, t, lang } = useApp();
+  const { completeOnboarding, saveWorkoutPlan, setLanguage, showToast, t, lang, subscription } = useApp();
 
   // Only asked when the user has never chosen: storedLanguage() otherwise
   // guesses from the Telegram client, which is often wrong here.
@@ -162,6 +163,11 @@ export default function Onboarding({ onFinish }) {
   const [injuries, setInjuries] = useState("");
   const [targets, setTargets] = useState(null);
   const [targetWeight, setTargetWeight] = useState(null);
+
+  // Step 11 only: "personal" shows the AI-personalized plan (Premium), "preset"
+  // switches to picking one of the free ready-made programs instead.
+  const [planChoice, setPlanChoice] = useState("personal");
+  const [premiumOpen, setPremiumOpen] = useState(false);
 
   const nums = {
     age: Number(age),
@@ -284,6 +290,30 @@ export default function Onboarding({ onFinish }) {
       // Persist the questionnaire answers alongside the plan.
       await completeOnboarding(profilePayload());
       await saveWorkoutPlan(plan);
+      haptic("success");
+      onFinish?.();
+    } catch (e) {
+      showToast(e.message || t("onboarding.saveFailed"), "error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /**
+   * The free path: same rule engine as the personalized plan, but seeded from
+   * the chosen program's own goal/level/days/equipment instead of the user's
+   * answers. Bodyweight and injuries still come from the user — a "generic"
+   * plan should never suggest an unsafe load or a contraindicated exercise.
+   */
+  async function finishWithProgram(program) {
+    setBusy(true);
+    try {
+      const presetPlan = generateWorkoutPlan({
+        goal: program.goal, level: program.level, daysPerWeek: program.days,
+        equipment: program.equipment, duration, injuries, weightKg: nums.weightKg,
+      });
+      await completeOnboarding(profilePayload());
+      await saveWorkoutPlan(presetPlan);
       haptic("success");
       onFinish?.();
     } catch (e) {
@@ -658,7 +688,51 @@ export default function Onboarding({ onFinish }) {
             </StepShell>
           )}
 
-          {!thinking && step === 11 && plan && (
+          {!thinking && step === 11 && plan && planChoice === "preset" && (
+            <div className="animate-fade-up flex flex-col gap-3">
+              <button
+                onClick={() => {
+                  haptic("light");
+                  setPlanChoice("personal");
+                }}
+                className="flex w-fit items-center gap-1 text-[12.5px] font-semibold text-muted"
+              >
+                <ChevronLeft size={14} /> {t("common.back")}
+              </button>
+
+              <div className="flex flex-col items-center text-center">
+                <span className="mb-3 grid h-14 w-14 place-items-center rounded-2xl bg-neon/15">
+                  <Dumbbell size={24} className="text-neon" />
+                </span>
+                <h2 className="font-display text-[21px] font-bold text-ink">{t("onboarding.presetTitle")}</h2>
+                <p className="mt-1 max-w-[290px] text-[12.5px] leading-relaxed text-muted">
+                  {t("onboarding.presetDesc")}
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                {PROGRAMS.map((p) => (
+                  <button
+                    key={p.id}
+                    disabled={busy}
+                    onClick={() => finishWithProgram(p)}
+                    className="flex items-center gap-3 rounded-2xl border border-borderSoft bg-surfaceAlt px-4 py-3.5 text-left active:scale-[0.98] disabled:opacity-60"
+                  >
+                    <span className="text-[26px]">{p.emoji}</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[13.5px] font-bold text-ink">{p.title}</p>
+                      <p className="mt-0.5 text-[11.5px] text-muted">
+                        {p.trainer} · {p.days} {t("home.days")} · {p.weeks} {t("onboarding.weeks")}
+                      </p>
+                    </div>
+                    <ChevronRight size={16} className="shrink-0 text-faint" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {!thinking && step === 11 && plan && planChoice === "personal" && (
             <div className="animate-fade-up flex flex-col gap-4">
               <div className="flex flex-col items-center text-center">
                 <span className="mb-3 grid h-14 w-14 place-items-center rounded-2xl bg-neon/15">
@@ -719,6 +793,16 @@ export default function Onboarding({ onFinish }) {
                   ))}
                 </div>
               </div>
+
+              {!subscription?.isPremium && (
+                <div className="flex items-start gap-2.5 rounded-2xl border border-amber/30 bg-amber/[0.08] px-4 py-3.5">
+                  <Crown size={17} className="mt-0.5 shrink-0 text-amber" />
+                  <div className="min-w-0">
+                    <p className="text-[13px] font-bold text-amber">{t("onboarding.planLockedTitle")}</p>
+                    <p className="mt-0.5 text-[11.5px] leading-relaxed text-amber/85">{t("onboarding.planLockedDesc")}</p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -742,10 +826,40 @@ export default function Onboarding({ onFinish }) {
                 {step === 0 ? t("onboarding.start") : step === 10 ? t("onboarding.finish") : t("onboarding.next")}
                 {step === 10 ? <Sparkles size={17} /> : <ChevronRight size={18} />}
               </Button>
-            ) : (
+            ) : planChoice === "preset" ? (
+              <button
+                onClick={() => onFinish?.()}
+                className="w-full py-1.5 text-center text-[12px] font-semibold text-faint"
+              >
+                {t("onboarding.skip")}
+              </button>
+            ) : subscription?.isPremium ? (
               <div className="flex w-full flex-col gap-2">
                 <Button full size="lg" loading={busy} onClick={finish}>
                   {t("onboarding.savePlan")}
+                </Button>
+                <button
+                  onClick={() => onFinish?.()}
+                  className="py-1.5 text-center text-[12px] font-semibold text-faint"
+                >
+                  {t("onboarding.skip")}
+                </button>
+              </div>
+            ) : (
+              <div className="flex w-full flex-col gap-2">
+                <Button full size="lg" onClick={() => setPremiumOpen(true)}>
+                  <Crown size={17} /> {t("onboarding.getPremium")}
+                </Button>
+                <Button
+                  full
+                  size="lg"
+                  variant="ghost"
+                  onClick={() => {
+                    haptic("light");
+                    setPlanChoice("preset");
+                  }}
+                >
+                  <Dumbbell size={17} /> {t("onboarding.chooseProgram")}
                 </Button>
                 <button
                   onClick={() => onFinish?.()}
@@ -758,6 +872,8 @@ export default function Onboarding({ onFinish }) {
           </div>
         )}
       </div>
+
+      <PremiumSheet open={premiumOpen} onClose={() => setPremiumOpen(false)} />
     </div>
   );
 }

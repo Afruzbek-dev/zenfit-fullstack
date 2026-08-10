@@ -169,6 +169,13 @@ export const uz = {
     repsRest: "{reps} takror • {rest} dam",
     matchedProgram: "{title} dasturi ham sizga {percent}% mos — Mashqlar bo'limidan almashtira olasiz.",
     savePlan: "Rejani saqlash va boshlash 🚀",
+    planLockedTitle: "Bu — shaxsiy AI reja, Premium xususiyati",
+    planLockedDesc: "Vazningiz, jarohatlaringiz va javoblaringizga moslangan reja faqat Premium'da. Bepul 3 kunlik sinov ham mavjud, yoki tayyor dasturdan boshlashingiz mumkin.",
+    getPremium: "Premium olish",
+    chooseProgram: "Tayyor dasturdan foydalanish",
+    presetTitle: "Tayyor dastur tanlang",
+    presetDesc: "Murabbiylar tomonidan tayyorlangan dasturlardan birini tanlang — vazningiz va jarohatlaringiz baribir hisobga olinadi.",
+    weeks: "hafta",
   },
 };
 
@@ -335,6 +342,13 @@ export const ru = {
     repsRest: "{reps} повт. • отдых {rest}",
     matchedProgram: "Программа «{title}» подходит вам на {percent}% — заменить можно в разделе «Тренировки».",
     savePlan: "Сохранить план и начать 🚀",
+    planLockedTitle: "Это персональный AI-план — функция Premium",
+    planLockedDesc: "План, учитывающий ваш вес, травмы и ответы, доступен только в Premium. Есть бесплатный пробный период на 3 дня, либо можно начать с готовой программы.",
+    getPremium: "Получить Premium",
+    chooseProgram: "Использовать готовую программу",
+    presetTitle: "Выберите готовую программу",
+    presetDesc: "Выберите одну из программ от тренеров — ваш вес и травмы всё равно будут учтены.",
+    weeks: "нед.",
   },
 };
 
@@ -499,5 +513,12 @@ export const en = {
     repsRest: "{reps} reps • {rest} rest",
     matchedProgram: "The {title} programme is also a {percent}% match — you can switch in Workouts.",
     savePlan: "Save the plan and start 🚀",
+    planLockedTitle: "This is a personal AI plan — a Premium feature",
+    planLockedDesc: "A plan tailored to your weight, injuries and answers is Premium only. There's a free 3-day trial, or you can start with a ready-made program.",
+    getPremium: "Get Premium",
+    chooseProgram: "Use a ready-made program",
+    presetTitle: "Choose a ready-made program",
+    presetDesc: "Pick one of these trainer-built programs — your weight and injuries are still taken into account.",
+    weeks: "weeks",
   },
 };

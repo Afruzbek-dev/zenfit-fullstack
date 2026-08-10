@@ -250,6 +250,15 @@ router.post("/workout-plan/enhance", requireAuth, rateLimit({ key: "enhance", wi
     const profile = await queryOne("SELECT * FROM profiles WHERE user_id = $1", [req.userId]);
     if (!profile) return res.status(400).json({ error: "onboarding_required" });
 
+    // A real AI call, unlike the deterministic plan itself — premium-gated the
+    // same way as the diet plan, and for the same reason (see /diet-plan above).
+    if (!(await isPremium(req.userId))) {
+      return res.status(402).json({
+        error: "premium_required",
+        message: "AI murabbiy maslahatlari Premium imkoniyati. Premium'ni faollashtiring.",
+      });
+    }
+
     const enhancement = await enhanceWorkoutPlan({ profile, plan });
     res.json({ enhancement });
   } catch (err) {

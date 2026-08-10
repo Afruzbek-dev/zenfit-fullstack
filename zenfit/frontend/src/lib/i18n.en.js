@@ -87,6 +87,7 @@ export default {
     addToToday: "Add to today's session", technique: "how to perform it",
     noPlan: "You have no training plan yet",
     noPlanDesc: "The AI builds a weekly plan from your weight, experience and equipment — with weights in kg.",
+    noPlanDescLocked: "A personalized AI plan is a Premium feature. You can also pick one of the ready-made programs below for free.",
     createPlan: "Build my plan with AI", planReady: "Your AI plan is ready 🚀",
     readyPrograms: "Or a ready-made programme", programsSoon: "Ready-made programmes are coming — build an AI plan for now",
     programMeta: "{days} days/week • {weeks} weeks",

@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
-import { Sparkles, Dumbbell, Coffee, Check, Play, RefreshCw, BookOpen, ShieldAlert, Lightbulb } from "lucide-react";
+import { Sparkles, Dumbbell, Coffee, Check, Play, RefreshCw, BookOpen, ShieldAlert, Lightbulb, Crown } from "lucide-react";
 import { Screen, Section, Button, Sheet, EmptyState, ListRow, ErrorNote } from "../components/ui.jsx";
 import WorkoutSession from "./WorkoutSession.jsx";
 import ExerciseLibrary from "./ExerciseLibrary.jsx";
+import PremiumSheet from "./profile/PremiumSheet.jsx";
 import { generateWorkoutPlan, localizeDay, planTitle } from "../lib/aiPlanEngine.js";
 import { PROGRAMS } from "../data/programs.js";
 import { api } from "../api.js";
@@ -52,8 +53,8 @@ function PlanDayCard({ item, doneCount, onOpen, t }) {
   );
 }
 
-function RegenerateSheet({ open, onClose, onDone }) {
-  const { profile, saveWorkoutPlan, showToast, t } = useApp();
+function RegenerateSheet({ open, onClose, onDone, onLocked }) {
+  const { profile, subscription, saveWorkoutPlan, showToast, t } = useApp();
   const [days, setDays] = useState(profile?.daysPerWeek || 3);
   const [equipment, setEquipment] = useState(profile?.equipment || "home-none");
   const [busy, setBusy] = useState(false);
@@ -62,6 +63,14 @@ function RegenerateSheet({ open, onClose, onDone }) {
   const eqOptions = ["home-none", "home-dumbbell", "gym", "outdoor"];
 
   async function regenerate() {
+    // Regenerating re-tailors the plan to the user's own answers, same as the
+    // onboarding-end personalized plan — a Premium perk, not the free preset pick.
+    if (!subscription?.isPremium) {
+      onClose();
+      onLocked?.();
+      return;
+    }
+
     setBusy(true);
     try {
       // Fold in the last logged sets so the new plan continues progression
@@ -147,6 +156,7 @@ export default function WorkoutsScreen() {
   const [tipsError, setTipsError] = useState(null);
   const [tipsBusy, setTipsBusy] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [premiumOpen, setPremiumOpen] = useState(false);
 
   const today = localDateKey();
   const doneByDay = useMemo(() => {
@@ -168,6 +178,13 @@ export default function WorkoutsScreen() {
   }
 
   async function createPlan() {
+    // Personalizing a plan to the user's own weight/injury/history answers is
+    // the Premium perk — a free user picks one of the ready-made programs below.
+    if (!subscription?.isPremium) {
+      setPremiumOpen(true);
+      return;
+    }
+
     setCreating(true);
     try {
       let lastSetsByExercise = {};
@@ -198,14 +215,43 @@ export default function WorkoutsScreen() {
     }
   }
 
+  /** Free path: same engine, seeded from the program's own preset instead of a
+   *  personalized read of the user's answers. Weight/injuries still apply. */
+  async function pickProgram(program) {
+    setCreating(true);
+    try {
+      const plan = generateWorkoutPlan({
+        goal: program.goal,
+        level: program.level,
+        daysPerWeek: program.days,
+        equipment: program.equipment,
+        duration: profile?.sessionDuration || "60",
+        injuries: profile?.injuries || "",
+        weightKg: profile?.weightKg || 70,
+      });
+      await saveWorkoutPlan(plan);
+      haptic("success");
+      showToast(t("workout.planReady"), "success");
+    } catch (e) {
+      showToast(e.message || t("common.error"), "error");
+    } finally {
+      setCreating(false);
+    }
+  }
+
   async function loadTips() {
+    if (!subscription?.isPremium) {
+      setPremiumOpen(true);
+      return;
+    }
     setTipsBusy(true);
     setTipsError(null);
     try {
       const res = await api.enhanceWorkoutPlan(workoutPlan);
       setTips(res.enhancement);
     } catch (e) {
-      setTipsError(e.message || t("workout.tipsFailed"));
+      if (e.status === 402) setPremiumOpen(true);
+      else setTipsError(e.message || t("workout.tipsFailed"));
     } finally {
       setTipsBusy(false);
     }
@@ -217,10 +263,14 @@ export default function WorkoutsScreen() {
         <>
           <Section>
             <EmptyState
-              Icon={Sparkles}
+              Icon={subscription?.isPremium ? Sparkles : Crown}
               title={t("workout.noPlan")}
-              desc={t("workout.noPlanDesc")}
-              action={<Button full loading={creating} onClick={createPlan}><Sparkles size={15} /> {t("workout.createPlan")}</Button>}
+              desc={subscription?.isPremium ? t("workout.noPlanDesc") : t("workout.noPlanDescLocked")}
+              action={
+                <Button full loading={creating} onClick={createPlan}>
+                  {subscription?.isPremium ? <Sparkles size={15} /> : <Crown size={15} />} {t("workout.createPlan")}
+                </Button>
+              }
             />
           </Section>
 
@@ -232,7 +282,7 @@ export default function WorkoutsScreen() {
                   emoji={p.emoji}
                   title={p.title}
                   subtitle={`${p.trainer} • ${t("workout.programMeta", { days: p.days, weeks: p.weeks })}`}
-                  onClick={() => showToast(t("workout.programsSoon"), "neutral")}
+                  onClick={() => pickProgram(p)}
                 />
               ))}
             </div>
@@ -289,7 +339,16 @@ export default function WorkoutsScreen() {
             </div>
           </Section>
 
-          <Section title={t("workout.aiTips")}>
+          <Section
+            title={t("workout.aiTips")}
+            action={
+              !subscription?.isPremium && (
+                <span className="flex items-center gap-1 rounded-full bg-amber/12 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-amber">
+                  <Crown size={11} /> {t("profile.premium")}
+                </span>
+              )
+            }
+          >
             {tips ? (
               <div className="card flex flex-col gap-3 px-4 py-4">
                 <p className="text-[13px] leading-relaxed text-ink">{tips.advice}</p>
@@ -314,7 +373,7 @@ export default function WorkoutsScreen() {
               <>
                 {tipsError && <div className="mb-2"><ErrorNote onRetry={loadTips}>{tipsError}</ErrorNote></div>}
                 <Button full variant="ghost" loading={tipsBusy} onClick={loadTips}>
-                  <Lightbulb size={15} /> {t("workout.getTips")}
+                  {subscription?.isPremium ? <Lightbulb size={15} /> : <Crown size={15} />} {t("workout.getTips")}
                 </Button>
               </>
             )}
@@ -334,7 +393,12 @@ export default function WorkoutsScreen() {
         />
       </Section>
 
-      <RegenerateSheet open={regenOpen} onClose={() => setRegenOpen(false)} />
+      <RegenerateSheet
+        open={regenOpen}
+        onClose={() => setRegenOpen(false)}
+        onLocked={() => setPremiumOpen(true)}
+      />
+      <PremiumSheet open={premiumOpen} onClose={() => setPremiumOpen(false)} />
     </Screen>
   );
 }
