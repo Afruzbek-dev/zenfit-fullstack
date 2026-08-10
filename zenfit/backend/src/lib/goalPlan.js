@@ -49,6 +49,14 @@ export function estimateGoal({ goal, currentKg, targetKg, from = new Date() }) {
   };
 }
 
+/** Sensible default target: a 10% change, which most people can actually hold. */
+export function defaultTarget(goal, currentKg) {
+  if (!Number.isFinite(currentKg)) return null;
+  if (goal === "lose") return Math.round(currentKg * 0.9);
+  if (goal === "gain") return Math.round(currentKg * 1.1);
+  return null;
+}
+
 /** Sanity bounds so a target cannot be set somewhere unsafe. */
 export function isValidTarget({ goal, currentKg, targetKg }) {
   if (!Number.isFinite(targetKg) || targetKg < 35 || targetKg > 250) return false;

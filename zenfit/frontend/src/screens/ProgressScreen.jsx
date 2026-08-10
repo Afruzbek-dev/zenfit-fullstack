@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { Flame, TrendingUp, Award, Scale, Dumbbell, Target } from "lucide-react";
+import { Flame, TrendingUp, Award, Scale, Dumbbell, Target, PartyPopper } from "lucide-react";
 import { Screen, ScreenHeader, Section, StatTile, Skeleton, Chip } from "../components/ui.jsx";
 import { api } from "../api.js";
 import { useApp } from "../store.jsx";
 import { localDateKey, weekdayShort } from "../lib/format.js";
+import { estimateGoal } from "../lib/goalPlan.js";
 
 /**
  * Monday, January 1st 2024 — a plain, DST-free reference date used only for
@@ -207,6 +208,69 @@ function WeightChart({ history, t }) {
   );
 }
 
+/**
+ * How far along the current weight is between the starting weight (the
+ * earliest logged entry) and the onboarding goal weight, plus a projection
+ * from *today's* weight — not the starting one — so it stays accurate as
+ * the user logs new weigh-ins. Same conservative rate table onboarding
+ * itself uses for the "~{months} months" preview, so the two never disagree.
+ */
+function GoalProgressCard({ profile, history, t }) {
+  const goal = profile?.goal;
+  if (goal !== "lose" && goal !== "gain") return null;
+
+  const targetKg = profile?.targetWeightKg;
+  const currentKg = profile?.weightKg;
+  if (!Number.isFinite(targetKg) || !Number.isFinite(currentKg)) return null;
+
+  const startKg = history?.[0]?.weightKg ?? currentKg;
+  const estimate = estimateGoal({ goal, currentKg, targetKg });
+  const reached = !estimate;
+
+  const totalSpan = Math.abs(targetKg - startKg);
+  const covered = goal === "lose" ? startKg - currentKg : currentKg - startKg;
+  const percent = reached
+    ? 100
+    : totalSpan > 0
+      ? Math.max(0, Math.min(100, Math.round((covered / totalSpan) * 100)))
+      : 0;
+
+  const remainingKg = Math.round(Math.abs(targetKg - currentKg) * 10) / 10;
+  const useWeeks = estimate && estimate.months < 1;
+  const etaKey = useWeeks
+    ? goal === "lose" ? "progress.goalEtaLoseWeeks" : "progress.goalEtaGainWeeks"
+    : goal === "lose" ? "progress.goalEtaLose" : "progress.goalEtaGain";
+
+  return (
+    <div className="card mt-2.5 px-4 py-4">
+      <div className="mb-3 flex items-center justify-between">
+        <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-faint">{t("progress.goalProgress")}</span>
+        {!reached && <span className="tabular text-[12.5px] font-bold text-neon">{percent}%</span>}
+      </div>
+
+      <div className="mb-2 flex items-center justify-between text-[11px] text-faint">
+        <span>{startKg} {t("common.kg")}</span>
+        <span className="tabular text-[13px] font-bold text-ink">{currentKg} {t("common.kg")}</span>
+        <span>{targetKg} {t("common.kg")}</span>
+      </div>
+      <div className="mb-3 h-2 w-full overflow-hidden rounded-full bg-surfaceAlt">
+        <div className="h-full rounded-full bg-neon transition-all" style={{ width: `${percent}%` }} />
+      </div>
+
+      {reached ? (
+        <div className="flex items-center gap-2">
+          <PartyPopper size={15} className="shrink-0 text-neon" />
+          <p className="text-[12.5px] font-semibold text-neon">{t("progress.goalReached")}</p>
+        </div>
+      ) : (
+        <p className="text-[12px] leading-relaxed text-muted">
+          {t(etaKey, { kg: remainingKg, months: estimate.months, weeks: estimate.weeks })}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export default function ProgressScreen({ onBack }) {
   const { summary, profile, workoutHistory, t, lang } = useApp();
   const [range, setRange] = useState(7);
@@ -285,6 +349,7 @@ export default function ProgressScreen({ onBack }) {
 
       <Section title={t("progress.weightDynamics")}>
         <WeightChart history={weights} t={t} />
+        <GoalProgressCard profile={profile} history={weights} t={t} />
       </Section>
 
       <Section title={t("progress.achievements")}>

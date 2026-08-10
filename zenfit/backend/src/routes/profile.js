@@ -2,6 +2,7 @@ import { Router } from "express";
 import { query, queryOne } from "../db.js";
 import { requireAuth } from "../middleware/auth.js";
 import { computeTargets, AGE_MIN, AGE_MAX } from "../lib/calorie.js";
+import { defaultTarget, isValidTarget, estimateGoal } from "../lib/goalPlan.js";
 import { mapProfile, mapSubscription } from "../lib/mappers.js";
 
 const router = Router();
@@ -170,6 +171,39 @@ router.patch("/", requireAuth, async (req, res, next) => {
       if (t.goal !== metrics.goal) {
         set("goal", t.goal);
         metrics.goal = t.goal;
+      }
+    }
+
+    /**
+     * Goal weight & timeline. Nothing in this route ever wrote these columns
+     * before — onboarding was the only place a target could be set, so a goal
+     * changed later (e.g. HealthData's goal picker) or a safety downgrade left
+     * the Progress screen with no target to show progress against.
+     */
+    if (metricsTouched || b.targetWeightKg !== undefined) {
+      if (metrics.goal === "lose" || metrics.goal === "gain") {
+        const requested = Number.isFinite(b.targetWeightKg) ? b.targetWeightKg : null;
+        const stored = existing.target_weight_kg;
+        const storedValid =
+          Number.isFinite(stored) && isValidTarget({ goal: metrics.goal, currentKg: metrics.weightKg, targetKg: stored });
+
+        let targetKg = null;
+        if (requested != null && isValidTarget({ goal: metrics.goal, currentKg: metrics.weightKg, targetKg: requested })) {
+          targetKg = requested;
+        } else if (!storedValid) {
+          // First time this goal became directional, or the stored target no
+          // longer makes sense (goal switch, downgrade, or weighed past it).
+          targetKg = defaultTarget(metrics.goal, metrics.weightKg);
+        }
+
+        if (targetKg != null) {
+          const est = estimateGoal({ goal: metrics.goal, currentKg: metrics.weightKg, targetKg });
+          set("target_weight_kg", targetKg);
+          set("target_date", est?.targetDate || null);
+        }
+      } else if (b.goal === "maintain") {
+        set("target_weight_kg", null);
+        set("target_date", null);
       }
     }
 
