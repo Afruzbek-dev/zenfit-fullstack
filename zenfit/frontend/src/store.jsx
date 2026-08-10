@@ -247,23 +247,36 @@ export function AppProvider({ children }) {
     setSummary((prev) => (prev ? { ...prev, waterMl: res.waterMl } : prev));
   }, []);
 
+  /*
+   * On a "lose" goal the target is already a deficit, so a logged workout must
+   * not relax it — see the same guard server-side in lib/stats.js getDayStats.
+   * Kept here too because these are optimistic local updates: without this the
+   * ring would jump on tap and then jump back on the next refresh.
+   */
   const logWorkout = useCallback(async (payload) => {
     const res = await api.logWorkout(payload);
     // The server owns the burn figure, so credit what it stored rather than
     // what was sent — otherwise the ring drifts from the day's real total.
     const kcal = res.workoutLog?.kcal || 0;
+    const creditsRemaining = profile?.goal !== "lose";
     setWorkoutHistory((prev) => [res.workoutLog, ...prev]);
     setSummary((prev) =>
       prev
-        ? { ...prev, burned: prev.burned + kcal, remaining: prev.remaining + kcal, workoutCount: prev.workoutCount + 1 }
+        ? {
+            ...prev,
+            burned: prev.burned + kcal,
+            remaining: prev.remaining + (creditsRemaining ? kcal : 0),
+            workoutCount: prev.workoutCount + 1,
+          }
         : prev
     );
     return res.workoutLog;
-  }, []);
+  }, [profile]);
 
   const addActivity = useCallback(async (payload) => {
     const res = await api.addActivity(payload);
     const a = res.activity;
+    const creditsRemaining = profile?.goal !== "lose";
     setActivities((prev) => [a, ...prev]);
     setSummary((prev) =>
       prev
@@ -273,15 +286,16 @@ export function AppProvider({ children }) {
             activityKcal: (prev.activityKcal || 0) + (a.kcal || 0),
             activityCount: (prev.activityCount || 0) + 1,
             activityMinutes: (prev.activityMinutes || 0) + (a.durationMin || 0),
-            remaining: prev.remaining + (a.kcal || 0),
+            remaining: prev.remaining + (creditsRemaining ? a.kcal || 0 : 0),
           }
         : prev
     );
     return a;
-  }, []);
+  }, [profile]);
 
   const removeActivity = useCallback(async (id) => {
     const removed = activities.find((a) => a.id === id);
+    const creditsRemaining = profile?.goal !== "lose";
     setActivities((prev) => prev.filter((a) => a.id !== id));
     try {
       await api.deleteActivity(id);
@@ -293,7 +307,7 @@ export function AppProvider({ children }) {
               activityKcal: Math.max(0, (prev.activityKcal || 0) - (removed.kcal || 0)),
               activityCount: Math.max(0, (prev.activityCount || 0) - 1),
               activityMinutes: Math.max(0, (prev.activityMinutes || 0) - (removed.durationMin || 0)),
-              remaining: prev.remaining - (removed.kcal || 0),
+              remaining: prev.remaining - (creditsRemaining ? removed.kcal || 0 : 0),
             }
           : prev
       );
@@ -301,7 +315,7 @@ export function AppProvider({ children }) {
       if (removed) setActivities((prev) => [removed, ...prev]);
       throw e;
     }
-  }, [activities]);
+  }, [activities, profile]);
 
   /**
    * Single entry point for profile edits — keeps profile and user in sync.

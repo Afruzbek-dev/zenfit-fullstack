@@ -112,6 +112,18 @@ export async function getDayStats(userId, dateStr, tzOffsetMinutes = 0) {
   const burned = credit.kcal;
   const target = profile?.daily_calorie_target || 2000;
 
+  /*
+   * A "lose" target already IS the deficit — it was built by cutting from TDEE
+   * (see computeTargets in lib/calorie.js). Adding logged exercise back on top
+   * lets a workout buy back the cut it created, which defeats the goal it was
+   * set for. Burned still counts and still shows (it's real, and it's the
+   * whole point of logging it), it just does not relax today's ceiling.
+   *
+   * "maintain" and "gain" keep the old behaviour: those targets were never a
+   * deficit, so there's nothing for exercise to be bought back from.
+   */
+  const creditToRemaining = profile?.goal === "lose" ? 0 : burned;
+
   return {
     date: day,
     ...totals,
@@ -122,12 +134,15 @@ export async function getDayStats(userId, dateStr, tzOffsetMinutes = 0) {
     burnedRaw: credit.rawKcal,
     burnedCapped: credit.capped,
     burnedCap: credit.cap,
+    // Whether `burned` above was actually folded into `remaining` — the client
+    // uses this to explain a ring that doesn't move when a workout is logged.
+    burnedCountsTowardRemaining: creditToRemaining > 0,
     activityKcal,
     activityMinutes: activities.reduce((sum, a) => sum + (a.duration_min || 0), 0),
     waterMl: Number(water?.total || 0),
     waterTargetMl: profile?.water_target_ml || 2500,
     target,
-    remaining: target - totals.kcal + burned,
+    remaining: target - totals.kcal + creditToRemaining,
     mealCount: meals.length,
     workoutCount: workouts.length,
     activityCount: activities.length,

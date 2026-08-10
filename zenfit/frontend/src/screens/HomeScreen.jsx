@@ -114,6 +114,9 @@ export default function HomeScreen({ onNavigate }) {
   const target = summary.target;
   const remaining = Math.max(0, summary.remaining);
   const over = summary.remaining < 0;
+  // Absent on a stale cached summary from before this field existed — treat
+  // that as "counts", which is what every goal but "lose" actually does.
+  const burnedCounts = summary.burnedCountsTowardRemaining !== false;
 
   async function water(delta) {
     setWaterBusy(true);
@@ -167,17 +170,22 @@ export default function HomeScreen({ onNavigate }) {
           </div>
         </ProgressRing>
 
-        {/* The signs spell out the arithmetic behind the ring: training adds
-            to the budget, food takes from it. */}
+        {/*
+          The signs spell out the arithmetic behind the ring. On a "lose" goal
+          the target is already the deficit, so exercise is shown but greyed
+          rather than signed with "+" — it isn't part of the sum the ring
+          draws, and drawing it as if it were would make the ring's number
+          disagree with its own legend.
+        */}
         <div className="mt-4 flex w-full items-center justify-center gap-5 text-center">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-wider text-faint">{t("home.target")}</p>
             <p className="tabular text-[15px] font-bold text-ink">{target}</p>
           </div>
-          <span className="text-[13px] font-bold text-faint">+</span>
+          <span className={`text-[13px] font-bold ${burnedCounts ? "text-faint" : "text-faint/40"}`}>+</span>
           <div>
             <p className="text-[10px] font-bold uppercase tracking-wider text-faint">{t("home.burned")}</p>
-            <p className="tabular text-[15px] font-bold text-cyan">{summary.burned}</p>
+            <p className={`tabular text-[15px] font-bold ${burnedCounts ? "text-cyan" : "text-faint"}`}>{summary.burned}</p>
           </div>
           <span className="text-[13px] font-bold text-faint">−</span>
           <div>
@@ -185,6 +193,12 @@ export default function HomeScreen({ onNavigate }) {
             <p className="tabular text-[15px] font-bold text-amber">{eaten}</p>
           </div>
         </div>
+
+        {!burnedCounts && summary.burned > 0 && (
+          <p className="mt-2.5 text-center text-[10.5px] leading-relaxed text-faint">
+            {t("home.burnNotCredited")}
+          </p>
+        )}
 
         {/* The activity list below shows entries summing to more than this. Say
             so, rather than letting the difference read as a bug. */}
