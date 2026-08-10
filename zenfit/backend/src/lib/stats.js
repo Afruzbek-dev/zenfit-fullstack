@@ -113,17 +113,20 @@ export async function getDayStats(userId, dateStr, tzOffsetMinutes = 0) {
   const target = profile?.daily_calorie_target || 2000;
 
   /*
-   * A "lose" target already IS the deficit — it was built by cutting from TDEE
-   * (see computeTargets in lib/calorie.js). Adding logged exercise back on top
-   * lets a workout buy back the cut it created, which defeats the goal it was
-   * set for. Burned still counts and still shows (it's real, and it's the
-   * whole point of logging it), it just does not relax today's ceiling.
+   * Logged exercise is informational only — it is never added back to today's
+   * budget, for any goal. `target` already comes from the activity-level
+   * question the user answered in onboarding (see ACTIVITY_MULTIPLIERS in
+   * lib/calorie.js), so a session logged today does not change what today's
+   * number should be; it would only do that if the multiplier had UNDER-asked
+   * about activity, which it doesn't — it asks first and prices the answer in.
    *
-   * "maintain" and "gain" keep the old behaviour: those targets were never a
-   * deficit, so there's nothing for exercise to be bought back from.
+   * This used to credit `burned` back for "maintain"/"gain" and only withhold
+   * it on "lose". That produced a food budget that moved every time a workout
+   * was logged, which made the number harder to reason about for every goal
+   * without actually changing what anyone needed to eat — the activity-level
+   * multiplier was already doing that job. Decided 2026-08-10; see
+   * [[zenfit-calorie-model]] before reverting this.
    */
-  const creditToRemaining = profile?.goal === "lose" ? 0 : burned;
-
   return {
     date: day,
     ...totals,
@@ -134,15 +137,12 @@ export async function getDayStats(userId, dateStr, tzOffsetMinutes = 0) {
     burnedRaw: credit.rawKcal,
     burnedCapped: credit.capped,
     burnedCap: credit.cap,
-    // Whether `burned` above was actually folded into `remaining` — the client
-    // uses this to explain a ring that doesn't move when a workout is logged.
-    burnedCountsTowardRemaining: creditToRemaining > 0,
     activityKcal,
     activityMinutes: activities.reduce((sum, a) => sum + (a.duration_min || 0), 0),
     waterMl: Number(water?.total || 0),
     waterTargetMl: profile?.water_target_ml || 2500,
     target,
-    remaining: target - totals.kcal + creditToRemaining,
+    remaining: target - totals.kcal,
     mealCount: meals.length,
     workoutCount: workouts.length,
     activityCount: activities.length,

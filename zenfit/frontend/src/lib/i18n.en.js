@@ -29,7 +29,7 @@ export default {
     planNudge: "Build your AI workout plan", planNudgeDesc: "A weekly plan with weights matched to you",
     days: "d", ta: "",
     burnCapped: "Your logged sessions come to {raw} kcal, but {cap} kcal went into today's budget — that's the daily ceiling.",
-    burnNotCredited: "On a weight-loss goal, burned calories aren't added back to your daily target — the target already has the cut built in.",
+    burnNotCredited: "Burned calories aren't added back to your daily target — the target already accounts for your activity level.",
     neatTitle: "We changed the daily-activity question",
     neatDesc: "It now describes your day without training — sessions are added separately when you log them. Worth re-checking your level.",
   },
