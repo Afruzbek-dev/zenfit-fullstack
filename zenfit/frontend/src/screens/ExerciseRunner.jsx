@@ -111,37 +111,39 @@ function RestTimer({ seconds, label, onDismiss }) {
 
 function Stepper({ label, value, unit, step, min, max, onChange, decimals = 0 }) {
   const show = decimals ? String(Number(value).toFixed(1)).replace(/\.0$/, "") : String(value);
+  // The unit rides in the label ("Og'irlik, kg") instead of sitting inside the
+  // box, so the box holds only the number being typed into it.
+  const fullLabel = unit ? `${label}, ${unit}` : label;
   return (
     <div className="flex-1">
-      <p className="mb-1.5 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-faint">{label}</p>
+      <p className="mb-1.5 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-faint">{fullLabel}</p>
       <div className="flex items-center gap-1.5">
         <button
           onClick={() => {
             haptic("light");
             onChange(clamp(Number(value) - step, min, max));
           }}
-          aria-label={`${label} −${step}`}
+          aria-label={`${fullLabel} −${step}`}
           className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-borderSoft bg-surface active:scale-95"
         >
           <Minus size={15} className="text-muted" />
         </button>
-        <div className="flex min-w-0 flex-1 items-baseline justify-center gap-1 rounded-xl border border-borderSoft bg-surface px-1 py-2">
+        <div className="flex min-w-0 flex-1 items-center justify-center rounded-xl border border-borderSoft bg-surface px-1 py-2">
           <input
             type="number"
             inputMode="decimal"
             value={show}
             onChange={(e) => onChange(e.target.value === "" ? min : clamp(Number(e.target.value), min, max))}
-            aria-label={label}
+            aria-label={fullLabel}
             className="tabular w-full bg-transparent text-center text-[19px] font-bold text-ink outline-none"
           />
-          {unit && <span className="shrink-0 text-[11px] font-semibold text-faint">{unit}</span>}
         </div>
         <button
           onClick={() => {
             haptic("light");
             onChange(clamp(Number(value) + step, min, max));
           }}
-          aria-label={`${label} +${step}`}
+          aria-label={`${fullLabel} +${step}`}
           className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-borderSoft bg-surface active:scale-95"
         >
           <Plus size={15} className="text-muted" />
