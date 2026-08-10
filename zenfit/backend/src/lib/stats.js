@@ -231,6 +231,58 @@ export async function getStreak(userId, tzOffsetMinutes = 0) {
   return streak;
 }
 
+/**
+ * Which calendar days in the CURRENT local month have at least one meal,
+ * workout or activity logged — the per-day map a monthly heatmap needs, as
+ * opposed to getStreak's single consecutive-run number.
+ *
+ * Month boundaries are computed with the same shift-then-read-UTC-fields trick
+ * as dayRange/getStreak above, so this needs no server timezone assumption:
+ * `Date.now() - tzOffsetMinutes*60000` lands on the user's local instant, and
+ * its UTC getters are then read as if they were local ones.
+ */
+export async function getMonthActivity(userId, tzOffsetMinutes = 0) {
+  const localNow = new Date(Date.now() - tzOffsetMinutes * 60_000);
+  const year = localNow.getUTCFullYear();
+  const month = localNow.getUTCMonth(); // 0-indexed
+  const today = localNow.getUTCDate();
+
+  const start = new Date(Date.UTC(year, month, 1));
+  start.setUTCMinutes(start.getUTCMinutes() + tzOffsetMinutes);
+  const end = new Date(Date.UTC(year, month + 1, 1));
+  end.setUTCMinutes(end.getUTCMinutes() + tzOffsetMinutes);
+
+  const rows = await query(
+    `SELECT logged_at FROM meals WHERE user_id = $1 AND logged_at >= $2 AND logged_at < $3
+     UNION ALL
+     SELECT logged_at FROM workout_logs WHERE user_id = $1 AND logged_at >= $2 AND logged_at < $3
+     UNION ALL
+     SELECT logged_at FROM activities WHERE user_id = $1 AND logged_at >= $2 AND logged_at < $3`,
+    [userId, start.toISOString(), end.toISOString()]
+  );
+
+  const activeDays = new Set(
+    rows.map((r) => new Date(new Date(r.logged_at).getTime() - tzOffsetMinutes * 60_000).getUTCDate())
+  );
+
+  // Day 0 of next month rolls back to the last day of this one — the usual
+  // idiom, and it handles December -> January without special-casing it.
+  const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  // Date.UTC(y, m, 1) encodes the calendar date directly with no timezone
+  // conversion, so its weekday is the calendar weekday regardless of offset.
+  const firstWeekdaySunFirst = new Date(Date.UTC(year, month, 1)).getUTCDay(); // 0=Sun..6=Sat
+  const firstWeekday = (firstWeekdaySunFirst + 6) % 7; // 0=Mon..6=Sun, to match the app's Mon-first week
+
+  return {
+    year,
+    month: month + 1,
+    daysInMonth,
+    firstWeekday,
+    today,
+    activeDays: [...activeDays].sort((a, b) => a - b),
+  };
+}
+
 /** Everything the AI trainer needs to answer with real numbers. */
 export async function buildTrainerContext(userId, tzOffsetMinutes = 0) {
   const [profile, todayStats, recentWorkouts, planRow] = await Promise.all([

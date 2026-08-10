@@ -43,6 +43,8 @@ export const uz = {
     goalProgress: "Maqsad sari", toGoal: "maqsadgacha", goalReached: "Maqsadga yetdingiz! 🎉",
     rangeDays: "{n} kun", earned: "Olindi",
     tipConsumed: "{kcal} kkal yeyildi", tipBurned: "{kcal} kkal sarflandi",
+    monthlyHeatmap: "Oylik faollik",
+    monthlyHeatmapDesc: "Ovqat, mashq yoki faollik belgilangan kunlar",
     badges: {
       streak3: "3 kunlik streak", streak7: "7 kunlik streak",
       burn1000: "1000 kcal sarflandi", meals10: "10 ta ovqat belgilandi",
@@ -209,6 +211,8 @@ export const ru = {
     // plural forms, and the abbreviation stays correct after any number.
     rangeDays: "{n} дн", earned: "Получено",
     tipConsumed: "{kcal} ккал съедено", tipBurned: "{kcal} ккал сожжено",
+    monthlyHeatmap: "Активность за месяц",
+    monthlyHeatmapDesc: "Дни, когда была отмечена еда, тренировка или активность",
     badges: {
       streak3: "Серия 3 дня", streak7: "Серия 7 дней",
       burn1000: "Сожжено 1000 ккал", meals10: "10 приёмов пищи",
@@ -371,6 +375,8 @@ export const en = {
     goalProgress: "Toward your goal", toGoal: "to go", goalReached: "Goal reached! 🎉",
     rangeDays: "{n}d", earned: "Earned",
     tipConsumed: "{kcal} kcal eaten", tipBurned: "{kcal} kcal burned",
+    monthlyHeatmap: "Monthly activity",
+    monthlyHeatmapDesc: "Days you logged food, a workout or an activity",
     badges: {
       streak3: "3-day streak", streak7: "7-day streak",
       burn1000: "1000 kcal burned", meals10: "10 meals logged",

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { query, queryOne, daysAgoIso } from "../db.js";
 import { requireAuth } from "../middleware/auth.js";
-import { getDayStats, getStreak, dayRange } from "../lib/stats.js";
+import { getDayStats, getStreak, getMonthActivity, dayRange } from "../lib/stats.js";
 import { capExerciseCredit, tdeeFromProfileRow } from "../lib/calorie.js";
 
 const router = Router();
@@ -78,6 +78,17 @@ router.get("/weekly", requireAuth, async (req, res, next) => {
     }
 
     res.json({ days: [...buckets.values()] });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** Per-day activity map for the current calendar month — the Progress screen's heatmap. */
+router.get("/month", requireAuth, async (req, res, next) => {
+  try {
+    const tz = Number(req.query.tz) || 0;
+    const activity = await getMonthActivity(req.userId, tz);
+    res.json(activity);
   } catch (err) {
     next(err);
   }

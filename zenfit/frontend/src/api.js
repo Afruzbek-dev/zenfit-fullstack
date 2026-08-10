@@ -107,6 +107,7 @@ export const api = {
   /* tracking */
   getSummary: () => request("GET", `/api/tracking/summary?tz=${tz()}`),
   getWeekly: (days = 7) => request("GET", `/api/tracking/weekly?days=${days}&tz=${tz()}`),
+  getMonthActivity: () => request("GET", `/api/tracking/month?tz=${tz()}`),
   addWater: (ml) => request("POST", "/api/tracking/water", { body: { ml, tz: tz() } }),
   resetWater: () => request("DELETE", `/api/tracking/water/today?tz=${tz()}`),
   getWeightHistory: () => request("GET", "/api/tracking/weight"),

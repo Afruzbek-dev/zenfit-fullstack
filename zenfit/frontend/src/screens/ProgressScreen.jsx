@@ -5,6 +5,79 @@ import { api } from "../api.js";
 import { useApp } from "../store.jsx";
 import { localDateKey, weekdayShort } from "../lib/format.js";
 
+/**
+ * Monday, January 1st 2024 — a plain, DST-free reference date used only for
+ * its day-of-week. Walking a week from it and running each day through the
+ * existing `weekdayShort` gives Monday-first single-letter headers in
+ * whichever language is active, without a fourth weekday table to keep in
+ * sync with the three already in lib/format.js.
+ */
+const REF_MONDAY = new Date(2024, 0, 1);
+function monFirstInitials(lang) {
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(REF_MONDAY);
+    d.setDate(d.getDate() + i);
+    return weekdayShort(d, lang).charAt(0);
+  });
+}
+
+/**
+ * Calendar heatmap for the current month: which days had a meal, workout or
+ * activity logged. Restyled from a reference screenshot into the app's own
+ * language — amber/flame for "active" (the color and icon already used for
+ * `streak` everywhere else) rather than the reference's flat orange, and a
+ * card rather than a standalone panel so it sits like every other Progress
+ * widget.
+ */
+function MonthlyHeatmap({ month, t, lang }) {
+  if (!month) return null;
+  const { daysInMonth, firstWeekday, activeDays, today } = month;
+  const activeSet = new Set(activeDays);
+  const cells = [...Array(firstWeekday).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
+
+  return (
+    <div className="card px-4 py-4">
+      <div className="mb-3.5 flex items-center justify-between gap-3">
+        <p className="min-w-0 text-[11.5px] leading-relaxed text-muted">{t("progress.monthlyHeatmapDesc")}</p>
+        <span className="flex shrink-0 items-center gap-1 rounded-full border border-amber/30 bg-amber/12 px-2.5 py-1">
+          <Flame size={13} className="text-amber" />
+          <span className="tabular text-[12.5px] font-bold text-amber">{activeDays.length}</span>
+        </span>
+      </div>
+
+      <div className="mb-1.5 grid grid-cols-7 gap-1.5">
+        {monFirstInitials(lang).map((letter, i) => (
+          <span key={i} className="text-center text-[10px] font-bold uppercase text-faint">
+            {letter}
+          </span>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-7 gap-1.5">
+        {cells.map((day, i) => {
+          if (day == null) return <span key={`blank${i}`} aria-hidden="true" />;
+          const active = activeSet.has(day);
+          const isToday = day === today;
+          return (
+            <span
+              key={day}
+              className={`tabular grid aspect-square place-items-center rounded-xl text-[11px] font-bold ${
+                active
+                  ? "bg-amber text-white"
+                  : isToday
+                    ? "border border-amber/50 text-ink"
+                    : "bg-surfaceAlt text-faint"
+              }`}
+            >
+              {active ? <Flame size={12} strokeWidth={2.5} className="text-white" /> : day}
+            </span>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /** Grouped bars: intake vs burn, with the target drawn as a reference line. */
 function WeeklyChart({ days, target, t, lang }) {
   if (!days?.length) return null;
@@ -140,6 +213,7 @@ export default function ProgressScreen({ onBack }) {
   const [range, setRange] = useState(7);
   const [weekly, setWeekly] = useState(null);
   const [weights, setWeights] = useState([]);
+  const [month, setMonth] = useState(null);
 
   useEffect(() => {
     let alive = true;
@@ -153,6 +227,16 @@ export default function ProgressScreen({ onBack }) {
       alive = false;
     };
   }, [range]);
+
+  // Independent of `range` — the heatmap always covers the current calendar
+  // month, not the 7/14/30-day window the chip row controls.
+  useEffect(() => {
+    let alive = true;
+    api.getMonthActivity().then((m) => alive && setMonth(m)).catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const totalWorkouts = workoutHistory.length;
   const totalBurned = workoutHistory.reduce((s, w) => s + (w.kcal || 0), 0);
@@ -177,6 +261,10 @@ export default function ProgressScreen({ onBack }) {
           <StatTile Icon={TrendingUp} label={t("progress.burned")} value={totalBurned} unit={t("common.kcal")} tone="neon" />
           <StatTile Icon={Target} label={t("progress.target")} value={profile?.dailyCalorieTarget || 0} unit={t("common.kcal")} tone="neon" />
         </div>
+      </Section>
+
+      <Section title={t("progress.monthlyHeatmap")}>
+        {month ? <MonthlyHeatmap month={month} t={t} lang={lang} /> : <Skeleton className="h-48" />}
       </Section>
 
       <Section
