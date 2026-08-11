@@ -29,6 +29,23 @@ Milliy taomlar uchun isApprox=true qo'y (uy retsepti bo'yicha farq katta).
 Agar rasmda ovqat aniq ko'rinmasa, "name" maydoniga "Aniqlanmadi" yoz va confidence 0 qo'y.`;
 
 /**
+ * The Premium-only sentence layered on top of the suitability percentage.
+ *
+ * The percentage itself is computed on the client (lib/foodFit.js) and is the
+ * same for everyone — this only buys the *explanation*, so a free user is never
+ * left without an answer, just without the commentary. Asking for it as one
+ * extra field costs no extra request.
+ */
+function fitInstruction(fit) {
+  if (!fit) return "";
+  const goalUz = { lose: "ozish", maintain: "vaznni saqlash", gain: "massa yig'ish" }[fit.goal] || fit.goal;
+  return `
+
+FOYDALANUVCHI HOLATI: maqsad — ${goalUz}, kunlik me'yor ${fit.target} kcal, bugun ${fit.eaten} kcal yeyilgan (qolgan ${fit.remaining} kcal), oqsil ${fit.proteinEaten}/${fit.proteinTarget} g.
+JSON'ga qo'shimcha "fitNote" maydonini qo'sh: 1 qisqa gap — shu taom AYNAN shu foydalanuvchiga bugun mos keladimi yoki yo'qmi, qolgan kaloriya va oqsilga tayanib. Aniq raqam ayt. Tibbiy tashxis qo'yma.`;
+}
+
+/**
  * The prompt asks the model to answer "Aniqlanmadi" with confidence 0 when it
  * cannot see food. That sentinel is Uzbek, so the client used to detect it by
  * comparing against a *translated* label — which never matched for Russian or
@@ -44,29 +61,29 @@ function withRecognition(result) {
   return { ...result, recognized };
 }
 
-export async function analyzeFoodImage(base64Image, mediaType) {
+export async function analyzeFoodImage(base64Image, mediaType, fit = null) {
   const text = await callModel(
     [
       {
         role: "user",
         content: [
           { type: "image", source: { type: "base64", media_type: mediaType, data: base64Image } },
-          { type: "text", text: SCAN_PROMPT },
+          { type: "text", text: SCAN_PROMPT + fitInstruction(fit) },
         ],
       },
     ],
-    { maxTokens: 600, json: true }
+    { maxTokens: fit ? 750 : 600, json: true }
   );
   return withRecognition(extractJson(text));
 }
 
-export async function askFoodQuestion(query) {
+export async function askFoodQuestion(query, fit = null) {
   const prompt = `Sen ovqat va kaloriya bo'yicha yordamchisisan. Foydalanuvchi so'ragan taom haqida taxminiy ozuqaviy qiymatlarni ber.
 FAQAT quyidagi JSON formatda javob ber — boshqa hech qanday matn qo'shma:
-{"name": "taom nomi", "kcalPerServing": number, "carbs": number, "protein": number, "fat": number, "servingDescription": "porsiya tavsifi", "isApprox": boolean, "note": "qisqa izoh"}
+{"name": "taom nomi", "kcalPerServing": number, "carbs": number, "protein": number, "fat": number, "servingDescription": "porsiya tavsifi", "isApprox": boolean, "note": "qisqa izoh"}${fitInstruction(fit)}
 
 Savol: ${query}`;
-  const text = await callModel([{ role: "user", content: prompt }], { maxTokens: 400, json: true });
+  const text = await callModel([{ role: "user", content: prompt }], { maxTokens: fit ? 550 : 400, json: true });
   return withRecognition(extractJson(text));
 }
 
@@ -144,19 +161,47 @@ export async function trainerChat({ messages, context }) {
  * AI plan generation
  * ------------------------------------------------------------------ */
 
+/**
+ * One pantry line for the prompt.
+ *
+ * The caller hands over the food catalogue rows the user ticked, so the model
+ * is told what each ingredient actually costs instead of guessing — the whole
+ * point of picking from a catalogue rather than typing free text. Everything
+ * interpolated here is re-validated in the route; this only decides the shape.
+ */
+const pantryLine = (f) =>
+  `- ${f.name}: ${f.kcal} kcal, oqsil ${f.protein}g, uglevod ${f.carbs}g, yog' ${f.fat}g (${f.unit})`;
+
 export async function generateDietPlan(ctx) {
-  const { profile } = ctx;
+  const { profile, pantry } = ctx;
   const goalUz = { lose: "ozish", maintain: "vaznni saqlash", gain: "massa yig'ish" }[profile.goal] || profile.goal;
+  const fromPantry = Array.isArray(pantry) && pantry.length > 0;
 
   const system = `Sen o'zbek oshxonasini yaxshi biladigan nutritsiologsan. Foydalanuvchiga real, arzon va topish oson mahsulotlardan kunlik ovqatlanish rejasi tuzasan.
 Mahalliy taomlarni (osh, shurpa, non, tvorog, qatiq, somsa) hisobga ol, lekin maqsadga mos porsiyalarda.
 FAQAT JSON qaytar, markdown yoki izoh qo'shma.`;
 
+  // With a pantry the job changes from "compose a sensible day" to "compose a
+  // sensible day out of exactly these things", so the constraint is stated
+  // twice — once as a rule and once as the list — and the model is told what to
+  // do when the list cannot cover a meal, rather than being left to invent an
+  // ingredient the user does not have.
+  const pantryBlock = fromPantry
+    ? `
+
+FOYDALANUVCHIDA MAVJUD MAHSULOTLAR (uyida bor, sotib olish shart emas):
+${pantry.map(pantryLine).join("\n")}
+
+QAT'IY QOIDA: rejadagi har bir taom FAQAT yuqoridagi mahsulotlardan tuzilsin. Ro'yxatda yo'q mahsulot qo'shma.
+Istisno: tuz, ziravor, suv, choy — bularni erkin ishlatishing mumkin.
+Agar ro'yxatdagi mahsulotlar kunlik me'yorni to'ldirishga yetmasa, "missing" maydoniga yetishmayotgan 1-3 ta mahsulot nomini yoz va rejani bor narsadan tuz.`
+    : "";
+
   const prompt = `Quyidagi foydalanuvchi uchun 1 kunlik ovqatlanish rejasi tuz:
 - Jins: ${profile.gender === "female" ? "ayol" : "erkak"}, yosh ${profile.age}, bo'y ${profile.height_cm}sm, vazn ${profile.weight_kg}kg
 - Maqsad: ${goalUz}
 - Kunlik me'yor: ${profile.daily_calorie_target} kcal
-- Makro: oqsil ${profile.protein_target_g}g, uglevod ${profile.carbs_target_g}g, yog' ${profile.fat_target_g}g
+- Makro: oqsil ${profile.protein_target_g}g, uglevod ${profile.carbs_target_g}g, yog' ${profile.fat_target_g}g${pantryBlock}
 
 JSON format:
 {
@@ -164,12 +209,12 @@ JSON format:
   "meals": [
     {"slot": "Nonushta", "name": "taom nomi", "portion": "porsiya tavsifi", "kcal": number, "carbs": number, "protein": number, "fat": number, "emoji": "emoji"}
   ],
-  "tips": ["qisqa maslahat 1", "qisqa maslahat 2", "qisqa maslahat 3"]
+  "tips": ["qisqa maslahat 1", "qisqa maslahat 2", "qisqa maslahat 3"]${fromPantry ? ',\n  "missing": ["yetishmayotgan mahsulot nomi"]' : ""}
 }
 meals massivida 4 ta ovqat bo'lsin: Nonushta, Tushlik, Kechki ovqat, Gazak. Jami kaloriya me'yorga yaqin bo'lsin (±100 kcal).`;
 
   const text = await callModel([{ role: "user", content: prompt }], { maxTokens: 1600, system, json: true });
-  return extractJson(text);
+  return { ...extractJson(text), source: fromPantry ? "pantry" : "ai" };
 }
 
 /**

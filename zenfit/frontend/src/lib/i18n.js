@@ -212,6 +212,77 @@ const uz = {
     planFailed: "Reja tuzib bo'lmadi",
   },
 
+  /*
+   * Suitability score (lib/foodFit.js). The verdicts are phrased as advice, not
+   * as a verdict on the food — "bu sizga to'g'ri kelmaydi" is about this person
+   * on this day, and the reasons underneath always say why.
+   */
+  fit: {
+    title: "Sizga mosligi",
+    verdict: {
+      good: "Bugungi me'yoringizga mos keladi",
+      ok: "Mumkin, lekin porsiyaga e'tibor bering",
+      warn: "Bugun bu tavsiya qilinmaydi",
+    },
+    reason: {
+      fitsWell: "Qolgan kaloriyangizga bemalol sig'adi",
+      bigShare: "Kunlik me'yoringizning katta qismini oladi",
+      overBudget: "Kunlik me'yoringizdan oshirib yuboradi",
+      highProtein: "Oqsilga boy — mushak uchun foydali",
+      proteinGap: "Bugungi oqsil yetishmovchiligingizni to'ldiradi",
+      lowProtein: "Kaloriyasi ko'p, lekin oqsili deyarli yo'q",
+      highFat: "Yog'i ko'p — kunlik yog' me'yoringizni tez to'ldiradi",
+      processed: "Qayta ishlangan mahsulot — tez-tez iste'mol qilish tavsiya etilmaydi",
+      goodForGain: "Massa yig'ish maqsadingiz uchun yaxshi tanlov",
+    },
+  },
+
+  /* "Mahsulotlarim" — what is in the kitchen, not what was eaten. */
+  pantry: {
+    title: "Mahsulotlarim",
+    subtitle: "Uyingizda bor mahsulotlarni belgilang",
+    desc: "Belgilangan mahsulotlardan AI kunlik ovqatlanish rejasi tuzadi",
+    open: "Mahsulotlarni tanlash",
+    empty: "Hali mahsulot belgilanmagan",
+    emptyDesc: "Uyingizda bor mahsulotlarni belgilang — AI faqat shulardan reja tuzadi.",
+    selected: "{n} ta belgilandi",
+    clear: "Tozalash",
+    save: "Saqlash",
+    saved: "Mahsulotlar saqlandi ✓",
+    searchPlaceholder: "Mahsulot qidirish…",
+    generate: "Shu mahsulotlardan reja tuzish",
+    generateDesc: "Faqat siz belgilagan mahsulotlardan 4 mahallik kun tuziladi",
+    generating: "Reja tuzilmoqda…",
+    limit: "Ko'pi bilan {n} ta mahsulot belgilash mumkin",
+    missingTitle: "Yetishmayotgan mahsulotlar",
+    missingDesc: "Reja to'liq bo'lishi uchun bularni qo'shsangiz yaxshi bo'lardi:",
+    fromPantry: "Sizdagi mahsulotlardan",
+  },
+
+  /* Pre-made meal plans — the free counterpart to the AI one. */
+  dietPreset: {
+    section: "Tayyor ovqatlanish rejalari",
+    desc: "Porsiyalar sizning kunlik me'yoringizga moslashtiriladi",
+    use: "Shu rejani ochish",
+    scaled: "Porsiyalar {kcal} kkal me'yoringizga moslandi",
+    clamped: "Bu reja maqsadingizga to'liq mos emas — me'yoringizga yaqinrog'ini tanlang",
+    slots: { breakfast: "Nonushta", lunch: "Tushlik", dinner: "Kechki ovqat", snack: "Gazak" },
+    names: {
+      "balanced-uz": "Muvozanatli o'zbek menyusi",
+      "lose-lowcal": "Ozish uchun yengil menyu",
+      "gain-mass": "Massa yig'ish menyusi",
+      budget: "Tejamkor menyu",
+      highprotein: "Oqsilga boy menyu",
+    },
+    descs: {
+      "balanced-uz": "Suli, shurpa, tovuq va grechka — kundalik oddiy mahsulotlardan muvozanatli kun.",
+      "lose-lowcal": "Tvorog, mastava va oq baliq — to'q tutadigan, lekin yengil kun.",
+      "gain-mass": "Ko'p kaloriya va oqsil — mashqdan keyin tiklanish uchun.",
+      budget: "Yasmiq, kartoshka, tuxum va qatiq — eng arzon mahsulotlardan to'liq kun.",
+      highprotein: "Tuxum, tovuq, losos va tvorog — oqsil me'yorini bemalol yopadi.",
+    },
+  },
+
   premium: {
     choosePlan: "Rejani tanlang", payByCard: "Karta orqali to'lash", payTitle: "To'lov",
     card: "Karta", copyCard: "Karta raqamini nusxalash", copied: "Nusxalandi ✓",
@@ -464,6 +535,70 @@ const ru = {
     planDesc: "4 приёма пищи под вашу норму — с национальными блюдами",
     planLocked: "Активируйте Premium и получите персональный план питания",
     planFailed: "Не удалось составить план",
+  },
+
+  fit: {
+    title: "Подходит ли вам",
+    verdict: {
+      good: "Подходит под вашу сегодняшнюю норму",
+      ok: "Можно, но следите за порцией",
+      warn: "Сегодня это не рекомендуется",
+    },
+    reason: {
+      fitsWell: "Свободно укладывается в оставшиеся калории",
+      bigShare: "Займёт большую часть дневной нормы",
+      overBudget: "Выведет вас за дневную норму",
+      highProtein: "Богато белком — полезно для мышц",
+      proteinGap: "Закроет сегодняшнюю нехватку белка",
+      lowProtein: "Много калорий, но белка почти нет",
+      highFat: "Много жира — быстро исчерпает дневную норму жиров",
+      processed: "Обработанный продукт — не стоит есть часто",
+      goodForGain: "Хороший выбор для набора массы",
+    },
+  },
+
+  pantry: {
+    title: "Мои продукты",
+    subtitle: "Отметьте продукты, которые есть у вас дома",
+    desc: "AI составит дневной план питания только из отмеченных продуктов",
+    open: "Выбрать продукты",
+    empty: "Продукты ещё не отмечены",
+    emptyDesc: "Отметьте то, что есть дома — AI составит план только из этого.",
+    selected: "Отмечено: {n}",
+    clear: "Очистить",
+    save: "Сохранить",
+    saved: "Продукты сохранены ✓",
+    searchPlaceholder: "Поиск продукта…",
+    generate: "Составить план из этих продуктов",
+    generateDesc: "День из 4 приёмов пищи только из отмеченных вами продуктов",
+    generating: "Составляем план…",
+    limit: "Можно отметить не больше {n} продуктов",
+    missingTitle: "Чего не хватает",
+    missingDesc: "Для полноценного плана стоит докупить:",
+    fromPantry: "Из ваших продуктов",
+  },
+
+  dietPreset: {
+    section: "Готовые планы питания",
+    desc: "Порции подстраиваются под вашу дневную норму",
+    use: "Открыть план",
+    scaled: "Порции подогнаны под вашу норму {kcal} ккал",
+    clamped: "Этот план не совсем под вашу цель — выберите ближе к вашей норме",
+    slots: { breakfast: "Завтрак", lunch: "Обед", dinner: "Ужин", snack: "Перекус" },
+    names: {
+      "balanced-uz": "Сбалансированное узбекское меню",
+      "lose-lowcal": "Лёгкое меню для похудения",
+      "gain-mass": "Меню для набора массы",
+      budget: "Экономное меню",
+      highprotein: "Меню с высоким белком",
+    },
+    descs: {
+      "balanced-uz": "Овсянка, шурпа, курица и гречка — сбалансированный день из обычных продуктов.",
+      "lose-lowcal": "Творог, мастава и белая рыба — сытный, но лёгкий день.",
+      "gain-mass": "Много калорий и белка — для восстановления после тренировок.",
+      budget: "Чечевица, картофель, яйца и катык — полный день из самых недорогих продуктов.",
+      highprotein: "Яйца, курица, лосось и творог — легко закрывает норму белка.",
+    },
   },
 
   premium: {

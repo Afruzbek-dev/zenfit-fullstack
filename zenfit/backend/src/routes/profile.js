@@ -17,6 +17,15 @@ const THEMES = ["dark", "light", "system"];
 /** Avatars are stored inline as data URIs; anything larger belongs in object storage. */
 const MAX_AVATAR_BYTES = 220_000;
 
+/**
+ * How many pantry items are worth keeping.
+ *
+ * The list is read back into an AI prompt, so this is a prompt budget as much
+ * as a storage one — past a few dozen ingredients the model is picking from
+ * noise anyway, and the request just costs more.
+ */
+export const PANTRY_MAX = 60;
+
 function userPayload(u) {
   if (!u) return null;
   return { id: u.id, firstName: u.first_name, username: u.username, avatarUrl: u.avatar_url };
@@ -216,6 +225,25 @@ router.patch("/", requireAuth, async (req, res, next) => {
     if (b.injuries !== undefined) set("injuries", String(b.injuries || "").trim().slice(0, 300) || null);
     if (Number.isFinite(b.waterTargetMl) && b.waterTargetMl >= 500 && b.waterTargetMl <= 6000) {
       set("water_target_ml", Math.round(b.waterTargetMl));
+    }
+
+    /**
+     * "Mahsulotlarim" — the food catalogue ids the user has at home.
+     *
+     * Stored as ids, never as names or macros: the catalogue lives in the
+     * client, so a food whose values get corrected there is corrected here too
+     * without touching a single stored row. The cap and the shape check are the
+     * real validation — this string ends up in an AI prompt, so an unbounded
+     * array of arbitrary strings is exactly what must not reach it.
+     */
+    if (Array.isArray(b.pantry)) {
+      const ids = [...new Set(
+        b.pantry
+          .filter((id) => typeof id === "string")
+          .map((id) => id.trim())
+          .filter((id) => id && /^[a-z0-9-]{1,40}$/i.test(id))
+      )].slice(0, PANTRY_MAX);
+      set("pantry", ids.length ? JSON.stringify(ids) : null);
     }
 
     /* ----- app settings -------------------------------------------------- */

@@ -4,6 +4,7 @@ import { Check, Info, Timer, TrendingUp, Minus, Plus, X, ChevronDown } from "luc
 import { Screen, ScreenHeader, Button, IconButton } from "../components/ui.jsx";
 import ExerciseGuide from "../components/ExerciseGuide.jsx";
 import { localizeExercise } from "../data/exerciseText.js";
+import { formatSetPlan } from "../lib/aiPlanEngine.js";
 import { api } from "../api.js";
 import { haptic } from "../telegram.js";
 import { useBackButton } from "../lib/useBackButton.js";
@@ -265,6 +266,7 @@ export default function ExerciseRunner({ exercise: planned, planDay, onBack, onF
 
   const bodyweight = exercise.weightType === "bodyweight";
   const restSeconds = useMemo(() => parseRestSeconds(exercise.rest), [exercise.rest]);
+  const ramp = useMemo(() => formatSetPlan(exercise.setPlan, t("common.kg")), [exercise.setPlan, t]);
 
   useEffect(() => {
     let alive = true;
@@ -279,12 +281,18 @@ export default function ExerciseRunner({ exercise: planned, planDay, onBack, onF
       }
       if (!alive) return;
       if (previous) setLastHint(previous);
-      const count = exercise.sets || 3;
-      const reps = defaultReps(exercise.reps);
+
+      // The plan's own ramp is the default when it has one — that is the whole
+      // point of prescribing per-set targets. Plans generated before setPlan
+      // existed are stored JSON and never regenerated, so they still fall back
+      // to the previous session and a flat rep target.
+      const ramp = exercise.setPlan?.length ? exercise.setPlan : null;
+      const count = ramp?.length || exercise.sets || 3;
+      const flatReps = defaultReps(exercise.reps);
       setSets(
         Array.from({ length: count }, (_, i) => ({
-          reps: previous?.[i]?.reps ?? reps,
-          weightKg: exercise.suggestedWeightKg ?? previous?.[i]?.weightKg ?? 0,
+          reps: ramp?.[i]?.reps ?? previous?.[i]?.reps ?? flatReps,
+          weightKg: ramp?.[i]?.weightKg ?? exercise.suggestedWeightKg ?? previous?.[i]?.weightKg ?? 0,
           done: false,
         }))
       );
@@ -355,6 +363,7 @@ export default function ExerciseRunner({ exercise: planned, planDay, onBack, onF
                 <span className="text-faint"> · {t("workout.bodyweight")}</span>
               ) : null}
             </p>
+            {ramp && <p className="tabular mt-1 text-[11.5px] font-semibold text-cyan">{ramp}</p>}
           </div>
           <span className="flex shrink-0 items-center gap-1.5 rounded-full border border-borderSoft bg-surfaceAlt px-3 py-1.5 text-[11.5px] font-semibold text-muted">
             <Timer size={12} className="text-faint" /> {exercise.rest}

@@ -1,9 +1,120 @@
-import { useRef, useState } from "react";
-import { Camera, ImageIcon, Sparkles, Type, Check, RotateCcw, Info, Loader2, Crown } from "lucide-react";
-import { Screen, ScreenActions, Section, Button, ErrorNote, EmptyState } from "../components/ui.jsx";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { Camera, ImageIcon, Sparkles, Type, Check, RotateCcw, Info, Loader2, Crown, X } from "lucide-react";
+import { Screen, ScreenActions, Section, Button, ErrorNote, EmptyState, FitBadge } from "../components/ui.jsx";
+import { foodFit } from "../lib/foodFit.js";
 import { api } from "../api.js";
 import { haptic } from "../telegram.js";
 import { useApp } from "../store.jsx";
+
+/**
+ * Live camera viewfinder.
+ *
+ * `<input capture="environment">` is a *hint*, not a guarantee, and Telegram's
+ * in-app webview ignores it — tapping "take a photo" opened the gallery
+ * instead, which is the bug this replaces. getUserMedia asks for the camera
+ * explicitly, so the permission prompt is the real one and the stream is
+ * genuinely the rear camera.
+ *
+ * The file input stays as the fallback for the cases where this cannot work:
+ * permission refused, no camera, or an embedded browser without the API.
+ */
+function CameraView({ onCapture, onClose, onFail }) {
+  const { t } = useApp();
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          // `ideal` rather than `exact`: a laptop or a phone with only a front
+          // camera should still get a picture rather than an OverconstrainedError.
+          video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 } },
+          audio: false,
+        });
+        if (cancelled) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play().catch(() => {});
+        }
+        setReady(true);
+      } catch (err) {
+        if (!cancelled) onFail(err);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      // Leaving the track running keeps the camera indicator lit and holds the
+      // device against the next open.
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    };
+  }, [onFail]);
+
+  function shoot() {
+    const video = videoRef.current;
+    if (!video?.videoWidth) return;
+    haptic("medium");
+
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext("2d").drawImage(video, 0, 0);
+    canvas.toBlob(
+      (blob) => {
+        if (blob) onCapture(new File([blob], "scan.jpg", { type: "image/jpeg" }));
+      },
+      "image/jpeg",
+      0.92
+    );
+  }
+
+  return createPortal(
+    <div className="fixed inset-0 z-[60] flex flex-col bg-black">
+      <video
+        ref={videoRef}
+        playsInline
+        muted
+        autoPlay
+        className="min-h-0 w-full flex-1 object-cover"
+      />
+
+      <button
+        onClick={onClose}
+        aria-label={t("common.close")}
+        className="absolute right-4 grid h-10 w-10 place-items-center rounded-full bg-black/50 backdrop-blur"
+        style={{ top: "calc(var(--safe-top, 0px) + 16px)" }}
+      >
+        <X size={20} className="text-white" />
+      </button>
+
+      <div
+        className="flex shrink-0 flex-col items-center gap-3 bg-black px-6 pt-5"
+        style={{ paddingBottom: "calc(var(--safe-bottom, 0px) + 24px)" }}
+      >
+        <p className="text-center text-[12px] leading-relaxed text-white/70">{t("scan.shootHint")}</p>
+        <button
+          onClick={shoot}
+          disabled={!ready}
+          aria-label={t("scan.shoot")}
+          className="grid h-[72px] w-[72px] place-items-center rounded-full border-[3px] border-white/80 disabled:opacity-40"
+        >
+          <span className="h-[58px] w-[58px] rounded-full bg-white" />
+        </button>
+      </div>
+    </div>,
+    document.body
+  );
+}
 
 /** Downscales before upload — phone photos are far larger than the model needs. */
 async function compressImage(file, maxDim = 1280, quality = 0.82) {
@@ -27,7 +138,7 @@ async function compressImage(file, maxDim = 1280, quality = 0.82) {
 }
 
 export default function ScanScreen({ onNavigate }) {
-  const { addMeal, showToast, subscription, t } = useApp();
+  const { addMeal, showToast, subscription, profile, summary, t } = useApp();
   const cameraRef = useRef(null);
   const galleryRef = useRef(null);
 
@@ -40,6 +151,7 @@ export default function ScanScreen({ onNavigate }) {
   const [text, setText] = useState("");
   const [freeLeft, setFreeLeft] = useState(null);
   const [portion, setPortion] = useState(1);
+  const [cameraOpen, setCameraOpen] = useState(false);
 
   function reset() {
     setPreview(null);
@@ -49,27 +161,65 @@ export default function ScanScreen({ onNavigate }) {
     setPortion(1);
   }
 
-  async function handleFile(e) {
+  /** Everything that produces an image ends up here — camera, gallery, retry. */
+  const analyze = useCallback(
+    async (file) => {
+      reset();
+      setPreview(URL.createObjectURL(file));
+      setBusy(true);
+      try {
+        const compressed = await compressImage(file);
+        const res = await api.scanImage(compressed);
+        setResult(res.result);
+        setFreeLeft(res.freeScansLeft);
+        haptic("success");
+      } catch (err) {
+        if (err.status === 402) setQuotaHit(true);
+        else setError(err.message || t("scan.scanFailed"));
+        haptic("error");
+      } finally {
+        setBusy(false);
+      }
+    },
+    [t]
+  );
+
+  function handleFile(e) {
     const file = e.target.files?.[0];
     e.target.value = ""; // allows re-picking the same file
-    if (!file) return;
+    if (file) analyze(file);
+  }
 
-    reset();
-    setPreview(URL.createObjectURL(file));
-    setBusy(true);
-    try {
-      const compressed = await compressImage(file);
-      const res = await api.scanImage(compressed);
-      setResult(res.result);
-      setFreeLeft(res.freeScansLeft);
-      haptic("success");
-    } catch (err) {
-      if (err.status === 402) setQuotaHit(true);
-      else setError(err.message || t("scan.scanFailed"));
-      haptic("error");
-    } finally {
-      setBusy(false);
+  /**
+   * The camera could not be opened — permission refused, no device, or the
+   * camera is busy in another app.
+   *
+   * Falls straight through to the file picker rather than dead-ending on an
+   * error: the user asked to photograph their food, and the picker (with
+   * `capture` still set) is the next best thing on the platforms where that
+   * works.
+   *
+   * Deliberately does *not* remember the failure. Latching it meant one
+   * mis-tapped "deny" sent every later scan to the gallery until the app was
+   * restarted — and a refusal is often transient (permission granted in
+   * settings afterwards, or another app let go of the camera). A denial
+   * rejects almost instantly, so retrying costs a few milliseconds and buys
+   * back the camera the moment it becomes available.
+   */
+  const onCameraFail = useCallback(() => {
+    setCameraOpen(false);
+    cameraRef.current?.click();
+  }, []);
+
+  function openCamera() {
+    haptic("light");
+    // No getUserMedia at all (old webview, or a non-secure origin) — the file
+    // input is the only route.
+    if (!navigator.mediaDevices?.getUserMedia) {
+      cameraRef.current?.click();
+      return;
     }
+    setCameraOpen(true);
   }
 
   async function askText() {
@@ -118,6 +268,14 @@ export default function ScanScreen({ onNavigate }) {
       }
     : null;
 
+  // Scored locally, so it is on screen the moment the result is — and it
+  // re-scores as the portion changes. `result.fitNote` is the Premium sentence
+  // the scan endpoint adds; free users get the number and the reasons.
+  const fit = useMemo(
+    () => (scaled ? foodFit(scaled, { profile, summary }) : null),
+    [scaled, profile, summary]
+  );
+
   return (
     <Screen topPad>
       <ScreenActions>
@@ -154,10 +312,7 @@ export default function ScanScreen({ onNavigate }) {
       {mode === "photo" && !preview && !result && (
         <>
           <button
-            onClick={() => {
-              haptic("light");
-              cameraRef.current?.click();
-            }}
+            onClick={openCamera}
             className="card card-lit mb-3 flex w-full flex-col items-center gap-3 px-6 py-10 active:scale-[0.99]"
           >
             <span className="relative grid h-20 w-20 place-items-center">
@@ -236,8 +391,19 @@ export default function ScanScreen({ onNavigate }) {
 
       {error && !busy && (
         <div className="mb-3">
-          <ErrorNote onRetry={mode === "photo" ? () => cameraRef.current?.click() : askText}>{error}</ErrorNote>
+          <ErrorNote onRetry={mode === "photo" ? openCamera : askText}>{error}</ErrorNote>
         </div>
+      )}
+
+      {cameraOpen && (
+        <CameraView
+          onCapture={(file) => {
+            setCameraOpen(false);
+            analyze(file);
+          }}
+          onClose={() => setCameraOpen(false)}
+          onFail={onCameraFail}
+        />
       )}
 
       {result && !busy && (
@@ -310,6 +476,14 @@ export default function ScanScreen({ onNavigate }) {
                   </div>
                 </div>
               </div>
+
+              {/* Before the "add to diary" button on purpose — a warning that
+                  arrives after logging is only a reprimand. */}
+              {fit && (
+                <div className="mb-3">
+                  <FitBadge fit={fit} aiNote={result.fitNote} />
+                </div>
+              )}
 
               <div className="flex gap-2.5">
                 <Button variant="ghost" onClick={reset}><RotateCcw size={15} /></Button>

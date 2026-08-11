@@ -7,7 +7,7 @@ import {
 import { Button, OptionCard } from "../components/ui.jsx";
 import SafetyNotice from "../components/SafetyNotice.jsx";
 import PremiumSheet from "./profile/PremiumSheet.jsx";
-import { generateWorkoutPlan, localizeDay, rulesNote } from "../lib/aiPlanEngine.js";
+import { formatSetPlan, generateWorkoutPlan, localizeDay, rulesNote } from "../lib/aiPlanEngine.js";
 import { bestProgram, PROGRAMS } from "../data/programs.js";
 import { localizeExercise } from "../data/exerciseText.js";
 import { estimateGoal, defaultTarget, targetBounds } from "../lib/goalPlan.js";
@@ -783,8 +783,8 @@ export default function Onboarding({ onFinish }) {
                               {localizeExercise(e, lang).name}{e.adjusted && " ⚠"}
                             </span>
                             <span className="tabular shrink-0 text-[11px] font-semibold text-faint">
-                              {e.sets}×{e.reps}
-                              {e.suggestedWeightKg ? ` • ${e.suggestedWeightKg}kg` : ""}
+                              {formatSetPlan(e.setPlan, "kg") ||
+                                `${e.sets}×${e.reps}${e.suggestedWeightKg ? ` • ${e.suggestedWeightKg}kg` : ""}`}
                             </span>
                           </div>
                         ))}

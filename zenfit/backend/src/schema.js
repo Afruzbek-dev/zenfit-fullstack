@@ -75,6 +75,10 @@ export function buildSchema(pg) {
       -- Pregnant or breastfeeding. Weight loss is contraindicated and the
       -- requirement is a surplus, so this blocks the deficit path outright.
       pregnant             ${BOOL(false)},
+      -- "Mahsulotlarim": JSON array of food catalogue ids the user says they
+      -- have at home, used to build a meal plan out of what is actually in the
+      -- kitchen. Ids only — the nutrition values stay in the client catalogue.
+      pantry               TEXT,
       onboarding_completed ${BOOL(false)},
       updated_at           ${TS}
     )`,

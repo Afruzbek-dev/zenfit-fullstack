@@ -4,7 +4,7 @@ import { query, queryOne, daysAgoIso } from "../db.js";
 import { requireAuth } from "../middleware/auth.js";
 import { rateLimit } from "../middleware/rateLimit.js";
 import { mapChatMessage, mapSubscription } from "../lib/mappers.js";
-import { buildTrainerContext } from "../lib/stats.js";
+import { buildTrainerContext, dayRange } from "../lib/stats.js";
 import {
   analyzeFoodImage,
   askFoodQuestion,
@@ -86,6 +86,42 @@ async function checkQuota(req, res, feature, freeLimit) {
   return { premium, used };
 }
 
+/**
+ * Today's budget, for the Premium-only "is this right for me" sentence.
+ *
+ * Read server-side rather than taken from the request: the client already
+ * computes the suitability *percentage* locally, but these figures end up
+ * inside an AI prompt, and a number that reaches a prompt should not be one the
+ * caller chose. Returns null when there is nothing to compare against, which
+ * makes the scan fall back to its plain nutrition answer.
+ */
+async function buildFitContext(userId, tz) {
+  const profile = await queryOne(
+    "SELECT goal, daily_calorie_target, protein_target_g FROM profiles WHERE user_id = $1",
+    [userId]
+  );
+  if (!profile?.daily_calorie_target) return null;
+
+  const { start, end } = dayRange(null, tz);
+  const today = await queryOne(
+    `SELECT COALESCE(SUM(kcal), 0) AS kcal, COALESCE(SUM(protein), 0) AS protein
+       FROM meals WHERE user_id = $1 AND logged_at >= $2 AND logged_at < $3`,
+    [userId, start, end]
+  );
+
+  const target = Number(profile.daily_calorie_target);
+  const eaten = Number(today?.kcal) || 0;
+  return {
+    goal: profile.goal || "maintain",
+    target,
+    eaten,
+    // Exercise is never credited back into the budget — see lib/calorie.js.
+    remaining: target - eaten,
+    proteinTarget: Number(profile.protein_target_g) || 0,
+    proteinEaten: Number(today?.protein) || 0,
+  };
+}
+
 /* ------------------------------ AI Scan ------------------------------ */
 
 router.post(
@@ -105,7 +141,10 @@ router.post(
       const gate = await checkQuota(req, res, "scan", FREE_SCANS);
       if (!gate) return;
 
-      const result = await analyzeFoodImage(req.file.buffer.toString("base64"), mediaType);
+      // Premium buys the personal read on top of the numbers; the percentage
+      // itself is computed client-side and everyone gets that.
+      const fit = gate.premium ? await buildFitContext(req.userId, Number(req.body?.tz) || 0) : null;
+      const result = await analyzeFoodImage(req.file.buffer.toString("base64"), mediaType, fit);
       // A photo the model could not read is not worth an allowance unit. Two bad
       // shots of home cooking used to spend most of the free tier.
       if (result.recognized) await recordUsage(req.userId, "scan");
@@ -129,7 +168,8 @@ router.post("/ask", requireAuth, rateLimit({ key: "ask", windowMs: 60_000, max: 
     const gate = await checkQuota(req, res, "scan", FREE_SCANS);
     if (!gate) return;
 
-    const result = await askFoodQuestion(q.trim().slice(0, 300));
+    const fit = gate.premium ? await buildFitContext(req.userId, Number(req.body?.tz) || 0) : null;
+    const result = await askFoodQuestion(q.trim().slice(0, 300), fit);
     if (result.recognized) await recordUsage(req.userId, "scan");
 
     res.json({
@@ -211,6 +251,35 @@ router.delete("/chat", requireAuth, async (req, res, next) => {
 
 /* ---------------------------- Diet plan ---------------------------- */
 
+/** Pantry entries the prompt may name; see PANTRY_MAX for why it is bounded. */
+const PANTRY_PROMPT_MAX = 60;
+
+/**
+ * Scrubs the client's pantry before it reaches a prompt.
+ *
+ * The food catalogue lives in the client, so the *values* have to come from
+ * there — but that means this array is attacker-shaped by definition, and it is
+ * interpolated straight into an AI request. Names are flattened to a single
+ * line and truncated so nothing in them can pose as a new instruction block,
+ * and every number is forced back into a plausible per-serving range.
+ */
+function sanitizePantry(input) {
+  if (!Array.isArray(input)) return [];
+
+  const num = (v, max) => Math.max(0, Math.min(max, Math.round(Number(v) || 0)));
+  return input
+    .filter((f) => f && typeof f.name === "string" && f.name.trim())
+    .slice(0, PANTRY_PROMPT_MAX)
+    .map((f) => ({
+      name: f.name.replace(/\s+/g, " ").trim().slice(0, 48),
+      kcal: num(f.kcal, 1200),
+      carbs: num(f.carbs, 200),
+      protein: num(f.protein, 200),
+      fat: num(f.fat, 200),
+      unit: String(f.unit || "100g").replace(/\s+/g, " ").trim().slice(0, 16),
+    }));
+}
+
 router.post("/diet-plan", requireAuth, rateLimit({ key: "diet", windowMs: 300_000, max: 4 }), async (req, res) => {
   try {
     const profile = await queryOne("SELECT * FROM profiles WHERE user_id = $1", [req.userId]);
@@ -227,7 +296,7 @@ router.post("/diet-plan", requireAuth, rateLimit({ key: "diet", windowMs: 300_00
       });
     }
 
-    const plan = await generateDietPlan({ profile });
+    const plan = await generateDietPlan({ profile, pantry: sanitizePantry(req.body?.pantry) });
 
     await query("UPDATE ai_plans SET is_active = false WHERE user_id = $1 AND plan_type = 'diet'", [req.userId]);
     const rows = await query(

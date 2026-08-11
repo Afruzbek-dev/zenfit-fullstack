@@ -5,6 +5,7 @@ const bool = (v) => v === true || v === 1;
 
 export function mapProfile(p) {
   if (!p) return null;
+  const pantry = parseJsonColumn(p.pantry);
   return {
     gender: p.gender,
     age: p.age,
@@ -35,6 +36,9 @@ export function mapProfile(p) {
       tips: bool(p.notif_tips),
     },
     pregnant: bool(p.pregnant),
+    // Always an array for the client, whether the column is null, malformed, or
+    // somehow holds a non-array — the pantry UI maps over this on every render.
+    pantry: Array.isArray(pantry) ? pantry : [],
     neatConfirmed: bool(p.neat_confirmed),
     onboardingCompleted: bool(p.onboarding_completed),
   };

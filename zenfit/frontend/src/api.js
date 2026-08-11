@@ -118,16 +118,22 @@ export const api = {
   deletePlan: (planType) => request("DELETE", `/api/plans/${planType}`),
 
   /* ai */
+  // `tz` lets the server work out which meals count as "today" for the
+  // Premium suitability note; without it the day boundary would be UTC.
   scanImage: (file) => {
     const fd = new FormData();
     fd.append("image", file);
+    fd.append("tz", String(tz()));
     return request("POST", "/api/ai/scan", { body: fd, isForm: true });
   },
-  askAi: (q) => request("POST", "/api/ai/ask", { body: { query: q } }),
+  askAi: (q) => request("POST", "/api/ai/ask", { body: { query: q, tz: tz() } }),
   chat: (message) => request("POST", "/api/ai/chat", { body: { message, tz: tz() } }),
   chatHistory: () => request("GET", "/api/ai/chat/history"),
   clearChat: () => request("DELETE", "/api/ai/chat"),
-  generateDietPlan: () => request("POST", "/api/ai/diet-plan", { body: {} }),
+  // `pantry` carries the catalogue rows the user ticked in "Mahsulotlarim", so
+  // the model builds the day out of what they actually have. Omitted = the
+  // original "compose anything" plan.
+  generateDietPlan: (pantry) => request("POST", "/api/ai/diet-plan", { body: pantry?.length ? { pantry } : {} }),
   enhanceWorkoutPlan: (plan) => request("POST", "/api/ai/workout-plan/enhance", { body: { plan } }),
 
   /* payment */

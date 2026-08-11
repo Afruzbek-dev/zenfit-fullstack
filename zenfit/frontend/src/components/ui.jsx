@@ -311,6 +311,69 @@ export function Skeleton({ className = "" }) {
   return <div className={`skeleton rounded-xl2 ${className}`} />;
 }
 
+/* ------------------------------ food fit ------------------------------ */
+
+const FIT_TONES = {
+  good: { ring: "border-neon/30 bg-neon/[0.08]", text: "text-neon", bar: "bg-neon" },
+  ok: { ring: "border-amber/30 bg-amber/[0.08]", text: "text-amber", bar: "bg-amber" },
+  warn: { ring: "border-rose/30 bg-rose/10", text: "text-rose", bar: "bg-rose" },
+};
+
+/**
+ * "How well does this food suit me today" — the score from lib/foodFit.js.
+ *
+ * Deliberately shown *before* the food is logged, on the scan result and in the
+ * catalogue sheet, because after logging it is only a reprimand. `aiNote` is the
+ * Premium sentence from the scan endpoint and is simply absent otherwise —
+ * there is no locked-feature teaser here, the number alone is the answer.
+ */
+export function FitBadge({ fit, aiNote }) {
+  const { t } = useApp();
+  if (!fit) return null;
+
+  const tone = FIT_TONES[fit.tone] || FIT_TONES.ok;
+
+  return (
+    <div className={`rounded-xl2 border px-3.5 py-3 ${tone.ring}`}>
+      <div className="flex items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-faint">{t("fit.title")}</p>
+          <p className={`mt-0.5 text-[12.5px] font-bold leading-snug ${tone.text}`}>
+            {t(`fit.verdict.${fit.tone}`)}
+          </p>
+        </div>
+        <p className={`tabular shrink-0 text-[26px] font-bold leading-none ${tone.text}`}>
+          {fit.percent}
+          <span className="text-[13px]">%</span>
+        </p>
+      </div>
+
+      <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-borderSoft">
+        <div
+          className={`h-full rounded-full transition-[width] duration-500 ${tone.bar}`}
+          style={{ width: `${fit.percent}%` }}
+        />
+      </div>
+
+      {fit.reasons?.length > 0 && (
+        <ul className="mt-2.5 flex flex-col gap-1">
+          {fit.reasons.map((r) => (
+            <li key={r} className="text-[11.5px] leading-relaxed text-muted">
+              • {t(`fit.reason.${r}`)}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {aiNote && (
+        <p className="mt-2.5 border-t border-borderSoft pt-2.5 text-[11.5px] leading-relaxed text-muted">
+          ✨ {aiNote}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function ErrorNote({ children, onRetry }) {
   return (
     <div className="flex items-start gap-2.5 rounded-2xl border border-rose/25 bg-rose/10 px-4 py-3">

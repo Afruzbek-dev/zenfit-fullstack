@@ -1,7 +1,15 @@
 import { useMemo, useState } from "react";
-import { Search, Clock, Flame, Plus, Info, Sparkles, Loader2, UtensilsCrossed, Crown, Minus, ChevronDown } from "lucide-react";
-import { Screen, ScreenHeader, Section, Chip, Sheet, Button, EmptyState, ErrorNote } from "../components/ui.jsx";
+import {
+  Search, Clock, Flame, Plus, Info, Sparkles, Loader2, UtensilsCrossed, Crown,
+  Minus, ChevronDown, ChevronRight, ShoppingBasket, AlertTriangle,
+} from "lucide-react";
+import {
+  Screen, ScreenHeader, Section, Chip, Sheet, Button, EmptyState, ErrorNote, FitBadge,
+} from "../components/ui.jsx";
+import PantrySheet, { pantryPayload } from "../components/PantrySheet.jsx";
 import { CATEGORIES, filterFoods, foodName, macros, servingMacros } from "../data/foods.js";
+import { buildDietPlan, sortPlansForGoal } from "../data/dietPlans.js";
+import { foodFit } from "../lib/foodFit.js";
 import { api } from "../api.js";
 import { haptic } from "../telegram.js";
 import { useApp } from "../store.jsx";
@@ -14,13 +22,170 @@ const PAGE = 20;
 const GRAM_STEPS = [50, 100, 150, 200, 250, 300];
 const PORTION_STEPS = [0.5, 1, 1.5, 2];
 
-function DietPlanCard({ onOpenPremium }) {
-  const { dietPlan, setDietPlan, addMeal, showToast, subscription, t } = useApp();
+/** Preset plans key their slots; the AI returns an already-worded label. */
+const SLOT_KEYS = new Set(["breakfast", "lunch", "dinner", "snack"]);
+const slotLabel = (slot, t) => (SLOT_KEYS.has(slot) ? t(`dietPreset.slots.${slot}`) : slot);
+
+/**
+ * One meal inside a plan, preset or AI — the two produce the same shape, so the
+ * row does not know or care which built it.
+ */
+function PlanMealRow({ meal }) {
+  const { addMeal, showToast, t } = useApp();
+  const [adding, setAdding] = useState(false);
+
+  async function add() {
+    setAdding(true);
+    try {
+      await addMeal({
+        name: meal.name, emoji: meal.emoji || "🍽️", kcal: meal.kcal,
+        carbs: meal.carbs, protein: meal.protein, fat: meal.fat,
+        source: meal.foodId ? "diet_preset" : "ai_plan",
+      });
+      haptic("success");
+      showToast(t("recipesScreen.added"), "success");
+    } catch (e) {
+      showToast(e.message || t("common.error"), "error");
+    } finally {
+      setAdding(false);
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-3 rounded-xl bg-surfaceAlt px-3 py-2.5">
+      <span className="text-xl">{meal.emoji || "🍽️"}</span>
+      <div className="min-w-0 flex-1">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-faint">{slotLabel(meal.slot, t)}</p>
+        <p className="truncate text-[12.5px] font-semibold text-ink">{meal.name}</p>
+        <p className="truncate text-[11px] text-muted">{meal.portion}</p>
+      </div>
+      <div className="flex shrink-0 items-center gap-2">
+        <span className="tabular text-[12.5px] font-bold text-amber">{meal.kcal}</span>
+        <button
+          onClick={add}
+          disabled={adding}
+          aria-label={t("recipesScreen.addPortion")}
+          className="grid h-7 w-7 place-items-center rounded-lg bg-neon/15 active:scale-95 disabled:opacity-50"
+        >
+          <Plus size={13} className="text-neon" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** Entry point to "Mahsulotlarim", and the reason the AI plan below it changes. */
+function PantryCard({ onOpen }) {
+  const { profile, t } = useApp();
+  const count = profile?.pantry?.length || 0;
+
+  return (
+    <button
+      onClick={() => { haptic("light"); onOpen(); }}
+      className="card mb-2 flex w-full items-center gap-3 px-4 py-3.5 text-left active:scale-[0.99]"
+    >
+      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-cyan/12">
+        <ShoppingBasket size={19} className="text-cyan" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[13.5px] font-bold text-ink">{t("pantry.title")}</span>
+        <span className="mt-0.5 block text-[11.5px] leading-relaxed text-muted">
+          {count ? t("pantry.selected", { n: count }) : t("pantry.subtitle")}
+        </span>
+      </span>
+      <ChevronRight size={17} className="shrink-0 text-faint" />
+    </button>
+  );
+}
+
+/**
+ * The pre-made plans: free, instant, and built from the same catalogue the rest
+ * of the screen uses — the meal-plan counterpart to Workouts' ready programs.
+ */
+function PresetPlans({ onPick }) {
+  const { profile, t } = useApp();
+  const ordered = useMemo(() => sortPlansForGoal(profile?.goal), [profile?.goal]);
+
+  return (
+    <div className="flex flex-col gap-2">
+      {ordered.map((plan) => (
+        <button
+          key={plan.id}
+          onClick={() => { haptic("light"); onPick(plan.id); }}
+          className="card flex w-full items-center gap-3 px-4 py-3.5 text-left active:scale-[0.99]"
+        >
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-surfaceAlt text-xl">
+            {plan.emoji}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-[13px] font-bold text-ink">
+              {t(`dietPreset.names.${plan.id}`)}
+            </span>
+            <span className="mt-0.5 block text-[11.5px] leading-relaxed text-muted">
+              {t(`dietPreset.descs.${plan.id}`)}
+            </span>
+          </span>
+          <ChevronRight size={17} className="shrink-0 text-faint" />
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** A preset rendered against this user's target, ready to log meal by meal. */
+function PresetSheet({ planId, onClose }) {
+  const { profile, t, lang } = useApp();
+  const built = useMemo(
+    () => (planId ? buildDietPlan(planId, { dailyCalorieTarget: profile?.dailyCalorieTarget, lang }) : null),
+    [planId, profile?.dailyCalorieTarget, lang]
+  );
+
+  return (
+    <Sheet open={Boolean(planId)} onClose={onClose} title={planId ? t(`dietPreset.names.${planId}`) : ""}>
+      {built && (
+        <>
+          <p className="mb-3 text-[12px] leading-relaxed text-muted">{t(`dietPreset.descs.${planId}`)}</p>
+
+          <div className="mb-3 grid grid-cols-4 gap-2">
+            {[
+              { l: "kcal", v: built.totals.kcal, c: "text-neon" },
+              { l: t("home.protein"), v: `${built.totals.protein}g`, c: "text-neon" },
+              { l: t("home.carbs"), v: `${built.totals.carbs}g`, c: "text-cyan" },
+              { l: t("home.fat"), v: `${built.totals.fat}g`, c: "text-amber" },
+            ].map((m) => (
+              <div key={m.l} className="rounded-xl bg-surfaceAlt px-2 py-2.5 text-center">
+                <p className="truncate text-[9.5px] font-bold uppercase tracking-wider text-faint">{m.l}</p>
+                <p className={`tabular mt-0.5 text-[14px] font-bold ${m.c}`}>{m.v}</p>
+              </div>
+            ))}
+          </div>
+
+          <p className={`mb-3 text-[11.5px] leading-relaxed ${built.clamped ? "text-amber" : "text-faint"}`}>
+            {built.clamped
+              ? t("dietPreset.clamped")
+              : t("dietPreset.scaled", { kcal: profile?.dailyCalorieTarget || built.totals.kcal })}
+          </p>
+
+          <div className="mb-5 flex flex-col gap-2">
+            {built.meals.map((m, i) => (
+              <PlanMealRow key={`${m.foodId}-${i}`} meal={m} />
+            ))}
+          </div>
+        </>
+      )}
+    </Sheet>
+  );
+}
+
+function DietPlanCard({ onOpenPremium, onOpenPantry }) {
+  const { dietPlan, setDietPlan, profile, subscription, t, lang } = useApp();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [locked, setLocked] = useState(false);
 
   const premium = Boolean(subscription?.isPremium);
+  const pantry = profile?.pantry || [];
+  const hasPantry = pantry.length > 0;
 
   async function generate() {
     // Don't spend a request to be told no — the client already knows.
@@ -32,7 +197,7 @@ function DietPlanCard({ onOpenPremium }) {
     setBusy(true);
     setError(null);
     try {
-      const res = await api.generateDietPlan();
+      const res = await api.generateDietPlan(pantryPayload(pantry, lang));
       setDietPlan(res.plan);
       haptic("success");
     } catch (e) {
@@ -68,7 +233,9 @@ function DietPlanCard({ onOpenPremium }) {
           <span className="min-w-0 flex-1">
             <span className="flex items-center gap-2">
               <span className="block text-[13.5px] font-bold text-ink">
-                {busy ? t("recipes.planThinking") : t("recipes.planTitle")}
+                {busy
+                  ? t(hasPantry ? "pantry.generating" : "recipes.planThinking")
+                  : t(hasPantry ? "pantry.generate" : "recipes.planTitle")}
               </span>
               {!premium && (
                 <span className="shrink-0 rounded-md bg-amber/15 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wider text-amber">
@@ -77,7 +244,11 @@ function DietPlanCard({ onOpenPremium }) {
               )}
             </span>
             <span className="mt-0.5 block text-[11.5px] text-muted">
-              {premium || !locked ? t("recipes.planDesc") : t("recipes.planLocked")}
+              {!premium && locked
+                ? t("recipes.planLocked")
+                : hasPantry
+                ? t("pantry.generateDesc")
+                : t("recipes.planDesc")}
             </span>
           </span>
         </button>
@@ -92,6 +263,11 @@ function DietPlanCard({ onOpenPremium }) {
           <div className="flex items-center gap-1.5">
             <Sparkles size={14} className="shrink-0 text-neon" />
             <h3 className="text-[13.5px] font-bold text-ink">{t("recipesScreen.yourPlan")}</h3>
+            {dietPlan.source === "pantry" && (
+              <span className="shrink-0 rounded-md bg-cyan/15 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wider text-cyan">
+                {t("pantry.fromPantry")}
+              </span>
+            )}
           </div>
           {dietPlan.summary && <p className="mt-1 text-[11.5px] leading-relaxed text-muted">{dietPlan.summary}</p>}
         </div>
@@ -102,37 +278,25 @@ function DietPlanCard({ onOpenPremium }) {
 
       <div className="flex flex-col gap-2">
         {(dietPlan.meals || []).map((m, i) => (
-          <div key={i} className="flex items-center gap-3 rounded-xl bg-surfaceAlt px-3 py-2.5">
-            <span className="text-xl">{m.emoji || "🍽️"}</span>
-            <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-faint">{m.slot}</p>
-              <p className="truncate text-[12.5px] font-semibold text-ink">{m.name}</p>
-              <p className="truncate text-[11px] text-muted">{m.portion}</p>
-            </div>
-            <div className="flex shrink-0 items-center gap-2">
-              <span className="tabular text-[12.5px] font-bold text-amber">{m.kcal}</span>
-              <button
-                onClick={async () => {
-                  try {
-                    await addMeal({
-                      name: m.name, emoji: m.emoji || "🍽️", kcal: m.kcal,
-                      carbs: m.carbs, protein: m.protein, fat: m.fat, source: "ai_plan",
-                    });
-                    haptic("success");
-                    showToast(t("recipesScreen.added"), "success");
-                  } catch (e) {
-                    showToast(e.message || t("common.error"), "error");
-                  }
-                }}
-                aria-label={t("recipesScreen.addPortion")}
-                className="grid h-7 w-7 place-items-center rounded-lg bg-neon/15 active:scale-95"
-              >
-                <Plus size={13} className="text-neon" />
-              </button>
-            </div>
-          </div>
+          <PlanMealRow key={i} meal={m} />
         ))}
       </div>
+
+      {/* What the pantry could not cover. Saying so is the honest alternative to
+          quietly inventing an ingredient the user does not have. */}
+      {dietPlan.missing?.length > 0 && (
+        <div className="mt-3 rounded-xl bg-amber/10 px-3 py-2.5">
+          <p className="flex items-center gap-1.5 text-[11.5px] font-bold text-amber">
+            <AlertTriangle size={12} className="shrink-0" /> {t("pantry.missingTitle")}
+          </p>
+          <p className="mt-1 text-[11.5px] leading-relaxed text-muted">
+            {t("pantry.missingDesc")} {dietPlan.missing.join(", ")}
+          </p>
+          <button onClick={onOpenPantry} className="mt-1.5 text-[11.5px] font-bold text-cyan">
+            {t("pantry.open")} →
+          </button>
+        </div>
+      )}
 
       {dietPlan.tips?.length > 0 && (
         <ul className="mt-3 flex flex-col gap-1.5 border-t border-borderSoft pt-3">
@@ -192,8 +356,10 @@ function FoodRow({ food, lang, t, onOpen, onAdd }) {
 }
 
 export default function RecipesScreen({ onBack }) {
-  const { addMeal, showToast, t, lang } = useApp();
+  const { addMeal, showToast, profile, summary, t, lang } = useApp();
   const [premiumOpen, setPremiumOpen] = useState(false);
+  const [pantryOpen, setPantryOpen] = useState(false);
+  const [presetId, setPresetId] = useState(null);
   const [cat, setCat] = useState("all");
   const [search, setSearch] = useState("");
   const [shown, setShown] = useState(FIRST_PAGE);
@@ -241,6 +407,12 @@ export default function RecipesScreen({ onBack }) {
 
   const detailFactor = detail ? (detail.kind === "dish" ? portion : grams / 100) : 1;
   const detailMacros = detail ? macros(detail, detailFactor) : null;
+  // Scored against the portion currently dialled in, so dragging the grams down
+  // is visibly the thing that turns a red verdict green.
+  const detailFit = useMemo(
+    () => (detail ? foodFit(detailMacros, { profile, summary, category: detail.cat }) : null),
+    [detail, detailMacros, profile, summary]
+  );
 
   return (
     <Screen>
@@ -251,7 +423,16 @@ export default function RecipesScreen({ onBack }) {
       />
 
       <Section title={t("recipesScreen.aiSection")}>
-        <DietPlanCard onOpenPremium={() => setPremiumOpen(true)} />
+        <PantryCard onOpen={() => setPantryOpen(true)} />
+        <DietPlanCard
+          onOpenPremium={() => setPremiumOpen(true)}
+          onOpenPantry={() => setPantryOpen(true)}
+        />
+      </Section>
+
+      <Section title={t("dietPreset.section")}>
+        <p className="mb-2.5 text-[11.5px] leading-relaxed text-faint">{t("dietPreset.desc")}</p>
+        <PresetPlans onPick={setPresetId} />
       </Section>
 
       <div className="mb-3 flex items-center gap-2 rounded-2xl border border-borderSoft bg-surface px-3.5 py-3 focus-within:border-neon/50">
@@ -430,12 +611,20 @@ export default function RecipesScreen({ onBack }) {
               </>
             )}
 
+            {detailFit && (
+              <div className="mb-4">
+                <FitBadge fit={detailFit} />
+              </div>
+            )}
+
             <Button full size="lg" disabled={detailMacros.kcal <= 0} onClick={() => add(detail, detailFactor)}>
               <Plus size={17} /> {t("recipesScreen.addPortion")}
             </Button>
           </>
         )}
       </Sheet>
+      <PantrySheet open={pantryOpen} onClose={() => setPantryOpen(false)} />
+      <PresetSheet planId={presetId} onClose={() => setPresetId(null)} />
       <PremiumSheet open={premiumOpen} onClose={() => setPremiumOpen(false)} />
     </Screen>
   );

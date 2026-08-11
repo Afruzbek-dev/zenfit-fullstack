@@ -4,7 +4,7 @@ import { Screen, ScreenHeader } from "../components/ui.jsx";
 import ExerciseRunner from "./ExerciseRunner.jsx";
 import ExerciseGuide from "../components/ExerciseGuide.jsx";
 import { localizeExercise } from "../data/exerciseText.js";
-import { isCompound } from "../lib/aiPlanEngine.js";
+import { formatSetPlan, isCompound } from "../lib/aiPlanEngine.js";
 import { haptic } from "../telegram.js";
 import { useBackButton } from "../lib/useBackButton.js";
 import { useApp } from "../store.jsx";
@@ -15,6 +15,9 @@ function ExerciseRow({ exercise: planned, logged, onOpen, onGuide }) {
   const { t, lang } = useApp();
   const exercise = localizeExercise(planned, lang);
   const bodyweight = exercise.weightType === "bodyweight";
+  // "12×35 · 10×37.5 · 8×40". Empty for plans stored before the ramp existed,
+  // which keeps the old "3×8-12 · 40 kg" summary as the fallback.
+  const ramp = formatSetPlan(exercise.setPlan, t("common.kg"));
 
   return (
     <div className={`card overflow-hidden transition-opacity ${logged ? "opacity-55" : ""}`}>
@@ -39,19 +42,23 @@ function ExerciseRow({ exercise: planned, logged, onOpen, onGuide }) {
               <span className="tabular">
                 {exercise.sets}×{exercise.reps}
               </span>
-              {exercise.suggestedWeightKg ? (
-                <span className="tabular font-semibold text-neon">
-                  {exercise.suggestedWeightKg} {t("common.kg")}
-                </span>
-              ) : bodyweight ? (
-                <span className="text-faint">{t("workout.bodyweight")}</span>
-              ) : (
-                <span className="text-faint">{t("workout.lightWeight")}</span>
-              )}
+              {!ramp &&
+                (exercise.suggestedWeightKg ? (
+                  <span className="tabular font-semibold text-neon">
+                    {exercise.suggestedWeightKg} {t("common.kg")}
+                  </span>
+                ) : bodyweight ? (
+                  <span className="text-faint">{t("workout.bodyweight")}</span>
+                ) : (
+                  <span className="text-faint">{t("workout.lightWeight")}</span>
+                ))}
               <span className="flex items-center gap-1 text-faint">
                 <Timer size={10} /> {exercise.rest}
               </span>
             </span>
+            {ramp && (
+              <span className="tabular mt-1 block truncate text-[11.5px] font-semibold text-neon">{ramp}</span>
+            )}
             {exercise.progressed && (
               <span className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-cyan">
                 <TrendingUp size={11} /> {t("workout.progressed")}

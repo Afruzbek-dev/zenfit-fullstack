@@ -54,18 +54,37 @@ export function suggestedWeight(exerciseId, { weightKg, level = "beginner" }) {
 }
 
 /**
- * Progressive overload: if every set in the last session hit the top of the rep
- * range, add weight; otherwise hold. Compound lifts move faster than isolation.
+ * Progressive overload: earn the next weight by finishing the prescribed reps,
+ * then add a step. Compound lifts move faster than isolation.
+ *
+ * What counts as "finished" depends on the shape of the session that was
+ * logged, and the two shapes coexist — plans are stored JSON and are never
+ * regenerated, so a user can have a flat plan from before the ramp existed:
+ *
+ *   - **Ramped** (the weights differ across sets): only the heaviest set is
+ *     judged, against the *bottom* of the rep range, because that is what the
+ *     ramp asked of it. Requiring every set to hit the top would mean the
+ *     weight could never move again — by design the earlier sets are lighter
+ *     and longer.
+ *   - **Flat** (every set at the same weight): the original rule, every set at
+ *     the top of the range.
  */
-export function progressWeight({ exerciseId, lastSets, topReps, fallbackKg }) {
+export function progressWeight({ exerciseId, lastSets, reps, topReps, fallbackKg }) {
   if (!lastSets?.length) return { kg: fallbackKg, progressed: false };
 
   const weights = lastSets.map((s) => s.weightKg).filter((w) => Number.isFinite(w));
   if (!weights.length) return { kg: fallbackKg, progressed: false };
 
   const lastKg = Math.max(...weights);
-  const allHitTop = lastSets.every((s) => Number.isFinite(s.reps) && s.reps >= topReps);
-  if (!allHitTop) return { kg: lastKg, progressed: false };
+  const ramped = weights.some((w) => w !== weights[0]);
+
+  const earned = ramped
+    ? lastSets
+        .filter((s) => s.weightKg === lastKg)
+        .every((s) => Number.isFinite(s.reps) && s.reps >= repRange(reps)[0])
+    : lastSets.every((s) => Number.isFinite(s.reps) && s.reps >= topReps);
+
+  if (!earned) return { kg: lastKg, progressed: false };
 
   const ex = EX_BY_ID[exerciseId];
   const step = ex?.type === "compound" ? 2.5 : 1;
@@ -102,6 +121,77 @@ export const rulesNote = (rules, t) =>
   rules?.noteKey ? t(`workout.rulesNote.${rules.noteKey}`) : rules?.note || "";
 
 const setsFor = (level, isCompound) => (level === "beginner" ? 3 : isCompound ? 4 : 3);
+
+/* ------------------------------ set ramp ------------------------------- */
+
+/**
+ * Fraction of the top set's load each earlier set carries.
+ *
+ * A plan that says "3×8-12, 40 kg" leaves the trainee to decide what every
+ * individual set actually is, and in practice they do the same number three
+ * times — which is neither a warm-up nor a working set. The ramp answers it
+ * for them: the last set is the prescribed load, the ones before it are
+ * lighter, and the reps come down as the weight goes up.
+ *
+ * The top of the ramp is the weight the engine already suggested, so this is
+ * never heavier than what the plan asked for before — only the earlier sets
+ * move, and they move down.
+ */
+const RAMP_FACTORS = {
+  1: [1],
+  2: [0.88, 1],
+  3: [0.8, 0.9, 1],
+  4: [0.75, 0.85, 0.93, 1],
+  5: [0.7, 0.8, 0.87, 0.94, 1],
+};
+
+/** Smallest plate/dumbbell increment that exists for this kind of load. */
+const WEIGHT_STEP = { barbell: 2.5, dumbbell: 2 };
+
+const rampFactors = (count) =>
+  RAMP_FACTORS[count] ||
+  Array.from({ length: count }, (_, i) => 0.7 + (0.3 * i) / (count - 1));
+
+/** "8-12" → [8, 12]; a bare "10" → [10, 10]. */
+export function repRange(reps) {
+  const nums = String(reps || "").match(/\d+/g)?.map(Number) ?? [];
+  if (!nums.length) return [10, 10];
+  return [Math.min(...nums), Math.max(...nums)];
+}
+
+/**
+ * The per-set targets shown in the plan and pre-filled in the runner.
+ *
+ * Reps walk from the top of the range down to the bottom, so the first set is
+ * the easy one and the last is the hard one. Rounding can make two adjacent
+ * weights equal on light loads — a 10 kg dumbbell has no 9 kg — and that is
+ * left as is rather than inventing a plate that does not exist.
+ */
+export function buildSetPlan({ count, reps, topWeightKg, weightType }) {
+  const sets = Math.max(1, count || 3);
+  const [low, high] = repRange(reps);
+  const factors = rampFactors(sets);
+  const step = WEIGHT_STEP[weightType] || 1;
+
+  return factors.map((factor, i) => ({
+    reps: sets === 1 ? high : Math.round(high - ((high - low) * i) / (sets - 1)),
+    weightKg: Number.isFinite(topWeightKg) && topWeightKg > 0
+      ? roundTo(topWeightKg * factor, step)
+      : null,
+  }));
+}
+
+/**
+ * The ramp as one line: "12×35 · 10×37.5 · 8×40", or just "12 · 10 · 8" when
+ * there is no load to name. Returns "" for plans stored before setPlan existed,
+ * which is what the callers test to decide whether to fall back.
+ */
+export function formatSetPlan(setPlan, kg = "kg") {
+  if (!setPlan?.length) return "";
+  return setPlan
+    .map((s) => (Number.isFinite(s.weightKg) && s.weightKg > 0 ? `${s.reps}×${s.weightKg}${kg}` : `${s.reps}`))
+    .join(" · ");
+}
 
 /* ------------------------------- splits -------------------------------- */
 
@@ -235,23 +325,33 @@ export function generateWorkoutPlan({
 
     const exercises = chosen.map(({ ex, adjusted, accessory }) => {
       const base = suggestedWeight(ex.id, { weightKg, level });
+      const sets = setsFor(level, ex.type === "compound" && !accessory);
+      const reps = accessory ? "10-15" : rules.reps;
+
       const progressed = progressWeight({
         exerciseId: ex.id,
         lastSets: lastSetsByExercise[ex.id],
+        reps,
         topReps: rules.topReps,
         fallbackKg: base.suggestedWeightKg,
       });
+
+      const topWeightKg = progressed.kg ?? base.suggestedWeightKg;
 
       return {
         id: ex.id,
         name: ex.name,
         nameEn: ex.nameEn,
         muscle: ex.muscle,
-        sets: setsFor(level, ex.type === "compound" && !accessory),
-        reps: accessory ? "10-15" : rules.reps,
+        sets,
+        reps,
         rest: rules.rest,
         weightType: base.weightType,
-        suggestedWeightKg: progressed.kg ?? base.suggestedWeightKg,
+        suggestedWeightKg: topWeightKg,
+        // Each set spelled out, so the trainee is never left deciding what
+        // "3×8-12" means in practice. Editable in the runner; this is the
+        // default they start from.
+        setPlan: buildSetPlan({ count: sets, reps, topWeightKg, weightType: base.weightType }),
         progressed: progressed.progressed,
         note: base.note,
         adjusted,

@@ -96,6 +96,14 @@ async function run() {
    * ---------------------------------------------------------------------- */
   await addColumn("subscriptions", "trial_used_at", usingPostgres ? "TIMESTAMPTZ" : "TEXT", "TEXT");
 
+  /* ----- "Mahsulotlarim" pantry ------------------------------------------ *
+   * A JSON array of food catalogue ids the user has at home. The AI meal plan
+   * reads it to build a day out of what is actually in the kitchen instead of
+   * a shopping list. Ids only: the calories live in the client catalogue, so
+   * correcting a food's macros never means rewriting stored rows.
+   * ---------------------------------------------------------------------- */
+  await addColumn("profiles", "pantry", "TEXT", "TEXT");
+
   /* ----- lock every table down ------------------------------------------ *
    * RLS on with zero policies denies the anon and authenticated Supabase
    * roles outright. The backend connects as the table owner and bypasses RLS,
