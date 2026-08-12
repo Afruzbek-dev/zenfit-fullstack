@@ -60,6 +60,19 @@ export default {
   muscleGroups: {
     all: "All", squat: "Legs", pushH: "Chest", pullH: "Back", pushV: "Shoulders", biceps: "Arms", core: "Core",
   },
+  muscles: {
+    sideFront: "Front side", sideBack: "Back side",
+    figure: "Body diagram — tap a muscle to select it",
+    chest: "Chest", shoulders: "Shoulders", biceps: "Biceps", abs: "Abs",
+    quads: "Legs (front)", neck: "Neck", back: "Back", triceps: "Triceps",
+    glutes: "Glutes, hamstrings", calves: "Calves",
+    picked: "{n}/{max} selected",
+    noneHint: "Pick nothing and the plan stays balanced",
+    title: "Which muscles to focus on?",
+    desc: "Your week is built around what you pick. Leave it empty and everything gets even work.",
+    editTitle: "Focus",
+    balanced: "Balanced",
+  },
 
   workout: {
     set: "Set", sets: "sets", reps: "reps", weight: "weight",

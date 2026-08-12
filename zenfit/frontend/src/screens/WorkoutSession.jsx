@@ -4,7 +4,7 @@ import { Screen, ScreenHeader } from "../components/ui.jsx";
 import ExerciseRunner from "./ExerciseRunner.jsx";
 import ExerciseGuide from "../components/ExerciseGuide.jsx";
 import { localizeExercise } from "../data/exerciseText.js";
-import { formatSetPlan, isCompound } from "../lib/aiPlanEngine.js";
+import { dayLabel, formatSetPlan, isCompound, localizeDay } from "../lib/aiPlanEngine.js";
 import { haptic } from "../telegram.js";
 import { useBackButton } from "../lib/useBackButton.js";
 import { useApp } from "../store.jsx";
@@ -136,7 +136,7 @@ export default function WorkoutSession({ day, onBack }) {
   return (
     <Screen>
       <ScreenHeader
-        title={`${day.day} — ${day.label}`}
+        title={`${localizeDay(day.day, t)} — ${dayLabel(day, t)}`}
         subtitle={`${total} ${t("home.ta")} • ${doneCount} ${t("common.done").toLowerCase()}`}
         onBack={onBack}
       />

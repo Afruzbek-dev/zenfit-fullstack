@@ -79,6 +79,9 @@ export function buildSchema(pg) {
       -- have at home, used to build a meal plan out of what is actually in the
       -- kitchen. Ids only — the nutrition values stay in the client catalogue.
       pantry               TEXT,
+      -- Muscle groups the user asked to emphasise. JSON array of picker ids;
+      -- the split builder turns them into training days.
+      focus_muscles        TEXT,
       onboarding_completed ${BOOL(false)},
       updated_at           ${TS}
     )`,

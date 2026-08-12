@@ -50,6 +50,10 @@ const YOUTUBE_IDS = {
   "cable-lateral-raise": "xrBcuPNTxLg",
   "cable-crunch": "dkGwcfo9zto",
   "seated-calf-raise": "FsqE-g1C5fk",
+  // barbell-shrug and neck-isometric have no entry on purpose: no candidate
+  // passed the check this file's header describes, so they fall back to a
+  // YouTube search rather than shipping a dead or mismatched video.
+  "db-shrug": "cJRVVxmytaM",
 };
 
 /** Technique videos for the cardio activities on the home screen. */
@@ -387,6 +391,35 @@ export const EXERCISES = [
     youtubeQuery: "seated calf raise machine form",
     steps: ["Tizzani tayanch ostiga qo'ying.", "Oyoq uchini platformaga qo'ying.", "Tovonni pastga tushiring, keyin yuqoriga ko'taring.", "Yuqorida 1 soniya ushlang."],
     mistakes: ["Yarim amplituda", "Juda tez harakat"],
+  }),
+
+  /* ---------------- traps / neck ----------------
+   *
+   * Added so the "Bo'yin" target in the muscle picker actually changes the
+   * plan. Shrugs carry the load; the neck work is deliberately isometric —
+   * weighted neck flexion belongs in a coached setting, not in a phone app
+   * with no one watching the trainee's form.
+   */
+  ex({
+    id: "db-shrug", name: "Gantel bilan yelka qisish", nameEn: "Dumbbell shrug",
+    muscle: "Trapetsiya, bo'yin", equipment: "home-dumbbell", pattern: "traps",
+    youtubeQuery: "dumbbell shrug proper form",
+    steps: ["Gantellarni yon tomonda ushlab tik turing.", "Yelkani quloqqa tomon to'g'ri yuqoriga ko'taring.", "Yuqorida 1 soniya ushlang.", "Sekin pastga tushiring."],
+    mistakes: ["Yelkani aylantirish", "Bo'yinni oldinga cho'zish", "Juda og'ir vazn olish"],
+  }),
+  ex({
+    id: "barbell-shrug", name: "Shtanga bilan yelka qisish", nameEn: "Barbell shrug",
+    muscle: "Trapetsiya, bo'yin", equipment: "gym", pattern: "traps",
+    youtubeQuery: "barbell shrug proper form traps",
+    steps: ["Shtangani son oldida ushlang, qo'l yelka kengligida.", "Yelkani to'g'ri yuqoriga ko'taring.", "Yuqorida qisqa ushlang.", "Nazorat bilan tushiring."],
+    mistakes: ["Bel bilan tortish", "Yelkani aylantirish", "Amplitudani qisqartirish"],
+  }),
+  ex({
+    id: "neck-isometric", name: "Bo'yin izometrik mashqi", nameEn: "Isometric neck hold",
+    muscle: "Bo'yin", equipment: "home-none", pattern: "traps", isTime: true,
+    youtubeQuery: "isometric neck exercise beginner safe",
+    steps: ["Kaftni peshonaga qo'ying.", "Boshni kaftga bosing, lekin bosh qimirlamasin.", "10-15 soniya ushlab turing.", "Yon va orqa tomon uchun ham takrorlang."],
+    mistakes: ["Keskin harakat qilish", "Nafasni ushlab turish", "Og'riq sezilganda davom etish"],
   }),
 ];
 

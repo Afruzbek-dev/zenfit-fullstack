@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { Button, OptionCard } from "../components/ui.jsx";
 import SafetyNotice from "../components/SafetyNotice.jsx";
+import MuscleTargetPicker from "../components/MuscleTargetPicker.jsx";
 import PremiumSheet from "./profile/PremiumSheet.jsx";
 import { formatSetPlan, generateWorkoutPlan, localizeDay, rulesNote } from "../lib/aiPlanEngine.js";
 import { bestProgram, PROGRAMS } from "../data/programs.js";
@@ -59,6 +60,31 @@ const DURATION = ["30", "60", "90"];
 const INJURY_TAGS = ["tizza", "bel", "yelka"];
 
 const FLAGS = { uz: "🇺🇿", ru: "🇷🇺", en: "🇬🇧" };
+
+/**
+ * The questionnaire, in order.
+ *
+ * Named rather than numbered because the flow gets steps inserted into its
+ * middle — `FOCUS` went in between `DURATION` and `INJURIES` — and every
+ * `step === 9` scattered through the render would otherwise have to be
+ * hand-shifted, silently pointing at the wrong question if one was missed.
+ * `PLAN` must stay last: the progress bar and the footer both key off it.
+ */
+const STEP = {
+  WELCOME: 0,
+  GENDER: 1,
+  BODY: 2,
+  ACTIVITY: 3,
+  GOAL: 4,
+  TARGETS: 5,
+  LEVEL: 6,
+  DAYS: 7,
+  EQUIPMENT: 8,
+  DURATION: 9,
+  FOCUS: 10,
+  INJURIES: 11,
+  PLAN: 12,
+};
 
 /**
  * Asked before anything else, because every screen after it — including the
@@ -159,6 +185,8 @@ export default function Onboarding({ onFinish }) {
   const [level, setLevel] = useState(null);
   const [days, setDays] = useState(null);
   const [equipment, setEquipment] = useState(null);
+  const [focusMuscles, setFocusMuscles] = useState([]);
+  const [focusSide, setFocusSide] = useState("front");
   const [duration, setDuration] = useState(null);
   const [injuries, setInjuries] = useState("");
   const [targets, setTargets] = useState(null);
@@ -190,22 +218,23 @@ export default function Onboarding({ onFinish }) {
     nums.heightCm >= 100 && nums.heightCm <= 250 &&
     nums.weightKg >= 30 && nums.weightKg <= 300;
 
-  // 0 welcome, 1 gender, 2 body, 3 activity, 4 goal, 5 targets,
-  // 6 level, 7 days, 8 equipment, 9 duration, 10 injuries, 11 plan
+  // Focus and injuries are both skippable: no target picked means a balanced
+  // plan, and no injury is the common case. Everything else gates Next.
   const canNext = [
     true, !!gender, bodyValid, !!activity, !!goal, true,
-    !!level, !!days, !!equipment, !!duration, true, true,
+    !!level, !!days, !!equipment, !!duration, true, true, true,
   ][step];
 
   const plan = useMemo(() => {
-    if (step !== 11) return null;
+    if (step !== STEP.PLAN) return null;
     return generateWorkoutPlan({
       goal, level, daysPerWeek: days, equipment, duration, injuries, weightKg: nums.weightKg,
+      focusMuscles,
     });
-  }, [step, goal, level, days, equipment, duration, injuries, nums.weightKg]);
+  }, [step, goal, level, days, equipment, duration, injuries, nums.weightKg, focusMuscles]);
 
   const matched = useMemo(
-    () => (step === 11 ? bestProgram({ goal, level, equipment, daysPerWeek: days }) : null),
+    () => (step === STEP.PLAN ? bestProgram({ goal, level, equipment, daysPerWeek: days }) : null),
     [step, goal, level, equipment, days]
   );
 
@@ -223,6 +252,7 @@ export default function Onboarding({ onFinish }) {
       fitnessLevel: level || "beginner",
       equipment, daysPerWeek: days, sessionDuration: duration, injuries,
       targetWeightKg: targetWeight ?? undefined,
+      focusMuscles,
     };
   }
 
@@ -265,18 +295,18 @@ export default function Onboarding({ onFinish }) {
     haptic("light");
 
     // Targets are computed server-side, so the profile is saved before showing them.
-    if (step === 4) {
+    if (step === STEP.GOAL) {
       const ok = await submitProfile();
-      if (ok) setStep(5);
+      if (ok) setStep(STEP.TARGETS);
       return;
     }
 
-    if (step === 10) {
+    if (step === STEP.INJURIES) {
       setThinking(true);
       // A brief pause makes the instant rule-engine result feel considered.
       setTimeout(() => {
         setThinking(false);
-        setStep(11);
+        setStep(STEP.PLAN);
       }, 1300);
       return;
     }
@@ -340,7 +370,7 @@ export default function Onboarding({ onFinish }) {
   return (
     <div className="app-atmosphere relative min-h-screen">
       <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-lg flex-col px-5">
-        {step > 0 && step < 11 && (
+        {step > 0 && step < STEP.PLAN && (
           <div className="flex items-center gap-1.5" style={{ paddingTop: "calc(var(--safe-top) + 20px)" }}>
             {Array.from({ length: totalDots }).map((_, i) => (
               <span
@@ -367,7 +397,7 @@ export default function Onboarding({ onFinish }) {
             </div>
           )}
 
-          {!thinking && step === 0 && (
+          {!thinking && step === STEP.WELCOME && (
             <div className="animate-fade-up flex flex-col items-center text-center">
               <span className="mb-6 grid h-20 w-20 place-items-center rounded-3xl bg-neon/12 ring-1 ring-neon/25">
                 <Flame size={36} className="text-neon" />
@@ -389,7 +419,7 @@ export default function Onboarding({ onFinish }) {
             </div>
           )}
 
-          {!thinking && step === 1 && (
+          {!thinking && step === STEP.GENDER && (
             <StepShell title={t("onboarding.genderTitle")} subtitle={t("onboarding.genderDesc")}>
               <OptionCard
                 active={gender === "male"}
@@ -427,7 +457,7 @@ export default function Onboarding({ onFinish }) {
             </StepShell>
           )}
 
-          {!thinking && step === 2 && (
+          {!thinking && step === STEP.BODY && (
             <StepShell title={t("onboarding.bodyTitle")} subtitle={t("onboarding.bodyDesc")}>
               <NumberField
                 label={t("onboarding.age")} value={age} onChange={setAge} unit={t("onboarding.ageUnit")}
@@ -445,7 +475,7 @@ export default function Onboarding({ onFinish }) {
             </StepShell>
           )}
 
-          {!thinking && step === 3 && (
+          {!thinking && step === STEP.ACTIVITY && (
             <StepShell title={t("onboarding.activityTitle")} subtitle={t("onboarding.activityDesc")}>
               {ACTIVITY.map((id) => (
                 <OptionCard
@@ -461,7 +491,7 @@ export default function Onboarding({ onFinish }) {
             </StepShell>
           )}
 
-          {!thinking && step === 4 && (
+          {!thinking && step === STEP.GOAL && (
             <StepShell title={t("onboarding.goalTitle")} subtitle={t("onboarding.goalDesc")}>
               {GOALS.map((g) => (
                 <OptionCard
@@ -547,7 +577,7 @@ export default function Onboarding({ onFinish }) {
             </StepShell>
           )}
 
-          {!thinking && step === 5 && targets && (
+          {!thinking && step === STEP.TARGETS && targets && (
             <div className="animate-fade-up flex flex-col items-center text-center">
               <span className="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-neon/15">
                 <Check size={26} className="text-neon" />
@@ -589,7 +619,7 @@ export default function Onboarding({ onFinish }) {
             </div>
           )}
 
-          {!thinking && step === 6 && (
+          {!thinking && step === STEP.LEVEL && (
             <StepShell title={t("onboarding.levelTitle")} subtitle={t("onboarding.levelDesc")}>
               {LEVELS.map((l) => (
                 <OptionCard
@@ -604,7 +634,7 @@ export default function Onboarding({ onFinish }) {
             </StepShell>
           )}
 
-          {!thinking && step === 7 && (
+          {!thinking && step === STEP.DAYS && (
             <StepShell title={t("onboarding.daysTitle")} subtitle={t("onboarding.daysDesc")}>
               {DAYS.map((d) => (
                 <OptionCard
@@ -619,7 +649,7 @@ export default function Onboarding({ onFinish }) {
             </StepShell>
           )}
 
-          {!thinking && step === 8 && (
+          {!thinking && step === STEP.EQUIPMENT && (
             <StepShell title={t("onboarding.equipmentTitle")} subtitle={t("onboarding.equipmentDesc")}>
               {EQUIPMENT.map((e) => (
                 <OptionCard
@@ -634,7 +664,7 @@ export default function Onboarding({ onFinish }) {
             </StepShell>
           )}
 
-          {!thinking && step === 9 && (
+          {!thinking && step === STEP.DURATION && (
             <StepShell title={t("onboarding.durationTitle")} subtitle={t("onboarding.durationDesc")}>
               {DURATION.map((d) => (
                 <OptionCard
@@ -649,7 +679,18 @@ export default function Onboarding({ onFinish }) {
             </StepShell>
           )}
 
-          {!thinking && step === 10 && (
+          {!thinking && step === STEP.FOCUS && (
+            <StepShell title={t("muscles.title")} subtitle={t("muscles.desc")}>
+              <MuscleTargetPicker
+                side={focusSide}
+                onSide={setFocusSide}
+                picked={focusMuscles}
+                onChange={setFocusMuscles}
+              />
+            </StepShell>
+          )}
+
+          {!thinking && step === STEP.INJURIES && (
             <StepShell title={t("onboarding.injuriesTitle")} subtitle={t("onboarding.injuriesDesc")}>
               <div className="rounded-2xl border border-borderSoft bg-surface px-4 py-3.5 focus-within:border-neon/60">
                 <input
@@ -688,7 +729,7 @@ export default function Onboarding({ onFinish }) {
             </StepShell>
           )}
 
-          {!thinking && step === 11 && plan && planChoice === "preset" && (
+          {!thinking && step === STEP.PLAN && plan && planChoice === "preset" && (
             <div className="animate-fade-up flex flex-col gap-3">
               <button
                 onClick={() => {
@@ -732,7 +773,7 @@ export default function Onboarding({ onFinish }) {
             </div>
           )}
 
-          {!thinking && step === 11 && plan && planChoice === "personal" && (
+          {!thinking && step === STEP.PLAN && plan && planChoice === "personal" && (
             <div className="animate-fade-up flex flex-col gap-4">
               <div className="flex flex-col items-center text-center">
                 <span className="mb-3 grid h-14 w-14 place-items-center rounded-2xl bg-neon/15">
@@ -809,7 +850,7 @@ export default function Onboarding({ onFinish }) {
 
         {!thinking && (
           <div className="flex gap-2.5 pb-8">
-            {step > 0 && step < 11 && (
+            {step > 0 && step < STEP.PLAN && (
               <button
                 onClick={() => {
                   haptic("light");
@@ -821,10 +862,10 @@ export default function Onboarding({ onFinish }) {
                 <ChevronLeft size={20} className="text-ink" />
               </button>
             )}
-            {step < 11 ? (
+            {step < STEP.PLAN ? (
               <Button full size="lg" disabled={!canNext} loading={busy} onClick={next}>
-                {step === 0 ? t("onboarding.start") : step === 10 ? t("onboarding.finish") : t("onboarding.next")}
-                {step === 10 ? <Sparkles size={17} /> : <ChevronRight size={18} />}
+                {step === STEP.WELCOME ? t("onboarding.start") : step === STEP.INJURIES ? t("onboarding.finish") : t("onboarding.next")}
+                {step === STEP.INJURIES ? <Sparkles size={17} /> : <ChevronRight size={18} />}
               </Button>
             ) : planChoice === "preset" ? (
               <button

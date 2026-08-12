@@ -4,7 +4,8 @@ import { Screen, Section, Button, Sheet, EmptyState, ListRow, ErrorNote } from "
 import WorkoutSession from "./WorkoutSession.jsx";
 import ExerciseLibrary from "./ExerciseLibrary.jsx";
 import PremiumSheet from "./profile/PremiumSheet.jsx";
-import { generateWorkoutPlan, localizeDay, planTitle } from "../lib/aiPlanEngine.js";
+import { dayLabel, generateWorkoutPlan, localizeDay, planTitle } from "../lib/aiPlanEngine.js";
+import MuscleTargetPicker from "../components/MuscleTargetPicker.jsx";
 import { PROGRAMS } from "../data/programs.js";
 import { api } from "../api.js";
 import { haptic } from "../telegram.js";
@@ -37,7 +38,7 @@ function PlanDayCard({ item, doneCount, onOpen, t }) {
         {complete ? <Check size={18} className="text-neon" /> : <Dumbbell size={17} className="text-muted" />}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[13.5px] font-bold text-ink">{day} — {item.label}</span>
+        <span className="block text-[13.5px] font-bold text-ink">{day} — {dayLabel(item, t)}</span>
         <span className="mt-0.5 block text-[11.5px] text-muted">
           {t("workout.exercisesCount", { total, done: doneCount })}
         </span>
@@ -57,6 +58,8 @@ function RegenerateSheet({ open, onClose, onDone, onLocked }) {
   const { profile, subscription, saveWorkoutPlan, showToast, t } = useApp();
   const [days, setDays] = useState(profile?.daysPerWeek || 3);
   const [equipment, setEquipment] = useState(profile?.equipment || "home-none");
+  const [focusMuscles, setFocusMuscles] = useState(profile?.focusMuscles || []);
+  const [focusSide, setFocusSide] = useState("front");
   const [busy, setBusy] = useState(false);
 
   const dayOptions = [3, 4, 5];
@@ -92,9 +95,10 @@ function RegenerateSheet({ open, onClose, onDone, onLocked }) {
         injuries: profile?.injuries || "",
         weightKg: profile?.weightKg || 70,
         lastSetsByExercise,
+        focusMuscles,
       });
       await saveWorkoutPlan(plan);
-      await api.patchProfile({ daysPerWeek: days, equipment });
+      await api.patchProfile({ daysPerWeek: days, equipment, focusMuscles });
       haptic("success");
       showToast(t("workout.planRegenerated"), "success");
       onDone?.();
@@ -138,6 +142,16 @@ function RegenerateSheet({ open, onClose, onDone, onLocked }) {
             {t(`workout.eqShort.${e}`)}
           </button>
         ))}
+      </div>
+
+      <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-faint">{t("muscles.editTitle")}</p>
+      <div className="mb-5">
+        <MuscleTargetPicker
+          side={focusSide}
+          onSide={setFocusSide}
+          picked={focusMuscles}
+          onChange={setFocusMuscles}
+        />
       </div>
 
       <Button full size="lg" loading={busy} onClick={regenerate}>
@@ -204,6 +218,7 @@ export default function WorkoutsScreen() {
         injuries: profile?.injuries || "",
         weightKg: profile?.weightKg || 70,
         lastSetsByExercise,
+        focusMuscles: profile?.focusMuscles || [],
       });
       await saveWorkoutPlan(plan);
       haptic("success");
@@ -215,8 +230,14 @@ export default function WorkoutsScreen() {
     }
   }
 
-  /** Free path: same engine, seeded from the program's own preset instead of a
-   *  personalized read of the user's answers. Weight/injuries still apply. */
+  /**
+   * Free path: same engine, seeded from the program's own preset instead of a
+   * personalized read of the user's answers. Weight/injuries still apply.
+   *
+   * The muscle focus deliberately does not: a preset's whole value is its fixed
+   * structure, and rebuilding its split around personal targets would make it a
+   * personalized plan wearing a program's name.
+   */
   async function pickProgram(program) {
     setCreating(true);
     try {

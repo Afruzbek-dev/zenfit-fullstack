@@ -4,6 +4,7 @@ import { requireAuth } from "../middleware/auth.js";
 import { computeTargets, AGE_MIN, AGE_MAX } from "../lib/calorie.js";
 import { estimateGoal, isValidTarget } from "../lib/goalPlan.js";
 import { mapProfile } from "../lib/mappers.js";
+import { sanitizeFocusMuscles } from "../lib/muscleFocus.js";
 
 const router = Router();
 
@@ -18,7 +19,7 @@ router.post("/", requireAuth, async (req, res, next) => {
     const {
       gender, age, heightCm, weightKg, activityLevel, goal,
       fitnessLevel, equipment, daysPerWeek, sessionDuration, injuries, targetWeightKg,
-      pregnant,
+      pregnant, focusMuscles,
     } = req.body || {};
 
     // AGE_MIN/AGE_MAX come from the calorie engine so this route and the profile
@@ -65,8 +66,9 @@ router.post("/", requireAuth, async (req, res, next) => {
          fitness_level = $11, equipment = $12, days_per_week = $13,
          session_duration = $14, injuries = $15,
          target_weight_kg = $16, target_date = $17, pregnant = $18,
+         focus_muscles = $19,
          neat_confirmed = true, onboarding_completed = true, updated_at = now()
-       WHERE user_id = $19`,
+       WHERE user_id = $20`,
       [
         gender, age, heightCm, weightKg, activityLevel, effectiveGoal,
         targets.dailyCalorieTarget, targets.carbsTargetG, targets.proteinTargetG, targets.fatTargetG,
@@ -78,6 +80,7 @@ router.post("/", requireAuth, async (req, res, next) => {
         target ? Number(targetWeightKg) : null,
         target ? target.targetDate : null,
         isPregnant,
+        sanitizeFocusMuscles(focusMuscles),
         req.userId,
       ]
     );

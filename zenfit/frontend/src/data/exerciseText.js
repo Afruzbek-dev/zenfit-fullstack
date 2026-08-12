@@ -444,6 +444,74 @@ export const EXERCISE_TEXT = {
     },
     mistakes: { ru: ["Половина амплитуды", "Слишком быстрое движение"], en: ["Cutting the range short", "Moving too fast"] },
   },
+
+  /* ---------------- traps / neck ---------------- */
+  "db-shrug": {
+    name: t("Шраги с гантелями", "Dumbbell shrug"),
+    muscle: t("Трапеции, шея", "Traps, neck"),
+    steps: {
+      ru: [
+        "Встаньте прямо, гантели в опущенных руках по бокам.",
+        "Поднимите плечи строго вверх, к ушам.",
+        "Задержитесь наверху на секунду.",
+        "Медленно опустите плечи вниз.",
+      ],
+      en: [
+        "Stand tall with a dumbbell hanging at each side.",
+        "Lift your shoulders straight up toward your ears.",
+        "Hold at the top for a second.",
+        "Lower your shoulders slowly.",
+      ],
+    },
+    mistakes: {
+      ru: ["Вращение плечами", "Вытягивание шеи вперёд", "Слишком большой вес"],
+      en: ["Rolling the shoulders", "Craning the neck forward", "Going too heavy"],
+    },
+  },
+  "barbell-shrug": {
+    name: t("Шраги со штангой", "Barbell shrug"),
+    muscle: t("Трапеции, шея", "Traps, neck"),
+    steps: {
+      ru: [
+        "Держите штангу перед бёдрами, хват на ширине плеч.",
+        "Поднимите плечи строго вверх.",
+        "Коротко задержитесь наверху.",
+        "Опустите под контролем.",
+      ],
+      en: [
+        "Hold the bar in front of your thighs, hands shoulder-width apart.",
+        "Lift your shoulders straight up.",
+        "Pause briefly at the top.",
+        "Lower under control.",
+      ],
+    },
+    mistakes: {
+      ru: ["Тяга поясницей", "Вращение плечами", "Укороченная амплитуда"],
+      en: ["Pulling with the lower back", "Rolling the shoulders", "Cutting the range short"],
+    },
+  },
+  "neck-isometric": {
+    name: t("Изометрия для шеи", "Isometric neck hold"),
+    muscle: t("Шея", "Neck"),
+    steps: {
+      ru: [
+        "Положите ладонь на лоб.",
+        "Давите головой в ладонь, но голова остаётся неподвижной.",
+        "Удерживайте 10-15 секунд.",
+        "Повторите для боковых сторон и затылка.",
+      ],
+      en: [
+        "Place a palm against your forehead.",
+        "Press your head into the palm while keeping the head still.",
+        "Hold for 10-15 seconds.",
+        "Repeat for each side and the back of the head.",
+      ],
+    },
+    mistakes: {
+      ru: ["Резкие движения", "Задержка дыхания", "Продолжать при боли"],
+      en: ["Jerky movements", "Holding your breath", "Continuing through pain"],
+    },
+  },
 };
 
 /**

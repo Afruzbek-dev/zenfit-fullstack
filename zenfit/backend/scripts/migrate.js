@@ -104,6 +104,14 @@ async function run() {
    * ---------------------------------------------------------------------- */
   await addColumn("profiles", "pantry", "TEXT", "TEXT");
 
+  /* ----- target muscle groups -------------------------------------------- *
+   * A JSON array of muscle-picker ids ("chest", "back"…). The workout split is
+   * built from these when set, so the week is named after what the user asked
+   * to grow instead of a fixed Push/Pull/Legs template. Empty means balanced,
+   * which is the plan the app produced before the picker existed.
+   * ---------------------------------------------------------------------- */
+  await addColumn("profiles", "focus_muscles", "TEXT", "TEXT");
+
   /* ----- lock every table down ------------------------------------------ *
    * RLS on with zero policies denies the anon and authenticated Supabase
    * roles outright. The backend connects as the table owner and bypasses RLS,

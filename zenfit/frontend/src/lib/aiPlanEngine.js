@@ -8,6 +8,7 @@
  */
 
 import { EXERCISES, EX_BY_ID } from "../data/exercises.js";
+import { focusGroups, focusLabel, sanitizeFocus } from "../data/muscleTargets.js";
 
 /* --------------------------- starting loads --------------------------- */
 
@@ -238,6 +239,125 @@ const DAY_PATTERNS = {
   Legs: { main: ["squat", "hinge"], acc: [["calves", "core"], ["calves", "core"]] },
 };
 
+/* --------------------------- focused splits ---------------------------- */
+
+/**
+ * One compound pattern per training day that the focus does *not* cover.
+ *
+ * A plan built purely from what someone asked for is how people end up with
+ * shoulders that only ever press and a back that never pulls. Each focused day
+ * carries one balancing compound drawn from here, rotating so the week still
+ * covers the major patterns even when the focus is narrow.
+ */
+const BALANCE_ROTATION = ["squat", "pullH", "pushH", "hinge", "pullV", "pushV"];
+
+/**
+ * Distributes the picked muscle groups across the training days.
+ *
+ * Groups that can anchor a day (chest, back, legs…) get one each, in order.
+ * Isolation-only groups (biceps, calves, neck) ride along with an anchor rather
+ * than owning a day, because three calf exercises is not a training session.
+ * With more days than groups the list simply cycles, which is the desired
+ * outcome: fewer targets means each one is trained more often.
+ */
+const RIDER_SESSIONS_PER_WEEK = 2;
+
+function assignFocusDays(trainingDays, groups) {
+  const anchors = groups.filter((g) => g.compound);
+  const riders = groups.filter((g) => !g.compound);
+  // No compound group picked at all (say, just biceps and abs): those groups
+  // still need somewhere to live, so they anchor their own days.
+  const anchorPool = anchors.length ? anchors : riders;
+  const riderPool = anchors.length ? riders : [];
+
+  const days = Array.from({ length: trainingDays }, (_, i) => [anchorPool[i % anchorPool.length]]);
+
+  /*
+   * Riders get roughly two sessions a week each, spread across the week —
+   * not stapled to every single day. Cycling `i % riderPool.length` put the
+   * one picked isolation group on all six days of a six-day week, which is
+   * how you turn "I'd like bigger arms" into an elbow injury.
+   */
+  const slots = riderPool.flatMap((g) => Array(RIDER_SESSIONS_PER_WEEK).fill(g));
+  slots.forEach((group, j) => {
+    const dayIndex = Math.floor((j * trainingDays) / slots.length);
+    const day = days[Math.min(dayIndex, trainingDays - 1)];
+    if (!day.some((g) => g.id === group.id)) day.push(group);
+  });
+
+  return days;
+}
+
+/**
+ * Training day indices, evenly spaced across the week.
+ *
+ * Spacing by proportion rather than "fill from the front" is what keeps four
+ * sessions landing as Mon/Tue/Thu/Sat instead of Mon-Thu with a three-day
+ * weekend of nothing.
+ */
+const trainingDayIndices = (trainingDays) =>
+  new Set(Array.from({ length: trainingDays }, (_, i) => Math.floor((i * 7) / trainingDays)));
+
+/**
+ * A week built around the picked muscles instead of a fixed template.
+ *
+ * Rest days are spread by walking the week and placing a training day every
+ * `gap` days, so four training days land as train/train/rest/train/train/rest
+ * rather than four in a row followed by three off.
+ */
+export function buildFocusSplit(days, groups) {
+  const trainingDays = Math.max(1, Math.min(6, days));
+  const assignments = assignFocusDays(trainingDays, groups);
+  const trainOn = trainingDayIndices(trainingDays);
+
+  let placed = 0;
+  return Array.from({ length: 7 }, (_, i) => {
+    if (!trainOn.has(i)) return { day: `${i + 1}-kun`, label: "Dam olish" };
+
+    const groupsForDay = assignments[placed];
+    const slot = {
+      day: `${i + 1}-kun`,
+      label: groupsForDay.map((g) => g.label).join(" + "),
+      focusIds: groupsForDay.map((g) => g.id),
+      balance: BALANCE_ROTATION[placed % BALANCE_ROTATION.length],
+    };
+    placed += 1;
+    return slot;
+  });
+}
+
+/**
+ * Movement patterns for a focused day: the picked groups' own patterns first,
+ * then one balancing compound, then core as the tail filler.
+ */
+function focusDayTemplate(slot, groups) {
+  const picked = slot.focusIds
+    .map((id) => groups.find((g) => g.id === id))
+    .filter(Boolean)
+    .flatMap((g) => g.patterns);
+
+  const main = [...new Set(picked)];
+  /*
+   * Walk the rotation for a compound the day does not already cover. Taking
+   * `slot.balance` blindly meant a hinge-focused day whose balance slot was
+   * also "hinge" simply lost it, and came out two exercises long.
+   */
+  const start = BALANCE_ROTATION.indexOf(slot.balance);
+  for (let i = 0; i < BALANCE_ROTATION.length; i += 1) {
+    const candidate = BALANCE_ROTATION[(start + i) % BALANCE_ROTATION.length];
+    if (!main.includes(candidate)) {
+      main.push(candidate);
+      break;
+    }
+  }
+
+  // Core is the default finisher, but not when the day already trains it —
+  // "abs" as a focus plus "abs" as the accessory put the same exercise in the
+  // list twice.
+  const filler = main.includes("core") ? ["calves"] : ["core"];
+  return { main, acc: [filler, filler] };
+}
+
 /* ------------------------------ injuries ------------------------------- */
 
 export const INJURY_RULES = [
@@ -286,6 +406,7 @@ export function generateWorkoutPlan({
   injuries = "",
   weightKg = 70,
   lastSetsByExercise = {},
+  focusMuscles = [],
 }) {
   const rules = REP_RULES[goal] || REP_RULES.maintain;
   const injuryText = String(injuries || "").toLowerCase();
@@ -296,16 +417,32 @@ export function generateWorkoutPlan({
   // Session length caps how many exercises fit.
   const maxExercises = duration === "30" ? 5 : duration === "90" ? 7 : 6;
 
-  const split = buildSplit(daysPerWeek);
+  // A picked focus replaces the fixed template entirely: the days are named
+  // after the muscles and built from their movement patterns. With nothing
+  // picked this is exactly the plan the app produced before the picker existed.
+  const groups = focusGroups(sanitizeFocus(focusMuscles));
+  const focused = groups.length > 0;
+  const split = focused ? buildFocusSplit(daysPerWeek, groups) : buildSplit(daysPerWeek);
   const seen = {};
 
   const days = split.map((slot) => {
     if (slot.label === "Dam olish") return { ...slot, rest: true, exercises: [] };
 
-    const occurrence = seen[slot.label] || 0;
-    seen[slot.label] = occurrence + 1;
+    /*
+     * Counts how many times this day's *anchor* has come round, not the full
+     * label — that is what rotates the exercise picked for a pattern.
+     *
+     * Keying on the label meant "Chest + Biceps" and "Chest" were different
+     * days as far as the counter was concerned, so both opened with the same
+     * bench press on consecutive days.
+     */
+    const rotationKey = slot.focusIds?.[0] || slot.label;
+    const occurrence = seen[rotationKey] || 0;
+    seen[rotationKey] = occurrence + 1;
 
-    const template = DAY_PATTERNS[slot.label] || DAY_PATTERNS["Full Body"];
+    const template = focused
+      ? focusDayTemplate(slot, groups)
+      : DAY_PATTERNS[slot.label] || DAY_PATTERNS["Full Body"];
 
     const mainSlots = template.main.map((pattern) => {
       const swapId = avoidMap[pattern];
@@ -321,7 +458,17 @@ export function generateWorkoutPlan({
       accessory: true,
     }));
 
-    const chosen = [...mainSlots, ...accSlots].filter((s) => s.ex).slice(0, maxExercises);
+    /*
+     * Two patterns can resolve to the same exercise — a deadlift covers both
+     * the hinge focus and the hinge balance slot, and the sparse-equipment
+     * fallback in `poolFor` can land two patterns on the same movement. Listing
+     * it twice would have the trainee do it, rest, and do it again as if it
+     * were something new.
+     */
+    const seenIds = new Set();
+    const chosen = [...mainSlots, ...accSlots]
+      .filter((s) => s.ex && !seenIds.has(s.ex.id) && seenIds.add(s.ex.id))
+      .slice(0, maxExercises);
 
     const exercises = chosen.map(({ ex, adjusted, accessory }) => {
       const base = suggestedWeight(ex.id, { weightKg, level });
@@ -376,8 +523,20 @@ export function generateWorkoutPlan({
     injuryNotes: activeInjuries.length
       ? `${activeInjuries.map((r) => r.label).join(", ")} uchun mashqlar xavfsiz almashtirildi. ${SAFETY_NOTE}`
       : null,
+    focusMuscles: focused ? groups.map((g) => g.id) : null,
     days,
   };
+}
+
+/**
+ * Day heading. Focused days carry their group ids so the name follows the
+ * reader's language; plans generated before the picker existed only have the
+ * stored label, which is what they fall back to.
+ */
+export function dayLabel(day, t) {
+  if (day?.focusIds?.length) return focusLabel(day.focusIds, t);
+  if (day?.rest) return t("workout.restDay");
+  return day?.label || "";
 }
 
 export const isCompound = (exerciseId) => EX_BY_ID[exerciseId]?.type === "compound";

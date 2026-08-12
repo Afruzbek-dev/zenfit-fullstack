@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Check, Info, Timer, TrendingUp, Minus, Plus, X, ChevronDown } from "lucide-react";
+import { Check, Info, Timer, TrendingUp, Minus, Plus, X, ChevronDown, ListChecks } from "lucide-react";
 import { Screen, ScreenHeader, Button, IconButton } from "../components/ui.jsx";
-import ExerciseGuide from "../components/ExerciseGuide.jsx";
+import { ExerciseGuideBody } from "../components/ExerciseGuide.jsx";
 import { localizeExercise } from "../data/exerciseText.js";
 import { formatSetPlan } from "../lib/aiPlanEngine.js";
 import { api } from "../api.js";
@@ -253,16 +253,16 @@ export default function ExerciseRunner({ exercise: planned, planDay, onBack, onF
   // Plans store the name as it was when generated, so the display name is
   // resolved from the exercise id each render instead.
   const exercise = useMemo(() => localizeExercise(planned, lang), [planned, lang]);
-  const [showGuide, setShowGuide] = useState(false);
+  const [tab, setTab] = useState("sets");
   const [sets, setSets] = useState(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [lastHint, setLastHint] = useState(null);
   const [rest, setRest] = useState(null);
   const [saving, setSaving] = useState(false);
 
-  // While the guide is open it owns the back button; the runner takes it back
-  // on return.
-  useBackButton(showGuide ? null : onBack);
+  // The guide is a tab now, not a screen, so the runner owns the back button
+  // the whole time it is mounted.
+  useBackButton(onBack);
 
   const bodyweight = exercise.weightType === "bodyweight";
   const restSeconds = useMemo(() => parseRestSeconds(exercise.rest), [exercise.rest]);
@@ -302,7 +302,6 @@ export default function ExerciseRunner({ exercise: planned, planDay, onBack, onF
     };
   }, [exercise]);
 
-  if (showGuide) return <ExerciseGuide exerciseId={exercise.id} onBack={() => setShowGuide(false)} />;
 
   const update = (i, patch) => setSets((prev) => prev.map((s, idx) => (idx === i ? { ...s, ...patch } : s)));
 
@@ -344,7 +343,6 @@ export default function ExerciseRunner({ exercise: planned, planDay, onBack, onF
         title={exercise.name}
         subtitle={`${doneCount}/${totalSets} ${t("workout.sets")}`}
         onBack={onBack}
-        action={<IconButton Icon={Info} label={t("workout.guide")} tone="neon" active onClick={() => setShowGuide(true)} />}
       />
 
       {/* Target for this exercise */}
@@ -381,79 +379,97 @@ export default function ExerciseRunner({ exercise: planned, planDay, onBack, onF
         )}
       </div>
 
-      {/* How-to entry point, spelled out rather than hidden behind the icon */}
-      <button
-        onClick={() => {
-          haptic("light");
-          setShowGuide(true);
-        }}
-        className="card card-lit mb-4 flex w-full items-center gap-3 px-4 py-3.5 text-left active:scale-[0.99]"
-      >
-        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-neon/12">
-          <Info size={19} className="text-neon" />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-[13.5px] font-bold text-ink">{t("workout.guide")}</span>
-          <span className="mt-0.5 block text-[11.5px] text-muted">{t("workout.guideDesc")}</span>
-        </span>
-      </button>
-
-      {exercise.note && <p className="mb-3 px-1 text-[11.5px] leading-relaxed text-faint">{exercise.note}</p>}
-      {lastHint && (
-        <p className="mb-3 px-1 text-[11.5px] text-cyan">
-          {t("workout.lastTime")}: {lastHint.map((s) => `${s.weightKg ?? "—"}kg×${s.reps ?? "—"}`).join(", ")}
-        </p>
-      )}
-
-      {/* Sets */}
-      <h2 className="mb-2.5 text-[11px] font-bold uppercase tracking-[0.14em] text-faint">{t("workout.setsTitle")}</h2>
-      <div className="mb-3 flex flex-col gap-2">
-        {(sets || []).map((s, i) => (
-          <SetRow
-            key={i}
-            index={i}
-            set={s}
-            active={i === activeIndex}
-            bodyweight={bodyweight}
-            onOpen={() => setActiveIndex(i)}
-            onChange={(patch) => update(i, patch)}
-            onComplete={() => completeSet(i)}
-            onUndo={() => {
-              update(i, { done: false });
-              setActiveIndex(i);
+      {/*
+        Sets and how-to as tabs rather than a full-screen takeover. Checking
+        the technique used to mean leaving the session — losing sight of which
+        set was next and what the rest timer was doing — for something the
+        trainee wants mid-exercise, not before it.
+      */}
+      <div className="mb-4 flex gap-2 rounded-2xl border border-borderSoft bg-surfaceAlt p-1">
+        {[
+          { id: "sets", label: t("workout.setsTitle"), Icon: ListChecks },
+          { id: "guide", label: t("workout.guide"), Icon: Info },
+        ].map((tabDef) => (
+          <button
+            key={tabDef.id}
+            onClick={() => {
+              haptic("light");
+              setTab(tabDef.id);
             }}
-          />
+            aria-pressed={tab === tabDef.id}
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2.5 text-[12.5px] font-bold transition-colors ${
+              tab === tabDef.id ? "bg-neon text-neonOn" : "text-muted"
+            }`}
+          >
+            <tabDef.Icon size={14} /> {tabDef.label}
+          </button>
         ))}
       </div>
 
-      <div className="mb-5 flex items-center gap-2">
-        <button
-          onClick={() => {
-            if (!sets || sets.length <= 1) return;
-            setSets((p) => p.slice(0, -1));
-            setActiveIndex((i) => Math.min(i, sets.length - 2));
-          }}
-          aria-label={t("workout.removeSet")}
-          className="grid h-8 w-8 place-items-center rounded-lg border border-borderSoft bg-surfaceAlt"
-        >
-          <Minus size={13} className="text-muted" />
-        </button>
-        <span className="text-[11.5px] text-faint">
-          {totalSets} {t("workout.sets")}
-        </span>
-        <button
-          onClick={() =>
-            setSets((p) => [...p, { reps: p.at(-1)?.reps ?? 10, weightKg: p.at(-1)?.weightKg ?? 0, done: false }])
-          }
-          aria-label={t("workout.addSet")}
-          className="grid h-8 w-8 place-items-center rounded-lg border border-borderSoft bg-surfaceAlt"
-        >
-          <Plus size={13} className="text-muted" />
-        </button>
-      </div>
+      {tab === "guide" ? (
+        <ExerciseGuideBody exerciseId={exercise.id} heading={false} />
+      ) : (
+        <>
+          {exercise.note && <p className="mb-3 px-1 text-[11.5px] leading-relaxed text-faint">{exercise.note}</p>}
+          {lastHint && (
+            <p className="mb-3 px-1 text-[11.5px] text-cyan">
+              {t("workout.lastTime")}: {lastHint.map((s) => `${s.weightKg ?? "—"}kg×${s.reps ?? "—"}`).join(", ")}
+            </p>
+          )}
 
-      {allDone && <p className="mb-2.5 text-center text-[12.5px] font-bold text-neon">{t("workout.allDone")}</p>}
+          <div className="mb-3 flex flex-col gap-2">
+            {(sets || []).map((s, i) => (
+              <SetRow
+                key={i}
+                index={i}
+                set={s}
+                active={i === activeIndex}
+                bodyweight={bodyweight}
+                onOpen={() => setActiveIndex(i)}
+                onChange={(patch) => update(i, patch)}
+                onComplete={() => completeSet(i)}
+                onUndo={() => {
+                  update(i, { done: false });
+                  setActiveIndex(i);
+                }}
+              />
+            ))}
+          </div>
 
+          <div className="mb-5 flex items-center gap-2">
+            <button
+              onClick={() => {
+                if (!sets || sets.length <= 1) return;
+                setSets((p) => p.slice(0, -1));
+                setActiveIndex((i) => Math.min(i, sets.length - 2));
+              }}
+              aria-label={t("workout.removeSet")}
+              className="grid h-8 w-8 place-items-center rounded-lg border border-borderSoft bg-surfaceAlt"
+            >
+              <Minus size={13} className="text-muted" />
+            </button>
+            <span className="text-[11.5px] text-faint">
+              {totalSets} {t("workout.sets")}
+            </span>
+            <button
+              onClick={() =>
+                setSets((p) => [...p, { reps: p.at(-1)?.reps ?? 10, weightKg: p.at(-1)?.weightKg ?? 0, done: false }])
+              }
+              aria-label={t("workout.addSet")}
+              className="grid h-8 w-8 place-items-center rounded-lg border border-borderSoft bg-surfaceAlt"
+            >
+              <Plus size={13} className="text-muted" />
+            </button>
+          </div>
+
+          {allDone && <p className="mb-2.5 text-center text-[12.5px] font-bold text-neon">{t("workout.allDone")}</p>}
+        </>
+      )}
+
+      {/*
+        Finish stays outside the tabs: someone reading the technique on their
+        last set should not have to tab back to record it.
+      */}
       <Button full size="lg" loading={saving} disabled={doneCount === 0} onClick={finish}>
         <Check size={17} /> {t("workout.finish")}
       </Button>

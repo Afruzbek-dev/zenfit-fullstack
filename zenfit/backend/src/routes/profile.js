@@ -4,6 +4,7 @@ import { requireAuth } from "../middleware/auth.js";
 import { computeTargets, AGE_MIN, AGE_MAX } from "../lib/calorie.js";
 import { defaultTarget, isValidTarget, estimateGoal } from "../lib/goalPlan.js";
 import { mapProfile, mapSubscription } from "../lib/mappers.js";
+import { sanitizeFocusMuscles } from "../lib/muscleFocus.js";
 
 const router = Router();
 
@@ -25,6 +26,7 @@ const MAX_AVATAR_BYTES = 220_000;
  * noise anyway, and the request just costs more.
  */
 export const PANTRY_MAX = 60;
+
 
 function userPayload(u) {
   if (!u) return null;
@@ -245,6 +247,17 @@ router.patch("/", requireAuth, async (req, res, next) => {
       )].slice(0, PANTRY_MAX);
       set("pantry", ids.length ? JSON.stringify(ids) : null);
     }
+
+    /*
+     * Target muscle groups.
+     *
+     * Checked against a fixed list rather than a shape regex like the pantry
+     * above: the picker offers ten ids and nothing else is meaningful, so an
+     * unknown one is a bug or a probe either way. An empty array is a real
+     * value here — it means "go back to balanced" — so it clears the column
+     * rather than being ignored.
+     */
+    if (Array.isArray(b.focusMuscles)) set("focus_muscles", sanitizeFocusMuscles(b.focusMuscles));
 
     /* ----- app settings -------------------------------------------------- */
     if (LANGUAGES.includes(b.language)) set("language", b.language);

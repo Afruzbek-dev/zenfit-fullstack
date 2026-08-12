@@ -75,6 +75,21 @@ const uz = {
   muscleGroups: {
     all: "Barchasi", squat: "Oyoq", pushH: "Ko'krak", pullH: "Orqa", pushV: "Yelka", biceps: "Qo'l", core: "Qorin",
   },
+  muscles: {
+    // Side keys are prefixed because one of the muscle groups is itself called
+    // "back" — muscles.back has to mean the lats, not the rear view.
+    sideFront: "Old tomon", sideBack: "Orqa tomon",
+    figure: "Tana sxemasi — mushakni tanlash uchun bosing",
+    chest: "Ko'krak", shoulders: "Yelka", biceps: "Bitsep", abs: "Qorin",
+    quads: "Oyoq (old)", neck: "Bo'yin", back: "Orqa", triceps: "Trisep",
+    glutes: "Dumba, son orqasi", calves: "Boldir",
+    picked: "{n}/{max} tanlandi",
+    noneHint: "Hech narsa tanlanmasa — muvozanatli reja tuziladi",
+    title: "Qaysi mushakka urg'u?",
+    desc: "Tanlanganlari bo'yicha haftalik reja tuziladi. Bo'sh qoldirsangiz, barchasi teng ishlanadi.",
+    editTitle: "Urg'u",
+    balanced: "Muvozanatli",
+  },
 
   workout: {
     set: "Set", sets: "set", reps: "takror", weight: "og'irlik",
@@ -404,6 +419,19 @@ const ru = {
   },
   muscleGroups: {
     all: "Все", squat: "Ноги", pushH: "Грудь", pullH: "Спина", pushV: "Плечи", biceps: "Руки", core: "Пресс",
+  },
+  muscles: {
+    sideFront: "Спереди", sideBack: "Сзади",
+    figure: "Схема тела — нажмите, чтобы выбрать мышцу",
+    chest: "Грудь", shoulders: "Плечи", biceps: "Бицепс", abs: "Пресс",
+    quads: "Ноги (перед)", neck: "Шея", back: "Спина", triceps: "Трицепс",
+    glutes: "Ягодицы, бицепс бедра", calves: "Икры",
+    picked: "Выбрано {n}/{max}",
+    noneHint: "Ничего не выбрано — план будет сбалансированным",
+    title: "На какие мышцы упор?",
+    desc: "Недельный план построится вокруг выбранного. Оставьте пустым — нагрузка распределится равномерно.",
+    editTitle: "Упор",
+    balanced: "Сбалансированный",
   },
 
   workout: {

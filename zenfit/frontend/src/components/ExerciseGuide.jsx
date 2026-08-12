@@ -77,18 +77,29 @@ function Tag({ Icon, children }) {
   );
 }
 
-/** Full-screen how-to: video, ordered steps and the mistakes that cause injuries. */
-export default function ExerciseGuide({ exerciseId, onBack }) {
+/**
+ * The how-to itself: video, ordered steps and the mistakes that cause injuries.
+ *
+ * Split out from the screen below so the same content can sit inside the
+ * exercise runner's tab without dragging a second header and back button in
+ * with it. `heading` is off there — the tab is already labelled, and the
+ * exercise name is already in the screen header above it.
+ */
+export function ExerciseGuideBody({ exerciseId, heading = true }) {
   const { t, lang } = useApp();
-  useBackButton(onBack);
 
+  /*
+   * Resolved from the catalogue by id, never from whatever object the caller
+   * happens to hold. A plan's exercise entry carries only what the plan needs
+   * — name, sets, reps, weight — so passing one of those in directly crashed
+   * this component on `steps.map`: the how-to text lives in the catalogue and
+   * is not copied into stored plans.
+   */
   const exercise = exerciseId ? localizeExercise(EX_BY_ID[exerciseId], lang) : null;
   if (!exercise) return null;
 
   return (
-    <Screen>
-      <ScreenHeader title={t("workout.guide")} subtitle={exercise.name} onBack={onBack} />
-
+    <>
       <div className="mb-4">
         <VideoPlayer
           videoId={exercise.youtubeId}
@@ -97,10 +108,12 @@ export default function ExerciseGuide({ exerciseId, onBack }) {
         />
       </div>
 
-      <div className="mb-1">
-        <h2 className="font-display text-[19px] font-bold leading-tight text-ink">{exercise.name}</h2>
-        <p className="mt-0.5 text-[12px] text-faint">{exercise.nameEn}</p>
-      </div>
+      {heading && (
+        <div className="mb-1">
+          <h2 className="font-display text-[19px] font-bold leading-tight text-ink">{exercise.name}</h2>
+          <p className="mt-0.5 text-[12px] text-faint">{exercise.nameEn}</p>
+        </div>
+      )}
 
       <div className="mb-5 mt-3 flex flex-wrap gap-2">
         <Tag Icon={Target}>{exercise.muscle}</Tag>
@@ -140,6 +153,22 @@ export default function ExerciseGuide({ exerciseId, onBack }) {
           </ul>
         </div>
       </section>
+    </>
+  );
+}
+
+/** Full-screen how-to, for the library and the plan's per-exercise info button. */
+export default function ExerciseGuide({ exerciseId, onBack }) {
+  const { t, lang } = useApp();
+  useBackButton(onBack);
+
+  const exercise = exerciseId ? localizeExercise(EX_BY_ID[exerciseId], lang) : null;
+  if (!exercise) return null;
+
+  return (
+    <Screen>
+      <ScreenHeader title={t("workout.guide")} subtitle={exercise.name} onBack={onBack} />
+      <ExerciseGuideBody exerciseId={exerciseId} />
     </Screen>
   );
 }
