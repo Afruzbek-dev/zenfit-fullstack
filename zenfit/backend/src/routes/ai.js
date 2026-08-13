@@ -11,7 +11,9 @@ import {
   trainerChat,
   generateDietPlan,
   enhanceWorkoutPlan,
+  translateDishName,
 } from "../lib/aiFeatures.js";
+import { logmealConfigured, recognizeWithLogMeal } from "../lib/logmeal.js";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -124,6 +126,45 @@ async function buildFitContext(userId, tz) {
 
 /* ------------------------------ AI Scan ------------------------------ */
 
+/**
+ * Recognises a food photo, preferring LogMeal and falling back to the vision
+ * model.
+ *
+ * LogMeal goes first because it looks nutrition up in a food database rather
+ * than estimating it, so when it recognises a dish its numbers are the better
+ * answer. It falls through for three separate reasons, all of them normal
+ * rather than exceptional: no key configured, nothing recognised confidently,
+ * or the request failed outright. Only the last one is worth a log line.
+ *
+ * The vision model stays the fallback rather than being retired because it is
+ * the half of this that knows what osh, norin and chuchvara are — LogMeal's
+ * training set does not cover Central Asian cooking, and its language list has
+ * neither Uzbek nor Russian in it.
+ *
+ * The premium `fit` note is only ever produced by the AI path: it is written
+ * by the same call that does the recognition, and LogMeal has no equivalent.
+ * A LogMeal result therefore arrives without one, which the client already
+ * handles — `fitNote` has always been optional.
+ */
+async function scanFood(buffer, mediaType, { userId, fit }) {
+  const profile = await queryOne("SELECT language FROM profiles WHERE user_id = $1", [userId]);
+  const lang = profile?.language || "uz";
+
+  if (logmealConfigured()) {
+    try {
+      const hit = await recognizeWithLogMeal(buffer, mediaType, lang);
+      if (hit) return { ...hit, name: await translateDishName(hit.name, lang) };
+    } catch (err) {
+      // A LogMeal outage must not take the scan down with it — the fallback
+      // below is a complete answer on its own.
+      console.error("[scan] logmeal ishlamadi, AI'ga o'tildi:", err.message);
+    }
+  }
+
+  const result = await analyzeFoodImage(buffer.toString("base64"), mediaType, fit);
+  return { ...result, provider: "ai" };
+}
+
 router.post(
   "/scan",
   requireAuth,
@@ -144,7 +185,7 @@ router.post(
       // Premium buys the personal read on top of the numbers; the percentage
       // itself is computed client-side and everyone gets that.
       const fit = gate.premium ? await buildFitContext(req.userId, Number(req.body?.tz) || 0) : null;
-      const result = await analyzeFoodImage(req.file.buffer.toString("base64"), mediaType, fit);
+      const result = await scanFood(req.file.buffer, mediaType, { userId: req.userId, fit });
       // A photo the model could not read is not worth an allowance unit. Two bad
       // shots of home cooking used to spend most of the free tier.
       if (result.recognized) await recordUsage(req.userId, "scan");

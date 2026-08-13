@@ -87,6 +87,43 @@ Savol: ${query}`;
   return withRecognition(extractJson(text));
 }
 
+/**
+ * Turns a LogMeal dish name into the user's language.
+ *
+ * LogMeal supports ten languages and neither Uzbek nor Russian is one of them,
+ * so a recognised dish arrives as "french fries" no matter who is reading. A
+ * translation is a much smaller ask than recognition, so this is a short,
+ * cheap call rather than a second vision request.
+ *
+ * Returns the original name unchanged on any failure — a scan that shows the
+ * English name is a minor wart, a scan that fails because a translation did is
+ * a broken feature.
+ */
+export async function translateDishName(name, lang) {
+  if (!name || lang === "en") return name;
+
+  const target = { uz: "o'zbek", ru: "rus" }[lang];
+  if (!target) return name;
+
+  try {
+    const text = await callModel(
+      [
+        {
+          role: "user",
+          content: `Quyidagi taom nomini ${target} tiliga tarjima qil. FAQAT tarjimani yoz — izoh, tirnoq yoki qo'shimcha matn qo'shma. Taom nomi mahalliy nom bilan atalsa (masalan "pilaf" → "osh"), o'sha mahalliy nomni ishlat.\n\n${name}`,
+        },
+      ],
+      { maxTokens: 40 }
+    );
+    const cleaned = String(text || "").trim().replace(/^["']|["']$/g, "").split("\n")[0];
+    // A model that answers with a sentence has misunderstood; keep the original
+    // rather than putting an explanation where a dish name goes.
+    return cleaned && cleaned.length <= 60 ? cleaned : name;
+  } catch {
+    return name;
+  }
+}
+
 /* ------------------------------------------------------------------ *
  * AI Personal Trainer chat
  * ------------------------------------------------------------------ */

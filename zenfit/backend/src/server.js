@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import { initDb, usingPostgres } from "./db.js";
 import { aiConfigured, activeProvider } from "./lib/aiProvider.js";
+import { logmealConfigured } from "./lib/logmeal.js";
 import authRoutes from "./routes/auth.js";
 import bootstrapRoutes from "./routes/bootstrap.js";
 import onboardingRoutes from "./routes/onboarding.js";
@@ -61,6 +62,8 @@ app.get("/api/health", (req, res) =>
     ai: aiConfigured(),
     // Which provider answered is worth seeing at a glance after a key change.
     aiProvider: activeProvider(),
+    // Scanning works without this; it just changes which engine gets first go.
+    logmeal: logmealConfigured(),
   })
 );
 app.get("/", (req, res) => res.json({ message: "ZenFit Backend API", health: "/api/health" }));
