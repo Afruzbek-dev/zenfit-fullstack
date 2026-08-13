@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
-import { Flame, TrendingUp, Award, Scale, Dumbbell, Target, PartyPopper } from "lucide-react";
-import { Screen, ScreenHeader, Section, StatTile, Skeleton, Chip } from "../components/ui.jsx";
+import { Flame, TrendingUp, Award, Scale, Dumbbell, Target, PartyPopper, Plus, Check } from "lucide-react";
+import { Screen, ScreenHeader, Section, StatTile, Skeleton, Chip, IconButton, Sheet, NumberField, Button } from "../components/ui.jsx";
+import SafetyNotice from "../components/SafetyNotice.jsx";
 import { api } from "../api.js";
 import { useApp } from "../store.jsx";
 import { localDateKey, weekdayShort } from "../lib/format.js";
 import { estimateGoal } from "../lib/goalPlan.js";
+import { haptic } from "../telegram.js";
 
 /**
  * Monday, January 1st 2024 — a plain, DST-free reference date used only for
@@ -209,6 +211,73 @@ function WeightChart({ history, t }) {
 }
 
 /**
+ * Logs today's weigh-in.
+ *
+ * The only prior way to add a `weight_history` row was the full Edit Profile
+ * form — buried under Profile, and mixed in with age, activity level, and
+ * eight other fields for someone who just wants to record a number. This is
+ * the same write (`PATCH /profile { weightKg }`, which already inserts a
+ * history row on a real change), reached in two taps from the chart it feeds.
+ */
+function LogWeightSheet({ open, onClose, currentKg, onLogged }) {
+  const { updateProfile, showToast, t } = useApp();
+  const [weightKg, setWeightKg] = useState(currentKg ?? 70);
+  const [busy, setBusy] = useState(false);
+  const [safety, setSafety] = useState(null);
+
+  // Reseed from the latest known weight each time the sheet opens, so a stale
+  // number from a previous open is never what gets submitted by default.
+  useEffect(() => {
+    if (open) {
+      setWeightKg(currentKg ?? 70);
+      setSafety(null);
+    }
+  }, [open, currentKg]);
+
+  async function save() {
+    setBusy(true);
+    try {
+      const res = await updateProfile({ weightKg: Number(weightKg) });
+      if (res?.safety?.blocked) {
+        setSafety(res.safety);
+        haptic("warning");
+        return;
+      }
+      haptic("success");
+      showToast(t("progress.weightLogged"), "success");
+      onLogged?.();
+      onClose();
+    } catch (e) {
+      showToast(e.message || t("common.error"), "error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Sheet open={open} onClose={onClose} title={t("progress.logWeight")}>
+      <p className="mb-4 text-[12.5px] leading-relaxed text-muted">{t("progress.logWeightDesc")}</p>
+      <div className="mb-4 flex justify-center">
+        <NumberField
+          value={weightKg}
+          onChange={setWeightKg}
+          unit={t("common.kg")}
+          min={30}
+          max={300}
+          step={0.5}
+          decimals={1}
+          onStep
+        />
+      </div>
+      <SafetyNotice safety={safety} t={t} className="mb-4" />
+      <Button full size="lg" loading={busy} onClick={save}>
+        <Check size={17} /> {t("common.save")}
+      </Button>
+    </Sheet>
+  );
+}
+
+/**
  * How far along the current weight is between the starting weight (the
  * earliest logged entry) and the onboarding goal weight, plus a projection
  * from *today's* weight — not the starting one — so it stays accurate as
@@ -277,6 +346,16 @@ export default function ProgressScreen({ onBack }) {
   const [weekly, setWeekly] = useState(null);
   const [weights, setWeights] = useState([]);
   const [month, setMonth] = useState(null);
+  const [logOpen, setLogOpen] = useState(false);
+
+  async function refreshWeights() {
+    try {
+      const wt = await api.getWeightHistory();
+      setWeights(wt.history || []);
+    } catch {
+      /* the chart just keeps showing what it already had */
+    }
+  }
 
   useEffect(() => {
     let alive = true;
@@ -347,7 +426,10 @@ export default function ProgressScreen({ onBack }) {
         )}
       </Section>
 
-      <Section title={t("progress.weightDynamics")}>
+      <Section
+        title={t("progress.weightDynamics")}
+        action={<IconButton Icon={Plus} label={t("progress.logWeight")} tone="neon" active onClick={() => setLogOpen(true)} />}
+      >
         <WeightChart history={weights} t={t} />
         <GoalProgressCard profile={profile} history={weights} t={t} />
       </Section>
@@ -370,6 +452,13 @@ export default function ProgressScreen({ onBack }) {
           ))}
         </div>
       </Section>
+
+      <LogWeightSheet
+        open={logOpen}
+        onClose={() => setLogOpen(false)}
+        currentKg={profile?.weightKg}
+        onLogged={refreshWeights}
+      />
     </Screen>
   );
 }

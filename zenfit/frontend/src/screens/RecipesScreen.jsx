@@ -1,19 +1,20 @@
 import { useMemo, useState } from "react";
 import {
   Search, Clock, Flame, Plus, Info, Sparkles, Loader2, UtensilsCrossed, Crown,
-  Minus, ChevronDown, ChevronRight, ShoppingBasket, AlertTriangle,
+  Minus, ChevronDown, ChevronRight, ShoppingBasket, AlertTriangle, BookOpen,
 } from "lucide-react";
 import {
   Screen, ScreenHeader, Section, Chip, Sheet, Button, EmptyState, ErrorNote, FitBadge,
 } from "../components/ui.jsx";
 import PantrySheet, { pantryPayload } from "../components/PantrySheet.jsx";
-import { CATEGORIES, filterFoods, foodName, macros, servingMacros } from "../data/foods.js";
+import { CATEGORIES, filterFoods, foodName, macros, servingMacros, FOOD_BY_ID } from "../data/foods.js";
 import { buildDietPlan, sortPlansForGoal } from "../data/dietPlans.js";
 import { foodFit } from "../lib/foodFit.js";
 import { api } from "../api.js";
 import { haptic } from "../telegram.js";
 import { useApp } from "../store.jsx";
 import PremiumSheet from "./profile/PremiumSheet.jsx";
+import RecipeGuide from "./RecipeGuide.jsx";
 
 /** How much of the catalogue is on screen before, and after each, "show more". */
 const FIRST_PAGE = 15;
@@ -29,10 +30,17 @@ const slotLabel = (slot, t) => (SLOT_KEYS.has(slot) ? t(`dietPreset.slots.${slot
 /**
  * One meal inside a plan, preset or AI — the two produce the same shape, so the
  * row does not know or care which built it.
+ *
+ * The recipe link only lights up for preset-plan meals: those carry `foodId`,
+ * a real pointer into the catalogue. AI-generated meals do not — the model
+ * names a dish, it does not create a catalogue row for it — so there is
+ * nothing to look a recipe up by for those.
  */
-function PlanMealRow({ meal }) {
+function PlanMealRow({ meal, onOpenRecipe }) {
   const { addMeal, showToast, t } = useApp();
   const [adding, setAdding] = useState(false);
+  const recipeFood = meal.foodId ? FOOD_BY_ID[meal.foodId] : null;
+  const hasRecipe = Boolean(recipeFood?.steps);
 
   async function add() {
     setAdding(true);
@@ -61,6 +69,15 @@ function PlanMealRow({ meal }) {
       </div>
       <div className="flex shrink-0 items-center gap-2">
         <span className="tabular text-[12.5px] font-bold text-amber">{meal.kcal}</span>
+        {hasRecipe && (
+          <button
+            onClick={() => onOpenRecipe(meal.foodId)}
+            aria-label={`${meal.name} — ${t("recipesScreen.steps")}`}
+            className="grid h-7 w-7 place-items-center rounded-lg bg-cyan/12 active:scale-95"
+          >
+            <BookOpen size={13} className="text-cyan" />
+          </button>
+        )}
         <button
           onClick={add}
           disabled={adding}
@@ -133,7 +150,7 @@ function PresetPlans({ onPick }) {
 }
 
 /** A preset rendered against this user's target, ready to log meal by meal. */
-function PresetSheet({ planId, onClose }) {
+function PresetSheet({ planId, onClose, onOpenRecipe }) {
   const { profile, t, lang } = useApp();
   const built = useMemo(
     () => (planId ? buildDietPlan(planId, { dailyCalorieTarget: profile?.dailyCalorieTarget, lang }) : null),
@@ -168,7 +185,7 @@ function PresetSheet({ planId, onClose }) {
 
           <div className="mb-5 flex flex-col gap-2">
             {built.meals.map((m, i) => (
-              <PlanMealRow key={`${m.foodId}-${i}`} meal={m} />
+              <PlanMealRow key={`${m.foodId}-${i}`} meal={m} onOpenRecipe={onOpenRecipe} />
             ))}
           </div>
         </>
@@ -177,7 +194,7 @@ function PresetSheet({ planId, onClose }) {
   );
 }
 
-function DietPlanCard({ onOpenPremium, onOpenPantry }) {
+function DietPlanCard({ onOpenPremium, onOpenPantry, onOpenRecipe }) {
   const { dietPlan, setDietPlan, profile, subscription, t, lang } = useApp();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -278,7 +295,7 @@ function DietPlanCard({ onOpenPremium, onOpenPantry }) {
 
       <div className="flex flex-col gap-2">
         {(dietPlan.meals || []).map((m, i) => (
-          <PlanMealRow key={i} meal={m} />
+          <PlanMealRow key={i} meal={m} onOpenRecipe={onOpenRecipe} />
         ))}
       </div>
 
@@ -310,8 +327,9 @@ function DietPlanCard({ onOpenPremium, onOpenPantry }) {
 }
 
 /** One catalogue row. Shows what a default serving costs, not per 100 g. */
-function FoodRow({ food, lang, t, onOpen, onAdd }) {
+function FoodRow({ food, lang, t, onOpen, onAdd, onOpenRecipe }) {
   const per = servingMacros(food);
+  const hasRecipe = Boolean(food.steps);
   return (
     <button
       onClick={onOpen}
@@ -333,6 +351,29 @@ function FoodRow({ food, lang, t, onOpen, onAdd }) {
           <span className="flex items-center gap-1"><Flame size={10} className="text-amber" /> {per.kcal} kcal</span>
         </span>
       </span>
+      {hasRecipe && (
+        // A span with role="button", not a real <button> — this row is itself
+        // a <button>, and nesting interactive controls inside one is invalid
+        // HTML; the "add" control below uses the same workaround.
+        <span
+          role="button"
+          tabIndex={0}
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenRecipe(food.id);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.stopPropagation();
+              onOpenRecipe(food.id);
+            }
+          }}
+          aria-label={`${foodName(food, lang)} — ${t("recipesScreen.steps")}`}
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-cyan/12 active:scale-95"
+        >
+          <BookOpen size={15} className="text-cyan" />
+        </span>
+      )}
       <span
         role="button"
         tabIndex={0}
@@ -364,6 +405,7 @@ export default function RecipesScreen({ onBack }) {
   const [search, setSearch] = useState("");
   const [shown, setShown] = useState(FIRST_PAGE);
   const [detail, setDetail] = useState(null);
+  const [recipeFoodId, setRecipeFoodId] = useState(null);
   // Dishes are counted in portions, products in grams — the sheet swaps the
   // control, so both amounts live here and only one is ever in play.
   const [portion, setPortion] = useState(1);
@@ -414,6 +456,10 @@ export default function RecipesScreen({ onBack }) {
     [detail, detailMacros, profile, summary]
   );
 
+  if (recipeFoodId) {
+    return <RecipeGuide foodId={recipeFoodId} onBack={() => setRecipeFoodId(null)} />;
+  }
+
   return (
     <Screen>
       <ScreenHeader
@@ -427,6 +473,7 @@ export default function RecipesScreen({ onBack }) {
         <DietPlanCard
           onOpenPremium={() => setPremiumOpen(true)}
           onOpenPantry={() => setPantryOpen(true)}
+          onOpenRecipe={setRecipeFoodId}
         />
       </Section>
 
@@ -474,6 +521,7 @@ export default function RecipesScreen({ onBack }) {
                 t={t}
                 onOpen={() => open(food)}
                 onAdd={() => add(food, food.kind === "dish" ? 1 : food.servingG / 100)}
+                onOpenRecipe={setRecipeFoodId}
               />
             ))}
           </div>
@@ -624,7 +672,7 @@ export default function RecipesScreen({ onBack }) {
         )}
       </Sheet>
       <PantrySheet open={pantryOpen} onClose={() => setPantryOpen(false)} />
-      <PresetSheet planId={presetId} onClose={() => setPresetId(null)} />
+      <PresetSheet planId={presetId} onClose={() => setPresetId(null)} onOpenRecipe={setRecipeFoodId} />
       <PremiumSheet open={premiumOpen} onClose={() => setPremiumOpen(false)} />
     </Screen>
   );

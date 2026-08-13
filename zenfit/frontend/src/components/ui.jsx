@@ -1,6 +1,6 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { X, ChevronRight, ChevronLeft, Loader2 } from "lucide-react";
+import { X, ChevronRight, ChevronLeft, Loader2, Minus, Plus } from "lucide-react";
 import { haptic } from "../telegram.js";
 // store.jsx does not import this module, so reaching for the context here is
 // safe — no cycle — and it keeps every screen's back button on one label.
@@ -454,6 +454,143 @@ export function MacroBar({ label, value, target, color }) {
       </p>
       <div className="h-1.5 overflow-hidden rounded-full bg-borderSoft">
         <div className="h-full rounded-full transition-[width] duration-700" style={{ width: `${pct}%`, backgroundColor: color }} />
+      </div>
+    </div>
+  );
+}
+
+const clampNum = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
+
+/** Matches the codebase's one decimal precision; there is no fractional case beyond it. */
+const formatNumber = (value, decimals) =>
+  value === "" || value === null || value === undefined
+    ? ""
+    : decimals
+    ? String(Number(value).toFixed(decimals)).replace(/\.0$/, "")
+    : String(value);
+
+/**
+ * A numeric text field that behaves like a real form field, not a slider.
+ *
+ * The typed string is local state while the field has focus — nothing here
+ * converts or clamps mid-keystroke. Three separate copies of this component
+ * used to clamp on every `onChange`, which breaks two ways at once: typing a
+ * value below `min` snaps to `min` after the very first digit (typing "65"
+ * toward a 30–300 range becomes 30, then "305" clamped to 300 — the number
+ * typed is never reached), and typing a decimal point gets silently dropped,
+ * because the controlled `value` re-renders from the coerced integer before
+ * the next digit lands. Clamping now happens once, on blur — and reverts to
+ * the last real value if the field is abandoned empty or unparsable, rather
+ * than substituting a hard-coded default.
+ *
+ * `onStep` renders +/− buttons around the field (used with a `step`); omit it
+ * for a bare labelled input.
+ */
+export function NumberField({
+  label,
+  value,
+  unit,
+  step = 1,
+  min,
+  max,
+  decimals = 0,
+  onChange,
+  onStep = false,
+  // ExerciseRunner nests this inside an already-tinted card, so its +/- buttons
+  // and box need the plainer surface to read as a control rather than another
+  // layer of card.
+  surface = "surfaceAlt",
+  centerLabel = false,
+}) {
+  const [raw, setRaw] = useState(() => formatNumber(value, decimals));
+  const inputRef = useRef(null);
+
+  // Only follow the parent's value when this field is not the one being typed
+  // into — otherwise an unrelated re-render (or this very field's own
+  // onChange echoing back through the parent) would stomp on a keystroke in
+  // flight before the user finishes typing it.
+  useEffect(() => {
+    if (document.activeElement !== inputRef.current) setRaw(formatNumber(value, decimals));
+  }, [value, decimals]);
+
+  function commit(n) {
+    const clamped = clampNum(n, min, max);
+    setRaw(formatNumber(clamped, decimals));
+    onChange(clamped);
+  }
+
+  function handleChange(e) {
+    const text = e.target.value;
+    setRaw(text); // exactly what was typed, unmodified — the fix's whole point
+    if (text === "" || text === "-") return; // let typing continue
+    const n = Number(text);
+    if (Number.isFinite(n)) onChange(n); // live, unclamped — Save/valid checks gate on it
+  }
+
+  function handleBlur() {
+    const n = Number(raw);
+    if (raw !== "" && raw !== "-" && Number.isFinite(n)) commit(n);
+    else setRaw(formatNumber(value, decimals)); // abandoned mid-edit: back to the last real value
+  }
+
+  const bump = (delta) => {
+    haptic("light");
+    commit(Number(value || 0) + delta);
+  };
+
+  return (
+    <div className={onStep ? "flex-1" : undefined}>
+      {label && (
+        <p
+          className={`mb-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-faint ${
+            centerLabel ? "text-center" : ""
+          }`}
+        >
+          {label}
+        </p>
+      )}
+      <div className={onStep ? "flex items-center gap-1.5" : "flex items-baseline gap-1"}>
+        {onStep && (
+          <button
+            onClick={() => bump(-step)}
+            aria-label={`${label} −${step}`}
+            className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-borderSoft bg-${surface} active:scale-95`}
+          >
+            <Minus size={15} className="text-muted" />
+          </button>
+        )}
+        <div
+          className={
+            onStep
+              ? `flex min-w-0 flex-1 items-baseline justify-center gap-1 rounded-xl border border-borderSoft bg-${surface} px-1 py-2`
+              : "flex min-w-0 flex-1 items-baseline gap-1"
+          }
+        >
+          <input
+            ref={inputRef}
+            type="number"
+            inputMode="decimal"
+            value={raw}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            aria-label={label}
+            className={`tabular w-full bg-transparent text-ink outline-none ${
+              onStep ? "text-center text-[19px] font-bold" : "text-[16px] font-bold"
+            }`}
+          />
+          {unit && (
+            <span className={`shrink-0 font-semibold text-faint ${onStep ? "text-[11px]" : "text-[11.5px]"}`}>{unit}</span>
+          )}
+        </div>
+        {onStep && (
+          <button
+            onClick={() => bump(step)}
+            aria-label={`${label} +${step}`}
+            className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-borderSoft bg-${surface} active:scale-95`}
+          >
+            <Plus size={15} className="text-muted" />
+          </button>
+        )}
       </div>
     </div>
   );

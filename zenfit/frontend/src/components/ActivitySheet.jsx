@@ -1,65 +1,40 @@
-import { useMemo, useState } from "react";
-import { Flame, Check, Minus, Plus } from "lucide-react";
-import { Sheet, Button, Chip, ErrorNote } from "./ui.jsx";
+import { useEffect, useMemo, useState } from "react";
+import { Flame, Check } from "lucide-react";
+import { Sheet, Button, Chip, ErrorNote, NumberField } from "./ui.jsx";
 import { ACTIVITIES, INTENSITIES, ACTIVITY_BY_ID, estimateKcal } from "../data/activities.js";
 import { haptic } from "../telegram.js";
 import { useApp } from "../store.jsx";
 
-const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
-
-function NumberField({ label, value, unit, step, min, max, onChange, decimals = 0 }) {
-  const show = decimals ? String(Number(value).toFixed(1)).replace(/\.0$/, "") : String(value);
-  return (
-    <div className="flex-1">
-      <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-faint">{label}</p>
-      <div className="flex items-center gap-1.5">
-        <button
-          onClick={() => {
-            haptic("light");
-            onChange(clamp(Number(value) - step, min, max));
-          }}
-          aria-label={`${label} −`}
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-borderSoft bg-surfaceAlt active:scale-95"
-        >
-          <Minus size={15} className="text-muted" />
-        </button>
-        <div className="flex min-w-0 flex-1 items-baseline justify-center gap-1 rounded-xl border border-borderSoft bg-surfaceAlt px-1 py-2">
-          <input
-            type="number"
-            inputMode="decimal"
-            value={show}
-            onChange={(e) => onChange(e.target.value === "" ? min : clamp(Number(e.target.value), min, max))}
-            aria-label={label}
-            className="tabular w-full bg-transparent text-center text-[19px] font-bold text-ink outline-none"
-          />
-          <span className="shrink-0 text-[11px] font-semibold text-faint">{unit}</span>
-        </div>
-        <button
-          onClick={() => {
-            haptic("light");
-            onChange(clamp(Number(value) + step, min, max));
-          }}
-          aria-label={`${label} +`}
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-borderSoft bg-surfaceAlt active:scale-95"
-        >
-          <Plus size={15} className="text-muted" />
-        </button>
-      </div>
-    </div>
-  );
-}
-
-/** Logs a cardio session or any self-directed workout against the day's burn. */
-export default function ActivitySheet({ open, onClose }) {
+/**
+ * Logs a cardio session or any self-directed workout against the day's burn.
+ *
+ * `initialActivityId`/`initialDurationMin` seed the sheet when it is opened
+ * from a specific suggestion (the workout plan's cardio recommendation) rather
+ * than the bare "+ Faollik" quick action — a recommendation that opens to a
+ * blank "running / 30 min" default regardless of what it just suggested would
+ * make the suggestion decorative.
+ */
+export default function ActivitySheet({ open, onClose, initialActivityId = "running", initialDurationMin = 30 }) {
   const { t, profile, addActivity, showToast } = useApp();
-  const [activityId, setActivityId] = useState("running");
-  const [durationMin, setDurationMin] = useState(30);
+  const [activityId, setActivityId] = useState(initialActivityId);
+  const [durationMin, setDurationMin] = useState(initialDurationMin);
   const [distanceKm, setDistanceKm] = useState(0);
   const [intensity, setIntensity] = useState("moderate");
   const [customName, setCustomName] = useState("");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+
+  // Re-seed on the transition to open, not on every render — the sheet stays
+  // mounted while closed (only its portal is hidden), so without this a second
+  // open from a different suggestion would keep showing the first one's values.
+  useEffect(() => {
+    if (open) {
+      setActivityId(initialActivityId);
+      setDurationMin(initialDurationMin);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const meta = ACTIVITY_BY_ID[activityId];
   const showsDistance = Boolean(meta?.distance);
@@ -154,6 +129,7 @@ export default function ActivitySheet({ open, onClose }) {
           min={1}
           max={600}
           onChange={setDurationMin}
+          onStep
         />
         {showsDistance && (
           <NumberField
@@ -165,6 +141,7 @@ export default function ActivitySheet({ open, onClose }) {
             max={300}
             decimals={1}
             onChange={setDistanceKm}
+            onStep
           />
         )}
       </div>

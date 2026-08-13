@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Camera, ImageIcon, Sparkles, Type, Check, RotateCcw, Info, Loader2, Crown, X } from "lucide-react";
+import { Camera, ImageIcon, Sparkles, Type, Check, RotateCcw, Info, Loader2, Crown, X, ThumbsUp, ThumbsDown } from "lucide-react";
 import { Screen, ScreenActions, Section, Button, ErrorNote, EmptyState, FitBadge } from "../components/ui.jsx";
 import { foodFit } from "../lib/foodFit.js";
 import { api } from "../api.js";
@@ -135,6 +135,38 @@ async function compressImage(file, maxDim = 1280, quality = 0.82) {
   } catch {
     return file;
   }
+}
+
+/**
+ * The composition read: what is actually worth knowing about this specific
+ * food, not a nutrition-label recitation. Premium-only and absent entirely
+ * from a LogMeal-recognised result, so an empty `composition` (or none of it
+ * present) simply renders nothing — same optionality as `fitNote`.
+ */
+function CompositionCard({ composition, t }) {
+  const benefits = composition?.benefits?.filter(Boolean) || [];
+  const harms = composition?.harms?.filter(Boolean) || [];
+  if (!benefits.length && !harms.length) return null;
+
+  return (
+    <div className="card px-4 py-3.5">
+      <p className="mb-2.5 text-[11px] font-bold uppercase tracking-wider text-faint">{t("scan.compositionTitle")}</p>
+      <div className="flex flex-col gap-2">
+        {benefits.map((b, i) => (
+          <div key={`b${i}`} className="flex items-start gap-2">
+            <ThumbsUp size={13} className="mt-0.5 shrink-0 text-neon" />
+            <p className="text-[12px] leading-relaxed text-ink">{b}</p>
+          </div>
+        ))}
+        {harms.map((h, i) => (
+          <div key={`h${i}`} className="flex items-start gap-2">
+            <ThumbsDown size={13} className="mt-0.5 shrink-0 text-amber" />
+            <p className="text-[12px] leading-relaxed text-ink">{h}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export default function ScanScreen({ onNavigate }) {
@@ -482,6 +514,12 @@ export default function ScanScreen({ onNavigate }) {
               {fit && (
                 <div className="mb-3">
                   <FitBadge fit={fit} aiNote={result.fitNote} />
+                </div>
+              )}
+
+              {result.composition && (
+                <div className="mb-3">
+                  <CompositionCard composition={result.composition} t={t} />
                 </div>
               )}
 

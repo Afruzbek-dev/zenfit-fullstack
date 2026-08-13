@@ -524,7 +524,65 @@ export function generateWorkoutPlan({
       ? `${activeInjuries.map((r) => r.label).join(", ")} uchun mashqlar xavfsiz almashtirildi. ${SAFETY_NOTE}`
       : null,
     focusMuscles: focused ? groups.map((g) => g.id) : null,
+    cardio: cardioRecommendation({ goal, level, equipment }),
     days,
+  };
+}
+
+/* -------------------------- cardio recommendation ------------------------ */
+
+/**
+ * How much cardio/HIIT a week to layer on top of the strength split, and how
+ * hard.
+ *
+ * Deliberately advisory, not scheduled into a specific day: `days` above is
+ * already the strength split, and activity logging (ActivitySheet) is
+ * free-form by design — a session slotted into "day 3" would just get skipped
+ * the moment a real week does not match the template. The frequency below is
+ * a target for the week as a whole.
+ *
+ * The three goals pull in different directions on purpose:
+ * - "lose" needs the extra deficit cardio buys, so it gets the most volume and
+ *   a HIIT session for the higher afterburn.
+ * - "maintain" gets enough for cardiovascular health without eating into
+ *   recovery from the strength days.
+ * - "gain" is deliberately light. Cardio competes with a surplus for calories
+ *   and with strength work for recovery, so this is framed as heart health,
+ *   not a fat-loss tool — pushing more here would work against the goal the
+ *   trainee actually picked.
+ */
+const CARDIO_RULES = {
+  lose: { sessionsPerWeek: 4, durationMin: 30, intensity: "vigorous", noteKey: "lose", includeHiit: true },
+  maintain: { sessionsPerWeek: 2, durationMin: 25, intensity: "moderate", noteKey: "maintain", includeHiit: false },
+  gain: { sessionsPerWeek: 1, durationMin: 20, intensity: "light", noteKey: "gain", includeHiit: false },
+};
+
+/** No-equipment options first — a cardio suggestion useless without a treadmill helps no one. */
+const CARDIO_POOL = {
+  "home-none": ["jump-rope", "hiit", "stairs", "running"],
+  "home-dumbbell": ["jump-rope", "hiit", "running", "boxing"],
+  gym: ["running", "cycling", "hiit", "swimming"],
+  outdoor: ["running", "cycling", "hiking", "jump-rope"],
+};
+
+export function cardioRecommendation({ goal = "maintain", level = "beginner", equipment = "home-none" }) {
+  const rules = CARDIO_RULES[goal] || CARDIO_RULES.maintain;
+  const pool = CARDIO_POOL[equipment] || CARDIO_POOL["home-none"];
+
+  // Beginners get one fewer session and a lighter step than the table above —
+  // this is where cardio volume actually meets someone's current capacity;
+  // the goal table only says how hard the *direction* should push.
+  const sessionsPerWeek = level === "beginner" ? Math.max(1, rules.sessionsPerWeek - 1) : rules.sessionsPerWeek;
+  const intensity = level === "beginner" && rules.intensity === "vigorous" ? "moderate" : rules.intensity;
+
+  const activities = rules.includeHiit ? [...new Set(["hiit", ...pool])] : pool;
+
+  return {
+    sessionsPerWeek,
+    durationMin: rules.durationMin,
+    intensity,
+    activities: activities.slice(0, 3),
+    noteKey: rules.noteKey,
   };
 }
 

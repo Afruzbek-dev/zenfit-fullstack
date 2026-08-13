@@ -1,16 +1,56 @@
 import { useMemo, useState } from "react";
-import { Sparkles, Dumbbell, Coffee, Check, Play, RefreshCw, BookOpen, ShieldAlert, Lightbulb, Crown } from "lucide-react";
+import { Sparkles, Dumbbell, Coffee, Check, Play, RefreshCw, BookOpen, ShieldAlert, Lightbulb, Crown, Flame } from "lucide-react";
 import { Screen, Section, Button, Sheet, EmptyState, ListRow, ErrorNote } from "../components/ui.jsx";
 import WorkoutSession from "./WorkoutSession.jsx";
 import ExerciseLibrary from "./ExerciseLibrary.jsx";
 import PremiumSheet from "./profile/PremiumSheet.jsx";
+import ActivitySheet from "../components/ActivitySheet.jsx";
 import { dayLabel, generateWorkoutPlan, localizeDay, planTitle } from "../lib/aiPlanEngine.js";
 import MuscleTargetPicker from "../components/MuscleTargetPicker.jsx";
+import { ACTIVITY_BY_ID } from "../data/activities.js";
 import { PROGRAMS } from "../data/programs.js";
 import { api } from "../api.js";
 import { haptic } from "../telegram.js";
 import { useApp } from "../store.jsx";
 import { localDateKey } from "../lib/format.js";
+
+/** Suggests weekly cardio/HIIT volume alongside the strength split, and opens the activity logger pre-seeded with it. */
+function CardioCard({ cardio, t, onStart }) {
+  if (!cardio) return null;
+  const activities = cardio.activities.map((id) => ACTIVITY_BY_ID[id]).filter(Boolean);
+
+  return (
+    <div className="card px-4 py-4">
+      <div className="mb-3 flex items-center gap-2.5">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-cyan/12">
+          <Flame size={18} className="text-cyan" />
+        </span>
+        <div className="min-w-0">
+          <p className="text-[13.5px] font-bold text-ink">
+            {t("workout.cardioFreq", { n: cardio.sessionsPerWeek, min: cardio.durationMin })}
+          </p>
+          <p className="text-[11.5px] text-muted">{t(`workout.cardioNote.${cardio.noteKey}`)}</p>
+        </div>
+      </div>
+
+      <div className="mb-3 flex flex-wrap gap-2">
+        {activities.map((a) => (
+          <button
+            key={a.id}
+            onClick={() => onStart(a.id, cardio.durationMin)}
+            className="flex items-center gap-1.5 rounded-full border border-borderSoft bg-surfaceAlt px-3 py-1.5 text-[12px] font-semibold text-ink active:scale-95"
+          >
+            <span>{a.emoji}</span> {t(`activity.names.${a.id}`)}
+          </button>
+        ))}
+      </div>
+
+      <Button full variant="ghost" onClick={() => onStart(cardio.activities[0], cardio.durationMin)}>
+        <Flame size={15} /> {t("workout.logCardio")}
+      </Button>
+    </div>
+  );
+}
 
 function PlanDayCard({ item, doneCount, onOpen, t }) {
   const day = localizeDay(item.day, t);
@@ -171,6 +211,7 @@ export default function WorkoutsScreen() {
   const [tipsBusy, setTipsBusy] = useState(false);
   const [creating, setCreating] = useState(false);
   const [premiumOpen, setPremiumOpen] = useState(false);
+  const [cardioSeed, setCardioSeed] = useState(null);
 
   const today = localDateKey();
   const doneByDay = useMemo(() => {
@@ -360,6 +401,14 @@ export default function WorkoutsScreen() {
             </div>
           </Section>
 
+          <Section title={t("workout.cardioTitle")}>
+            <CardioCard
+              cardio={workoutPlan.cardio}
+              t={t}
+              onStart={(activityId, durationMin) => setCardioSeed({ activityId, durationMin })}
+            />
+          </Section>
+
           <Section
             title={t("workout.aiTips")}
             action={
@@ -420,6 +469,12 @@ export default function WorkoutsScreen() {
         onLocked={() => setPremiumOpen(true)}
       />
       <PremiumSheet open={premiumOpen} onClose={() => setPremiumOpen(false)} />
+      <ActivitySheet
+        open={Boolean(cardioSeed)}
+        onClose={() => setCardioSeed(null)}
+        initialActivityId={cardioSeed?.activityId}
+        initialDurationMin={cardioSeed?.durationMin}
+      />
     </Screen>
   );
 }

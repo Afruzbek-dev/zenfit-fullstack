@@ -51,6 +51,32 @@ const DISHES = [
       ru: ["Рис 120 г", "Говядина или баранина 100 г", "Морковь 100 г", "Лук, чеснок, специи"],
       en: ["Rice 120g", "Beef or lamb 100g", "Carrot 100g", "Onion, garlic, spices"],
     },
+    steps: {
+      uz: [
+        "Go'shtni bo'laklab, qozonda moyda qizartiring.",
+        "Piyozni qo'shib oltin rangga chiqquncha qovuring.",
+        "To'g'ralgan sabzini soling, 10 daqiqa dimlang — bu zirvak.",
+        "Suv quyib, tuz-ziravor solib 30-40 daqiqa qaynating.",
+        "Yuvilgan guruchni tekis yoyib soling, suv sathi barmoq bo'g'imicha bo'lsin.",
+        "Kuchsiz otashda qopqoqni yopib 20-25 daqiqa dimlang, keyin aralashtirib tovoqqa oling.",
+      ],
+      ru: [
+        "Нарежьте мясо и обжарьте в казане на масле.",
+        "Добавьте лук, жарьте до золотистого цвета.",
+        "Положите нарезанную морковь, тушите 10 минут — это зирвак.",
+        "Залейте водой, посолите и поперчите, варите 30-40 минут.",
+        "Промытый рис выложите ровным слоем, воды должно быть на палец выше.",
+        "Накройте крышкой, томите на слабом огне 20-25 минут, затем перемешайте и подавайте.",
+      ],
+      en: [
+        "Cut the meat into pieces and brown it in oil in a large pot.",
+        "Add the onion and fry until golden.",
+        "Add the chopped carrot and cook for 10 minutes — this is the zirvak base.",
+        "Add water, salt and spices, simmer for 30-40 minutes.",
+        "Spread the washed rice evenly on top; water should sit a finger's width above it.",
+        "Cover and steam on low heat for 20-25 minutes, then mix through and serve.",
+      ],
+    },
   }),
   dish("lagmon", { uz: "Qovurma lag'mon", ru: "Лагман (жареный)", en: "Fried lagman" }, "🍜", 400, [700, 76, 32, 29], {
     cat: "national", uzbek: true, minutes: 60,
@@ -63,6 +89,29 @@ const DISHES = [
       uz: ["Lag'mon xamiri 150g", "Mol go'shti 100g", "Bolgar qalampiri, pomidor, sabzi"],
       ru: ["Лапша 150 г", "Говядина 100 г", "Болгарский перец, помидор, морковь"],
       en: ["Noodles 150g", "Beef 100g", "Pepper, tomato, carrot"],
+    },
+    steps: {
+      uz: [
+        "Go'shtni ingichka bo'laklab, qaynoq moyda tez qovuring.",
+        "Piyoz, sabzi, bolgar qalampirini qo'shib 5 daqiqa qovuring.",
+        "Pomidor va ziravorlarni solib, sous quyuqlashguncha qaynating.",
+        "Lag'monni alohida qozonda qaynatib, suvini to'kib tashlang.",
+        "Tayyor lag'monni sousga solib aralashtiring va issiq holida bering.",
+      ],
+      ru: [
+        "Нарежьте мясо тонкими полосками и быстро обжарьте на сильном огне.",
+        "Добавьте лук, морковь и болгарский перец, жарьте 5 минут.",
+        "Положите помидоры и специи, тушите до загустения соуса.",
+        "Отдельно отварите лапшу, слейте воду.",
+        "Смешайте лапшу с соусом и подавайте горячим.",
+      ],
+      en: [
+        "Slice the meat thin and sear it quickly in hot oil.",
+        "Add onion, carrot and bell pepper, fry for 5 minutes.",
+        "Add tomato and spices, simmer until the sauce thickens.",
+        "Boil the noodles separately and drain.",
+        "Toss the noodles through the sauce and serve hot.",
+      ],
     },
   }),
   dish("somsa", { uz: "Go'shtli somsa", ru: "Самса с мясом", en: "Meat samsa" }, "🥟", 150, [405, 32, 16, 23], {
@@ -77,6 +126,29 @@ const DISHES = [
       ru: ["Тесто 60 г", "Фарш 50 г", "Лук", "Специи"],
       en: ["Pastry 60g", "Minced meat 50g", "Onion", "Spices"],
     },
+    steps: {
+      uz: [
+        "Farsga mayda to'g'ralgan piyoz, tuz va ziravor qo'shib aralashtiring.",
+        "Xamirni yupqa yoyib, kvadrat bo'laklarga bo'ling.",
+        "Har biriga fars qo'yib, uchburchak yoki to'rtburchak qilib yoping.",
+        "Tandirning devoriga yopishtirib yoki pechda 200°C da 25-30 daqiqa toblang.",
+        "Qizarib chiqqach oling va biroz sovutib xizmat qiling.",
+      ],
+      ru: [
+        "Смешайте фарш с мелко нарезанным луком, солью и специями.",
+        "Раскатайте тесто тонко и нарежьте квадратами.",
+        "На каждый положите фарш и защипните в треугольник или квадрат.",
+        "Выпекайте в тандыре или в духовке при 200°C 25-30 минут.",
+        "Достаньте, когда подрумянятся, и подавайте слегка остывшими.",
+      ],
+      en: [
+        "Mix the minced meat with finely chopped onion, salt and spices.",
+        "Roll the dough thin and cut it into squares.",
+        "Spoon filling onto each square and seal into a triangle or pocket.",
+        "Bake in a tandoor or oven at 200°C (400°F) for 25-30 minutes.",
+        "Remove once golden and let cool slightly before serving.",
+      ],
+    },
   }),
   dish("manti", { uz: "Manti", ru: "Манты", en: "Manti" }, "🥟", 280, [655, 62, 31, 31], {
     cat: "national", uzbek: true, minutes: 90,
@@ -89,6 +161,32 @@ const DISHES = [
       uz: ["Xamir", "Mol fars yoki qovoq + go'sht", "Piyoz", "Qatiq"],
       ru: ["Тесто", "Фарш или тыква с мясом", "Лук", "Катык"],
       en: ["Dough", "Minced meat or pumpkin and meat", "Onion", "Yoghurt"],
+    },
+    steps: {
+      uz: [
+        "Farsga mayda to'g'ralgan piyoz va ziravor aralashtiring.",
+        "Xamirni yupqa doiralarga bo'ling, o'rtasiga fars qo'ying.",
+        "Chetlarini yig'ib, tag qismi ochiq qolmasligiga ishonch hosil qilib yoping.",
+        "Manti qozonining har qavatiga moylab, mantilarni bir-biriga tegmasdan tering.",
+        "Qopqog'ini yopib 40-45 daqiqa bug'da pishiring.",
+        "Qatiq yoki sarimsoqli sous bilan issiq holida bering.",
+      ],
+      ru: [
+        "Смешайте фарш с мелко нарезанным луком и специями.",
+        "Раскатайте тесто тонкими кружками, в центр положите фарш.",
+        "Соберите края и защипните, чтобы дно оставалось закрытым.",
+        "Смажьте ярусы мантоварки маслом и разложите манты, не касаясь друг друга.",
+        "Накройте крышкой и готовьте на пару 40-45 минут.",
+        "Подавайте горячими с катыком или чесночным соусом.",
+      ],
+      en: [
+        "Mix the minced meat with finely chopped onion and spices.",
+        "Roll the dough into thin rounds and spoon filling into the centre.",
+        "Gather the edges and pinch shut so the base stays sealed.",
+        "Oil each tier of the steamer and arrange the manti without touching.",
+        "Cover and steam for 40-45 minutes.",
+        "Serve hot with yoghurt or a garlic sauce.",
+      ],
     },
   }),
   dish("shurpa", { uz: "Shurpa", ru: "Шурпа", en: "Shurpa" }, "🍲", 350, [320, 20, 22, 16], {
@@ -103,6 +201,29 @@ const DISHES = [
       ru: ["Мясо на кости 150 г", "Картофель", "Морковь", "Помидор"],
       en: ["Bone-in meat 150g", "Potato", "Carrot", "Tomato"],
     },
+    steps: {
+      uz: [
+        "Suyakli go'shtni sovuq suvga solib qaynating, ko'pigini olib turing.",
+        "Qaynagach otashni pasaytirib 1.5-2 soat sekin qaynating.",
+        "Yirik to'g'ralgan kartoshka, sabzi va pomidorni qo'shing.",
+        "Tuz-ziravor solib, sabzavotlar yumshaguncha yana 20-25 daqiqa qaynating.",
+        "Ko'katlar sepib, issiq holida likopchaga soling.",
+      ],
+      ru: [
+        "Залейте мясо на кости холодной водой и доведите до кипения, снимая пену.",
+        "После закипания убавьте огонь и варите 1.5-2 часа на медленном огне.",
+        "Добавьте крупно нарезанные картофель, морковь и помидор.",
+        "Посолите, поперчите и варите ещё 20-25 минут до мягкости овощей.",
+        "Посыпьте зеленью и подавайте горячей.",
+      ],
+      en: [
+        "Cover the bone-in meat with cold water and bring to a boil, skimming the foam.",
+        "Once boiling, lower the heat and simmer gently for 1.5-2 hours.",
+        "Add roughly chopped potato, carrot and tomato.",
+        "Season and simmer another 20-25 minutes until the vegetables are soft.",
+        "Sprinkle with herbs and serve hot.",
+      ],
+    },
   }),
   dish("mastava", { uz: "Mastava", ru: "Мастава", en: "Mastava" }, "🍜", 350, [290, 34, 15, 11], {
     cat: "national", uzbek: true, minutes: 60,
@@ -115,6 +236,29 @@ const DISHES = [
       uz: ["Guruch 50g", "Mol go'shti 80g", "Kartoshka, sabzi, pomidor"],
       ru: ["Рис 50 г", "Говядина 80 г", "Картофель, морковь, помидор"],
       en: ["Rice 50g", "Beef 80g", "Potato, carrot, tomato"],
+    },
+    steps: {
+      uz: [
+        "Go'shtni mayda to'g'rab moyda qovuring.",
+        "Piyoz va sabzini qo'shib 5 daqiqa qovuring.",
+        "Suv quyib qaynating, kartoshka va pomidorni soling.",
+        "Yuvilgan guruchni qo'shib, tuz-ziravor bilan yumshaguncha 20-25 daqiqa qaynating.",
+        "Ko'katlar sepib issiq holida bering.",
+      ],
+      ru: [
+        "Мелко нарежьте мясо и обжарьте на масле.",
+        "Добавьте лук и морковь, жарьте 5 минут.",
+        "Залейте водой, доведите до кипения, добавьте картофель и помидор.",
+        "Всыпьте промытый рис, посолите и варите 20-25 минут до готовности.",
+        "Посыпьте зеленью и подавайте горячим.",
+      ],
+      en: [
+        "Finely dice the meat and brown it in oil.",
+        "Add onion and carrot, fry for 5 minutes.",
+        "Add water, bring to a boil, then add potato and tomato.",
+        "Stir in washed rice, season, and simmer 20-25 minutes until tender.",
+        "Sprinkle with herbs and serve hot.",
+      ],
     },
   }),
   dish("chuchvara", { uz: "Chuchvara", ru: "Чучвара", en: "Chuchvara dumplings" }, "🥟", 300, [420, 48, 20, 16], {
@@ -129,6 +273,29 @@ const DISHES = [
       ru: ["Тесто 150 г", "Фарш 80 г", "Лук", "Катык или бульон"],
       en: ["Dough 150g", "Minced beef 80g", "Onion", "Yoghurt or broth"],
     },
+    steps: {
+      uz: [
+        "Farsga mayda to'g'ralgan piyoz, tuz va murch qo'shing.",
+        "Xamirni yupqa yoyib, mayda kvadratlarga bo'ling.",
+        "Har biriga ozgina fars qo'yib, chuchvara shaklida yoping.",
+        "Qaynayotgan tuzli suvga yoki bulyonga solib 8-10 daqiqa qaynating.",
+        "Suzib oling, qatiq bilan yoki bulyonning o'zida issiq holida bering.",
+      ],
+      ru: [
+        "Смешайте фарш с мелко нарезанным луком, солью и перцем.",
+        "Раскатайте тесто тонко и нарежьте небольшими квадратами.",
+        "На каждый положите немного фарша и защипните в форме чучвары.",
+        "Отварите в кипящей подсоленной воде или бульоне 8-10 минут.",
+        "Откиньте на дуршлаг и подавайте горячими с катыком или в бульоне.",
+      ],
+      en: [
+        "Mix the minced meat with finely chopped onion, salt and pepper.",
+        "Roll the dough thin and cut into small squares.",
+        "Place a little filling on each and pinch into a small dumpling.",
+        "Boil in salted water or broth for 8-10 minutes.",
+        "Drain and serve hot with yoghurt, or straight in the broth.",
+      ],
+    },
   }),
   dish("dimlama", { uz: "Dimlama", ru: "Димлама", en: "Dimlama" }, "🍲", 350, [385, 32, 21, 19], {
     cat: "national", uzbek: true, minutes: 100,
@@ -141,6 +308,29 @@ const DISHES = [
       uz: ["Mol go'shti 120g", "Kartoshka, karam, sabzi, pomidor", "Piyoz, ko'katlar"],
       ru: ["Говядина 120 г", "Картофель, капуста, морковь, помидор", "Лук, зелень"],
       en: ["Beef 120g", "Potato, cabbage, carrot, tomato", "Onion, herbs"],
+    },
+    steps: {
+      uz: [
+        "Qozon tagiga moy surtib, go'shtni bir qavat qilib yoying.",
+        "Ustiga piyoz, so'ng karam, sabzi, kartoshka va pomidorni qavat-qavat tering.",
+        "Har qavatga ozgina tuz-ziravor sepib boring — aralashtirmang.",
+        "Qopqog'ini zich yopib, kuchsiz otashda 1.5 soat dimlang.",
+        "Qavatlarni buzmasdan likopchaga oling, ko'kat sepib bering.",
+      ],
+      ru: [
+        "Смажьте дно казана маслом и выложите слой мяса.",
+        "Сверху слоями выложите лук, капусту, морковь, картофель и помидор.",
+        "Каждый слой слегка посолите и приправьте — не перемешивайте.",
+        "Плотно накройте крышкой и томите на слабом огне 1.5 часа.",
+        "Аккуратно переложите слоями на блюдо и посыпьте зеленью.",
+      ],
+      en: [
+        "Oil the bottom of the pot and lay down a layer of meat.",
+        "Layer onion, then cabbage, carrot, potato and tomato on top.",
+        "Lightly season each layer — do not stir.",
+        "Cover tightly and simmer on low heat for 1.5 hours.",
+        "Lift out keeping the layers intact and finish with herbs.",
+      ],
     },
   }),
   dish("kabob", { uz: "Shashlik (mol go'shti)", ru: "Шашлык (говядина)", en: "Beef shashlik" }, "🍢", 150, [330, 2, 30, 23], {
@@ -155,6 +345,29 @@ const DISHES = [
       ru: ["Говядина 150 г", "Лук", "Специи, уксус"],
       en: ["Beef 150g", "Onion", "Spices, vinegar"],
     },
+    steps: {
+      uz: [
+        "Go'shtni bir xilda bo'laklab, halqa qilib to'g'ralgan piyoz bilan aralashtiring.",
+        "Tuz, ziravor va bir oz sirka qo'shib, kamida 1-2 soat marinadga qo'ying.",
+        "Bo'laklarni sixga zich qilib tering.",
+        "Cho'g' ustida har tarafini aylantirib 12-15 daqiqa pishiring.",
+        "Halqa piyoz va yangi sabzavot bilan issiq holida bering.",
+      ],
+      ru: [
+        "Нарежьте мясо равными кусками и смешайте с луком, нарезанным кольцами.",
+        "Добавьте соль, специи и немного уксуса, маринуйте минимум 1-2 часа.",
+        "Плотно нанижите куски на шампур.",
+        "Жарьте над углями, переворачивая, 12-15 минут.",
+        "Подавайте горячим с луком и свежими овощами.",
+      ],
+      en: [
+        "Cut the meat into even pieces and mix with onion rings.",
+        "Add salt, spices and a splash of vinegar, marinate for at least 1-2 hours.",
+        "Thread the pieces tightly onto skewers.",
+        "Grill over coals, turning regularly, for 12-15 minutes.",
+        "Serve hot with onion rings and fresh vegetables.",
+      ],
+    },
   }),
   dish("norin", { uz: "Norin", ru: "Норин", en: "Norin" }, "🍝", 300, [560, 62, 29, 22], {
     cat: "national", uzbek: true, minutes: 120,
@@ -167,6 +380,32 @@ const DISHES = [
       uz: ["Xamir 150g", "Qaynatilgan go'sht 120g", "Piyoz", "Bulyon"],
       ru: ["Тесто 150 г", "Отварное мясо 120 г", "Лук", "Бульон"],
       en: ["Dough 150g", "Boiled meat 120g", "Onion", "Broth"],
+    },
+    steps: {
+      uz: [
+        "Go'shtni suvda yumshaguncha 1.5-2 soat qaynating, bulyonni saqlab qo'ying.",
+        "Sovigach go'shtni mayda tolalarga ajrating.",
+        "Xamirni yupqa yoyib, keng lentalarga kesib qaynatib oling.",
+        "Xamirni go'sht bilan aralashtirib, ustiga yupqa halqa qilib to'g'ralgan piyoz soling.",
+        "Bulyonni qaynatib piyoz ustiga quying — halqalar shu tarzda pishadi.",
+        "Likopchaga solib, issiq bulyon bilan alohida bering.",
+      ],
+      ru: [
+        "Отварите мясо до мягкости 1.5-2 часа, бульон сохраните.",
+        "Остывшее мясо разберите на мелкие волокна.",
+        "Раскатайте тесто тонко, нарежьте широкими лентами и отварите.",
+        "Смешайте лапшу с мясом, сверху выложите тонко нарезанные кольца лука.",
+        "Залейте лук кипящим бульоном — так кольца слегка проварятся.",
+        "Разложите по тарелкам и подавайте с горячим бульоном отдельно.",
+      ],
+      en: [
+        "Boil the meat until tender, 1.5-2 hours, and keep the broth.",
+        "Once cool, shred the meat into fine strands.",
+        "Roll the dough thin, cut into wide ribbons and boil.",
+        "Mix the noodles with the meat, then top with thinly sliced onion rings.",
+        "Pour boiling broth over the onion so the rings soften slightly.",
+        "Plate it up and serve with hot broth on the side.",
+      ],
     },
   }),
   dish("tovuq-guruch", { uz: "Grilangan tovuq + guruch", ru: "Курица гриль с рисом", en: "Grilled chicken with rice" }, "🍗", 250, [370, 26, 49, 6], {
@@ -181,6 +420,26 @@ const DISHES = [
       ru: ["Куриная грудка 150 г", "Бурый рис 100 г (варёный)", "Лимон, специи"],
       en: ["Chicken breast 150g", "Brown rice 100g (cooked)", "Lemon, spices"],
     },
+    steps: {
+      uz: [
+        "Tovuq ko'krakni limon sharbati va ziravorlarda 15 daqiqa marinadga qo'ying.",
+        "Grill yoki tovada (moysiz yoki ozgina moy bilan) har tarafini 6-7 daqiqadan pishiring.",
+        "Jigarrang guruchni ko'rsatmaga ko'ra qaynatib oling.",
+        "Tovuqni bo'laklab, guruch yoniga qo'ying, limon bo'lagi bilan bering.",
+      ],
+      ru: [
+        "Замаринуйте куриную грудку в лимонном соке со специями 15 минут.",
+        "Обжарьте на гриле или сковороде (без масла или с малым количеством) по 6-7 минут с каждой стороны.",
+        "Отварите бурый рис по инструкции на упаковке.",
+        "Нарежьте курицу, выложите рядом с рисом и подавайте с долькой лимона.",
+      ],
+      en: [
+        "Marinate the chicken breast in lemon juice and spices for 15 minutes.",
+        "Grill or pan-sear (dry or with a touch of oil) 6-7 minutes per side.",
+        "Cook the brown rice according to the package.",
+        "Slice the chicken, plate it beside the rice, and serve with a lemon wedge.",
+      ],
+    },
   }),
   dish("omlet-avokado", { uz: "Omlet + avokado", ru: "Омлет с авокадо", en: "Omelette with avocado" }, "🥑", 220, [390, 8, 21, 32], {
     cat: "dairy", minutes: 12, approx: false,
@@ -193,6 +452,26 @@ const DISHES = [
       uz: ["Tuxum 3 dona", "Avokado 1/2 dona", "Zaytun moyi 1 choy qoshiq", "Ko'katlar"],
       ru: ["Яйца 3 шт", "Авокадо 1/2", "Оливковое масло 1 ч. л.", "Зелень"],
       en: ["3 eggs", "Half an avocado", "1 tsp olive oil", "Herbs"],
+    },
+    steps: {
+      uz: [
+        "Tuxumlarni tuz bilan chayqating.",
+        "Tovada zaytun moyini qizdirib, tuxumni quyib past otashda pishiring.",
+        "Avokadoni bo'laklab omlet yoniga qo'ying.",
+        "Ko'kat sepib darhol xizmat qiling.",
+      ],
+      ru: [
+        "Взбейте яйца с щепоткой соли.",
+        "Разогрейте оливковое масло на сковороде и вылейте яйца, готовьте на медленном огне.",
+        "Нарежьте авокадо дольками и выложите рядом с омлетом.",
+        "Посыпьте зеленью и подавайте сразу.",
+      ],
+      en: [
+        "Whisk the eggs with a pinch of salt.",
+        "Heat the olive oil in a pan, pour in the eggs and cook over low heat.",
+        "Slice the avocado and plate it alongside the omelette.",
+        "Sprinkle with herbs and serve right away.",
+      ],
     },
   }),
   dish("baliq-sabzavot", { uz: "Pechda baliq + sabzavot", ru: "Рыба с овощами в духовке", en: "Baked fish with vegetables" }, "🐟", 380, [340, 14, 36, 15], {
@@ -207,6 +486,29 @@ const DISHES = [
       ru: ["Филе рыбы 180 г", "Брокколи, морковь, перец 200 г", "Оливковое масло", "Лимон"],
       en: ["Fish fillet 180g", "Broccoli, carrot, pepper 200g", "Olive oil", "Lemon"],
     },
+    steps: {
+      uz: [
+        "Pechni 200°C ga qizdiring.",
+        "Baliq filesini tuz, murch va limon sharbati bilan ishqalang.",
+        "Sabzavotlarni bo'laklab, zaytun moyida aralashtiring.",
+        "Baliq va sabzavotlarni qog'ozga solib, 20-25 daqiqa pishiring.",
+        "Ustidan limon siqib issiq holida bering.",
+      ],
+      ru: [
+        "Разогрейте духовку до 200°C.",
+        "Натрите рыбное филе солью, перцем и лимонным соком.",
+        "Нарежьте овощи и смешайте с оливковым маслом.",
+        "Выложите рыбу и овощи на противень с бумагой, запекайте 20-25 минут.",
+        "Сбрызните лимоном и подавайте горячим.",
+      ],
+      en: [
+        "Preheat the oven to 200°C (400°F).",
+        "Rub the fish fillet with salt, pepper and lemon juice.",
+        "Chop the vegetables and toss with olive oil.",
+        "Arrange fish and vegetables on a lined tray and bake 20-25 minutes.",
+        "Squeeze fresh lemon over the top and serve hot.",
+      ],
+    },
   }),
   dish("tvorog-asal", { uz: "Tvorog + asal", ru: "Творог с мёдом", en: "Cottage cheese with honey" }, "🥣", 165, [225, 17, 25, 7], {
     cat: "dairy", minutes: 2, approx: false,
@@ -220,6 +522,11 @@ const DISHES = [
       ru: ["Творог 5% 150 г", "Мёд 1 ст. л."],
       en: ["Curd cheese 5% 150g", "1 tbsp honey"],
     },
+    steps: {
+      uz: ["Tvorogni likopchaga soling.", "Ustidan asal quying va aralashtiring."],
+      ru: ["Выложите творог в тарелку.", "Полейте мёдом и перемешайте."],
+      en: ["Spoon the curd cheese into a bowl.", "Drizzle with honey and stir through."],
+    },
   }),
   dish("qatiq-meva", { uz: "Qatiq + meva + yong'oq", ru: "Катык с фруктами и орехами", en: "Yoghurt with fruit and nuts" }, "🫐", 315, [260, 26, 12, 12], {
     cat: "dairy", minutes: 3, approx: false,
@@ -232,6 +539,11 @@ const DISHES = [
       uz: ["Tabiiy qatiq 200g", "Meva 100g", "Yong'oq 15g"],
       ru: ["Натуральный катык 200 г", "Фрукты 100 г", "Орехи 15 г"],
       en: ["Plain yoghurt 200g", "Fruit 100g", "Nuts 15g"],
+    },
+    steps: {
+      uz: ["Qatiqni likopchaga soling.", "Mevani bo'laklab, yong'oq bilan ustidan sepib bering."],
+      ru: ["Выложите катык в тарелку.", "Нарежьте фрукты и посыпьте орехами сверху."],
+      en: ["Spoon the yoghurt into a bowl.", "Slice the fruit and scatter the nuts on top."],
     },
   }),
 ];

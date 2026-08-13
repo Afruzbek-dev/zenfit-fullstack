@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Camera, Sparkles, Dumbbell, BarChart3, Zap, CreditCard, Copy, Check, Send, Clock, ChevronLeft, Gift, PartyPopper } from "lucide-react";
-import { Sheet, Button, ErrorNote } from "../../components/ui.jsx";
+import { Screen, ScreenHeader, Button, ErrorNote } from "../../components/ui.jsx";
 import { api } from "../../api.js";
 import { haptic, openTelegramLink } from "../../telegram.js";
 import { uzNumber } from "../../lib/format.js";
 import { useApp } from "../../store.jsx";
+import { useBackButton } from "../../lib/useBackButton.js";
 
 const FEATURES = [
   { Icon: Camera, key: "unlimitedScan" },
@@ -135,6 +137,18 @@ function TrialStartedStep({ onClose }) {
   );
 }
 
+/**
+ * Full page, not a bottom sheet: a purchase decision — reading what Premium
+ * includes, picking a plan, copying a card number — is the kind of thing
+ * someone reads top to bottom, not a quick action to glance at and dismiss.
+ * A sheet that only shows the top third of that content invites scrolling
+ * inside a half-height box, which is a worse reading experience than the
+ * whole screen every other destination in this app already gets.
+ *
+ * Kept mounted at every call site behind the same `open`/`onClose` pair a
+ * `Sheet` used to be — this only changes what renders when `open` is true,
+ * not how any of the four screens that open it decide to.
+ */
 export default function PremiumSheet({ open, onClose }) {
   const { t, subscription, setSubscription } = useApp();
   const [plans, setPlans] = useState([]);
@@ -147,11 +161,13 @@ export default function PremiumSheet({ open, onClose }) {
   const [trialBusy, setTrialBusy] = useState(false);
   const [error, setError] = useState(null);
 
+  useBackButton(open ? onClose : null);
+
   useEffect(() => {
     api.getPaymentPlans().then((r) => setPlans(r.plans)).catch(() => {});
   }, []);
 
-  // A reopened sheet should start from the plan list, not mid-flow.
+  // A reopened page should start from the plan list, not mid-flow.
   useEffect(() => {
     if (!open) {
       setStep("plans");
@@ -198,9 +214,16 @@ export default function PremiumSheet({ open, onClose }) {
   const title = step === "card" ? t("premium.payTitle") : t("profile.premium");
   const trialAvailable = !subscription?.isPremium && !subscription?.trialUsed;
 
-  return (
-    <Sheet open={open} onClose={onClose} title={title} maxHeight="92vh">
-      {step === "trialStarted" ? (
+  if (!open) return null;
+
+  // Portalled to <body>, same as Sheet used to be: every call site opens this
+  // from inside a normally-flowing screen, and only a portal can cover the
+  // bottom nav bar those screens render alongside.
+  return createPortal(
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-bg">
+      <Screen topPad>
+        <ScreenHeader title={title} onBack={onClose} />
+        {step === "trialStarted" ? (
         <TrialStartedStep onClose={onClose} />
       ) : step === "sent" ? (
         <SentStep onClose={onClose} />
@@ -285,6 +308,8 @@ export default function PremiumSheet({ open, onClose }) {
           <p className="mt-3 text-center text-[11.5px] leading-relaxed text-faint">{t("premium.manualHint")}</p>
         </>
       )}
-    </Sheet>
+      </Screen>
+    </div>,
+    document.body
   );
 }

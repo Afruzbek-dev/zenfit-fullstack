@@ -31,6 +31,7 @@ export const uz = {
     quotaTitle: "Bepul limit tugadi",
     quotaDesc: "AI skanerdan cheksiz foydalanish uchun ZenFit Premium'ni faollashtiring.",
     aboutPremium: "Premium haqida", confidence: "ishonch", portion: "Porsiya",
+    compositionTitle: "Tarkib bo'yicha",
   },
 
   progress: {
@@ -40,6 +41,9 @@ export const uz = {
     consumed: "Yeyildi", streak: "Streak", currentWeight: "Joriy vazn",
     noWeightData: "Vazn tarixi hali yo'q",
     noWeightDesc: "Grafik uchun kamida ikkita turli o'lchov kerak. Profilda vaznni yangilab boring.",
+    logWeight: "Vazn qo'shish",
+    logWeightDesc: "Bugungi vazningizni kiriting — grafik va maqsad sari progress shunga qarab yangilanadi.",
+    weightLogged: "Vazn saqlandi",
     goalProgress: "Maqsad sari", toGoal: "maqsadgacha", goalReached: "Maqsadga yetdingiz! 🎉",
     goalEtaLose: "Shu sur'atda taxminan {months} oyda yana {kg} kg yo'qotasiz",
     goalEtaGain: "Shu sur'atda taxminan {months} oyda yana {kg} kg olasiz",
@@ -80,6 +84,7 @@ export const uz = {
     portion: "Porsiya", addPortion: "Qo'shish", nothingFound: "Hech narsa topilmadi",
     nothingFoundDesc: "Filtr yoki qidiruv so'zini o'zgartirib ko'ring.",
     ingredients: "Masalliqlar", steps: "Tayyorlash",
+    recipeTitle: "Retsept", noRecipe: "Bu taom uchun retsept hali qo'shilmagan.",
     showMore: "Ko'proq ko'rish", per100: "100 g uchun", grams: "Gramm",
     approxValue: "Taxminiy qiymat", stableValue: "Barqaror qiymat",
     catalogueNote: "Qiymatlar mahsulot tarkibi jadvallaridan olingan. Brend va tayyorlash usuliga qarab farq qilishi mumkin.",
@@ -208,6 +213,7 @@ export const ru = {
     quotaTitle: "Бесплатный лимит исчерпан",
     quotaDesc: "Активируйте ZenFit Premium для безлимитного AI-сканера.",
     aboutPremium: "О Premium", confidence: "точность", portion: "Порция",
+    compositionTitle: "О составе",
   },
 
   progress: {
@@ -217,6 +223,9 @@ export const ru = {
     consumed: "Съедено", streak: "Серия", currentWeight: "Текущий вес",
     noWeightData: "Истории веса пока нет",
     noWeightDesc: "Для графика нужно хотя бы два разных замера. Обновляйте вес в профиле.",
+    logWeight: "Добавить вес",
+    logWeightDesc: "Введите сегодняшний вес — график и прогресс к цели обновятся автоматически.",
+    weightLogged: "Вес сохранён",
     goalProgress: "Путь к цели", toGoal: "до цели", goalReached: "Цель достигнута! 🎉",
     goalEtaLose: "При таком темпе примерно за {months} мес. вы сбросите ещё {kg} кг",
     goalEtaGain: "При таком темпе примерно за {months} мес. вы наберёте ещё {kg} кг",
@@ -259,6 +268,7 @@ export const ru = {
     portion: "Порция", addPortion: "Добавить", nothingFound: "Ничего не найдено",
     nothingFoundDesc: "Измените фильтр или поисковый запрос.",
     ingredients: "Ингредиенты", steps: "Приготовление",
+    recipeTitle: "Рецепт", noRecipe: "Рецепт для этого блюда пока не добавлен.",
     showMore: "Показать ещё", per100: "на 100 г", grams: "Граммы",
     approxValue: "Приблизительное значение", stableValue: "Стабильное значение",
     catalogueNote: "Значения взяты из таблиц состава продуктов. Могут отличаться в зависимости от бренда и способа приготовления.",
@@ -385,6 +395,7 @@ export const en = {
     quotaTitle: "Free limit reached",
     quotaDesc: "Activate ZenFit Premium for unlimited AI scanning.",
     aboutPremium: "About Premium", confidence: "confidence", portion: "Portion",
+    compositionTitle: "About the composition",
   },
 
   progress: {
@@ -394,6 +405,9 @@ export const en = {
     consumed: "Eaten", streak: "Streak", currentWeight: "Current weight",
     noWeightData: "No weight history yet",
     noWeightDesc: "The chart needs at least two different readings. Keep updating your weight in the profile.",
+    logWeight: "Log weight",
+    logWeightDesc: "Enter today's weight — the chart and goal progress update right away.",
+    weightLogged: "Weight saved",
     goalProgress: "Toward your goal", toGoal: "to go", goalReached: "Goal reached! 🎉",
     goalEtaLose: "At this rate, about {months} months to lose {kg} kg more",
     goalEtaGain: "At this rate, about {months} months to gain {kg} kg more",
@@ -434,6 +448,7 @@ export const en = {
     portion: "Portion", addPortion: "Add", nothingFound: "Nothing found",
     nothingFoundDesc: "Try a different filter or search term.",
     ingredients: "Ingredients", steps: "Method",
+    recipeTitle: "Recipe", noRecipe: "There's no recipe for this dish yet.",
     showMore: "Show more", per100: "per 100 g", grams: "Grams",
     approxValue: "Approximate value", stableValue: "Reliable value",
     catalogueNote: "Values come from food composition tables. They vary with brand and how the food is prepared.",

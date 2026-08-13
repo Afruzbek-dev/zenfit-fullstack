@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Check, Info, Timer, TrendingUp, Minus, Plus, X, ChevronDown, ListChecks } from "lucide-react";
-import { Screen, ScreenHeader, Button, IconButton } from "../components/ui.jsx";
+import { Screen, ScreenHeader, Button, IconButton, NumberField } from "../components/ui.jsx";
 import { ExerciseGuideBody } from "../components/ExerciseGuide.jsx";
 import { localizeExercise } from "../data/exerciseText.js";
 import { formatSetPlan } from "../lib/aiPlanEngine.js";
@@ -25,7 +25,6 @@ function defaultReps(reps) {
   return nums ? Number(nums[0]) : 10;
 }
 
-const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
 const mmss = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
 /* --------------------------- rest countdown --------------------------- */
@@ -110,47 +109,21 @@ function RestTimer({ seconds, label, onDismiss }) {
 
 /* ------------------------------ one set ------------------------------ */
 
+/** The unit rides in the label ("Og'irlik, kg") so the box holds only the typed number. */
 function Stepper({ label, value, unit, step, min, max, onChange, decimals = 0 }) {
-  const show = decimals ? String(Number(value).toFixed(1)).replace(/\.0$/, "") : String(value);
-  // The unit rides in the label ("Og'irlik, kg") instead of sitting inside the
-  // box, so the box holds only the number being typed into it.
-  const fullLabel = unit ? `${label}, ${unit}` : label;
   return (
-    <div className="flex-1">
-      <p className="mb-1.5 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-faint">{fullLabel}</p>
-      <div className="flex items-center gap-1.5">
-        <button
-          onClick={() => {
-            haptic("light");
-            onChange(clamp(Number(value) - step, min, max));
-          }}
-          aria-label={`${fullLabel} −${step}`}
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-borderSoft bg-surface active:scale-95"
-        >
-          <Minus size={15} className="text-muted" />
-        </button>
-        <div className="flex min-w-0 flex-1 items-center justify-center rounded-xl border border-borderSoft bg-surface px-1 py-2">
-          <input
-            type="number"
-            inputMode="decimal"
-            value={show}
-            onChange={(e) => onChange(e.target.value === "" ? min : clamp(Number(e.target.value), min, max))}
-            aria-label={fullLabel}
-            className="tabular w-full bg-transparent text-center text-[19px] font-bold text-ink outline-none"
-          />
-        </div>
-        <button
-          onClick={() => {
-            haptic("light");
-            onChange(clamp(Number(value) + step, min, max));
-          }}
-          aria-label={`${fullLabel} +${step}`}
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-borderSoft bg-surface active:scale-95"
-        >
-          <Plus size={15} className="text-muted" />
-        </button>
-      </div>
-    </div>
+    <NumberField
+      label={unit ? `${label}, ${unit}` : label}
+      value={value}
+      step={step}
+      min={min}
+      max={max}
+      decimals={decimals}
+      onChange={onChange}
+      onStep
+      surface="surface"
+      centerLabel
+    />
   );
 }
 

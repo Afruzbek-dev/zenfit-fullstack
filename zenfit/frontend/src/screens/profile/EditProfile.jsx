@@ -1,13 +1,11 @@
 import { useState } from "react";
 import { Check, User2, Ruler, Scale, ShieldAlert, Droplets } from "lucide-react";
-import { Screen, ScreenHeader, Section, Button, Chip, ErrorNote } from "../../components/ui.jsx";
+import { Screen, ScreenHeader, Section, Button, Chip, ErrorNote, NumberField } from "../../components/ui.jsx";
 import SafetyNotice from "../../components/SafetyNotice.jsx";
 import Avatar from "../../components/Avatar.jsx";
 import { useApp } from "../../store.jsx";
 import { useBackButton } from "../../lib/useBackButton.js";
 import { haptic } from "../../telegram.js";
-
-const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
 
 function Field({ Icon, label, children }) {
   return (
@@ -20,22 +18,6 @@ function Field({ Icon, label, children }) {
         {children}
       </span>
     </div>
-  );
-}
-
-function NumberInput({ value, onChange, unit, min, max, step = 1 }) {
-  return (
-    <span className="flex items-baseline gap-1">
-      <input
-        type="number"
-        inputMode="decimal"
-        value={value}
-        step={step}
-        onChange={(e) => onChange(e.target.value === "" ? "" : clamp(Number(e.target.value), min, max))}
-        className="tabular w-full bg-transparent text-[16px] font-bold text-ink outline-none"
-      />
-      <span className="shrink-0 text-[11.5px] font-semibold text-faint">{unit}</span>
-    </span>
   );
 }
 
@@ -149,16 +131,16 @@ export default function EditProfile({ onBack }) {
       <Section title={t("profile.bodyMetrics")}>
         <div className="flex flex-col gap-2">
           <Field Icon={User2} label={t("profile.age")}>
-            <NumberInput value={form.age} onChange={(v) => patch({ age: v })} unit="" min={12} max={100} />
+            <NumberField value={form.age} onChange={(v) => patch({ age: v })} min={12} max={100} />
           </Field>
           <Field Icon={Ruler} label={t("profile.height")}>
-            <NumberInput value={form.heightCm} onChange={(v) => patch({ heightCm: v })} unit={t("common.cm")} min={100} max={250} />
+            <NumberField value={form.heightCm} onChange={(v) => patch({ heightCm: v })} unit={t("common.cm")} min={100} max={250} />
           </Field>
           <Field Icon={Scale} label={t("profile.weight")}>
-            <NumberInput value={form.weightKg} onChange={(v) => patch({ weightKg: v })} unit={t("common.kg")} min={30} max={300} step={0.1} />
+            <NumberField value={form.weightKg} onChange={(v) => patch({ weightKg: v })} unit={t("common.kg")} min={30} max={300} step={0.1} decimals={1} />
           </Field>
           <Field Icon={Droplets} label={t("profile.waterTarget")}>
-            <NumberInput value={form.waterTargetMl} onChange={(v) => patch({ waterTargetMl: v })} unit="ml" min={500} max={6000} step={100} />
+            <NumberField value={form.waterTargetMl} onChange={(v) => patch({ waterTargetMl: v })} unit="ml" min={500} max={6000} step={100} />
           </Field>
         </div>
       </Section>

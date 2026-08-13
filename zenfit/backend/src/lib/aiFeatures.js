@@ -29,12 +29,16 @@ Milliy taomlar uchun isApprox=true qo'y (uy retsepti bo'yicha farq katta).
 Agar rasmda ovqat aniq ko'rinmasa, "name" maydoniga "Aniqlanmadi" yoz va confidence 0 qo'y.`;
 
 /**
- * The Premium-only sentence layered on top of the suitability percentage.
+ * The Premium-only commentary layered on top of the raw numbers: whether this
+ * food fits *today's* budget, and what its composition itself is worth
+ * knowing regardless of who is eating it.
  *
- * The percentage itself is computed on the client (lib/foodFit.js) and is the
- * same for everyone — this only buys the *explanation*, so a free user is never
- * left without an answer, just without the commentary. Asking for it as one
- * extra field costs no extra request.
+ * The macros and the suitability percentage are computed without any of this
+ * — the percentage on the client (lib/foodFit.js), the macros by the model's
+ * base recognition — and are the same for every scan, free or Premium. This
+ * only buys the narrative on top, so a free user is never left without an
+ * answer, just without the write-up. Both fields ride the same request as the
+ * recognition itself, so gating them costs nothing beyond a longer prompt.
  */
 function fitInstruction(fit) {
   if (!fit) return "";
@@ -42,7 +46,10 @@ function fitInstruction(fit) {
   return `
 
 FOYDALANUVCHI HOLATI: maqsad — ${goalUz}, kunlik me'yor ${fit.target} kcal, bugun ${fit.eaten} kcal yeyilgan (qolgan ${fit.remaining} kcal), oqsil ${fit.proteinEaten}/${fit.proteinTarget} g.
-JSON'ga qo'shimcha "fitNote" maydonini qo'sh: 1 qisqa gap — shu taom AYNAN shu foydalanuvchiga bugun mos keladimi yoki yo'qmi, qolgan kaloriya va oqsilga tayanib. Aniq raqam ayt. Tibbiy tashxis qo'yma.`;
+JSON'ga ikkita qo'shimcha maydon qo'sh:
+1) "fitNote": 1 qisqa gap — shu taom AYNAN shu foydalanuvchiga bugun mos keladimi yoki yo'qmi, qolgan kaloriya va oqsilga tayanib. Aniq raqam ayt.
+2) "composition": {"benefits": [...], "harms": [...]} — taomning tarkibi (yog' turi, tolasi, qand miqdori, ishlov darajasi kabi) haqida 1-3 tadan QISQA (5-9 so'z) foyda va ehtiyot bo'lish kerak bo'lgan jihat. Umumiy gap emas — shu taomga xos bo'lsin (masalan "to'yingan yog' yuqori" "somsa" uchun, "sog'lom uglevod manbai" "osh"dagi guruch uchun). Hech qanday zarar yo'q bo'lsa harms bo'sh massiv qoldir.
+Tibbiy tashxis qo'yma.`;
 }
 
 /**
@@ -72,7 +79,7 @@ export async function analyzeFoodImage(base64Image, mediaType, fit = null) {
         ],
       },
     ],
-    { maxTokens: fit ? 750 : 600, json: true }
+    { maxTokens: fit ? 900 : 600, json: true }
   );
   return withRecognition(extractJson(text));
 }
@@ -83,7 +90,7 @@ FAQAT quyidagi JSON formatda javob ber — boshqa hech qanday matn qo'shma:
 {"name": "taom nomi", "kcalPerServing": number, "carbs": number, "protein": number, "fat": number, "servingDescription": "porsiya tavsifi", "isApprox": boolean, "note": "qisqa izoh"}${fitInstruction(fit)}
 
 Savol: ${query}`;
-  const text = await callModel([{ role: "user", content: prompt }], { maxTokens: fit ? 550 : 400, json: true });
+  const text = await callModel([{ role: "user", content: prompt }], { maxTokens: fit ? 700 : 400, json: true });
   return withRecognition(extractJson(text));
 }
 
