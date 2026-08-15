@@ -107,6 +107,20 @@ const uz = {
     exerciseDone: "Mashq yakunlandi 💪", saveFailed: "Saqlab bo'lmadi",
     tapSetToStart: "Setni bosib boshlang va bajargach belgilang",
 
+    cam: {
+      button: "Kamera bilan sanash",
+      loadingModel: "Kuzatuv modeli yuklanmoqda…",
+      positionHint: "Butun gavdangiz ko'rinishi uchun orqaroqqa turing",
+      depthGood: "Yaxshi chuqurlik 👍",
+      depthShallow: "Pastroq tushing",
+      kneeCave: "Tizzalar ichkariga qisilmasin",
+      cameraFailed: "Kamerani ochib bo'lmadi",
+      modelFailed: "Kuzatuv modelini yuklab bo'lmadi — internetni tekshiring",
+      finish: "Yakunlash",
+      experimental: "Hisoblash taxminiy — sonini o'zingiz ham tekshiring",
+      applied: "{n} takror yozildi",
+    },
+
     planTitle: "AI Shaxsiy Reja",
     title: "Mashqlar", subtitlePlan: "AI shaxsiy dasturingiz", subtitleNoPlan: "Rejangizni tanlang",
     library: "Mashqlar bazasi", libraryAll: "Barcha mashqlarni ko'rish",
@@ -457,6 +471,20 @@ const ru = {
     allDone: "Все подходы выполнены", ofSets: "из", restBetween: "Между подходами",
     exerciseDone: "Упражнение завершено 💪", saveFailed: "Не удалось сохранить",
     tapSetToStart: "Нажмите на подход, чтобы начать, и отметьте после выполнения",
+
+    cam: {
+      button: "Считать через камеру",
+      loadingModel: "Загрузка модели отслеживания…",
+      positionHint: "Отойдите назад, чтобы попасть в кадр целиком",
+      depthGood: "Хорошая глубина 👍",
+      depthShallow: "Опуститесь ниже",
+      kneeCave: "Не сводите колени внутрь",
+      cameraFailed: "Не удалось открыть камеру",
+      modelFailed: "Не удалось загрузить модель — проверьте интернет",
+      finish: "Завершить",
+      experimental: "Подсчёт приблизительный — тоже сверяйтесь сами",
+      applied: "Записано {n} повторений",
+    },
 
     planTitle: "Персональный AI-план",
     title: "Тренировки", subtitlePlan: "Ваша персональная AI-программа", subtitleNoPlan: "Выберите план",

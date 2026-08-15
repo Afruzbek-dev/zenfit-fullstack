@@ -1,14 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Check, Info, Timer, TrendingUp, Minus, Plus, X, ChevronDown, ListChecks } from "lucide-react";
+import { Check, Info, Timer, TrendingUp, Minus, Plus, X, ChevronDown, ListChecks, Camera } from "lucide-react";
 import { Screen, ScreenHeader, Button, IconButton, NumberField } from "../components/ui.jsx";
 import { ExerciseGuideBody } from "../components/ExerciseGuide.jsx";
+import SquatCameraTracker from "../components/SquatCameraTracker.jsx";
 import { localizeExercise } from "../data/exerciseText.js";
 import { formatSetPlan } from "../lib/aiPlanEngine.js";
 import { api } from "../api.js";
 import { haptic } from "../telegram.js";
 import { useBackButton } from "../lib/useBackButton.js";
 import { useApp } from "../store.jsx";
+
+/** The only movement the camera tracker currently knows how to count. */
+const CAMERA_TRACKABLE_IDS = new Set(["bodyweight-squat"]);
 
 /** "60-90s" → 90, "2 daq" → 120. The upper bound is the one worth resting. */
 export function parseRestSeconds(rest) {
@@ -132,7 +136,7 @@ function Stepper({ label, value, unit, step, min, max, onChange, decimals = 0 })
  * an expanded editor. Only a single set is open at a time so the screen always
  * answers "what am I doing right now".
  */
-function SetRow({ index, set, active, bodyweight, onOpen, onChange, onComplete, onUndo }) {
+function SetRow({ index, set, active, bodyweight, trackable, onOpen, onChange, onComplete, onUndo, onOpenCamera }) {
   const { t } = useApp();
 
   if (set.done) {
@@ -211,6 +215,12 @@ function SetRow({ index, set, active, bodyweight, onOpen, onChange, onComplete, 
         />
       </div>
 
+      {trackable && (
+        <Button full variant="ghost" size="sm" className="mb-2.5" onClick={onOpenCamera}>
+          <Camera size={14} /> {t("workout.cam.button")}
+        </Button>
+      )}
+
       <Button full size="lg" onClick={onComplete}>
         <Check size={17} strokeWidth={3} /> {t("workout.setDone")}
       </Button>
@@ -222,7 +232,7 @@ function SetRow({ index, set, active, bodyweight, onOpen, onChange, onComplete, 
 
 /** Everything for one exercise: its sets, the rest timer and the how-to. */
 export default function ExerciseRunner({ exercise: planned, planDay, onBack, onFinish }) {
-  const { t, lang } = useApp();
+  const { t, lang, showToast } = useApp();
   // Plans store the name as it was when generated, so the display name is
   // resolved from the exercise id each render instead.
   const exercise = useMemo(() => localizeExercise(planned, lang), [planned, lang]);
@@ -232,6 +242,8 @@ export default function ExerciseRunner({ exercise: planned, planDay, onBack, onF
   const [lastHint, setLastHint] = useState(null);
   const [rest, setRest] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [camOpen, setCamOpen] = useState(false);
+  const camTrackable = CAMERA_TRACKABLE_IDS.has(exercise.id);
 
   // The guide is a tab now, not a screen, so the runner owns the back button
   // the whole time it is mounted.
@@ -277,6 +289,19 @@ export default function ExerciseRunner({ exercise: planned, planDay, onBack, onF
 
 
   const update = (i, patch) => setSets((prev) => prev.map((s, idx) => (idx === i ? { ...s, ...patch } : s)));
+
+  /**
+   * Only fills the reps field — it does not mark the set done. The counter is
+   * a geometric guess (see SquatCameraTracker), so the lifter still confirms
+   * it themselves the same way they would a typed number.
+   */
+  function applyCameraReps({ reps: count }) {
+    setCamOpen(false);
+    if (!Number.isFinite(count) || count <= 0) return;
+    update(activeIndex, { reps: count });
+    haptic("success");
+    showToast(t("workout.cam.applied", { n: count }), "success");
+  }
 
   function completeSet(i) {
     haptic("success");
@@ -398,6 +423,8 @@ export default function ExerciseRunner({ exercise: planned, planDay, onBack, onF
                 set={s}
                 active={i === activeIndex}
                 bodyweight={bodyweight}
+                trackable={camTrackable}
+                onOpenCamera={() => setCamOpen(true)}
                 onOpen={() => setActiveIndex(i)}
                 onChange={(patch) => update(i, patch)}
                 onComplete={() => completeSet(i)}
@@ -450,6 +477,8 @@ export default function ExerciseRunner({ exercise: planned, planDay, onBack, onF
       {rest && (
         <RestTimer key={rest.key} seconds={rest.seconds} label={rest.label} onDismiss={() => setRest(null)} />
       )}
+
+      {camOpen && <SquatCameraTracker onFinish={applyCameraReps} onClose={() => setCamOpen(false)} />}
     </Screen>
   );
 }

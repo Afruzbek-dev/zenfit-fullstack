@@ -90,6 +90,20 @@ export default {
     exerciseDone: "Exercise complete 💪", saveFailed: "Could not save",
     tapSetToStart: "Tap a set to start it, then mark it done",
 
+    cam: {
+      button: "Count with camera",
+      loadingModel: "Loading the tracking model…",
+      positionHint: "Step back so your whole body is in frame",
+      depthGood: "Good depth 👍",
+      depthShallow: "Go lower",
+      kneeCave: "Don't let your knees cave in",
+      cameraFailed: "Couldn't open the camera",
+      modelFailed: "Couldn't load the tracking model — check your connection",
+      finish: "Finish",
+      experimental: "The count is approximate — keep an eye on it yourself",
+      applied: "{n} reps filled in",
+    },
+
     planTitle: "Your AI plan",
     title: "Workouts", subtitlePlan: "Your personal AI programme", subtitleNoPlan: "Choose your plan",
     library: "Exercise library", libraryAll: "Browse every exercise",
