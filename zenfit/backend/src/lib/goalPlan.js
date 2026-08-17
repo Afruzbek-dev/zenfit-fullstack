@@ -74,7 +74,7 @@ export function rateForWeeks({ goal, currentKg, targetKg, weeks }) {
 
   return {
     requestedRateKg: Math.round(requested * 100) / 100,
-    rateKgPerWeek: Math.min(requested, max),
+    rateKgPerWeek: Math.round(Math.min(requested, max) * 100) / 100,
     safe: requested <= max,
   };
 }

@@ -229,6 +229,11 @@ router.patch("/", requireAuth, async (req, res, next) => {
 
           if (Number.isFinite(b.paceWeeks) && b.paceWeeks >= 1) {
             pace = rateForWeeks({ goal: metrics.goal, currentKg: metrics.weightKg, targetKg, weeks: b.paceWeeks });
+          } else if (b.paceWeeks === null) {
+            // Explicitly cleared (distinct from the key being absent) — the
+            // client turned the custom-pace control off. Revert to the
+            // default rate rather than reusing the one that was just retired.
+            pace = null;
           } else if (storedPace != null && targetIsUnchanged) {
             pace = { rateKgPerWeek: storedPace };
           }

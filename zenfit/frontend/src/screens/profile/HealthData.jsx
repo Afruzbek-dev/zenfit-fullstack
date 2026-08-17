@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { Target, Dumbbell, UtensilsCrossed, Info, ShieldAlert, Sparkles } from "lucide-react";
+import { Target, Dumbbell, UtensilsCrossed, Info, ShieldAlert, Sparkles, Check } from "lucide-react";
 import { Screen, ScreenHeader, Section, OptionCard, ListRow, EmptyState, Button } from "../../components/ui.jsx";
 import SafetyNotice from "../../components/SafetyNotice.jsx";
+import GoalPacePicker from "../../components/GoalPacePicker.jsx";
+import { defaultTarget, estimateGoalAtRate } from "../../lib/goalPlan.js";
 import { useApp } from "../../store.jsx";
 import { useBackButton } from "../../lib/useBackButton.js";
 import { haptic } from "../../telegram.js";
@@ -55,10 +57,15 @@ function BmiScale({ bmi, tone }) {
 }
 
 export default function HealthData({ onBack, onNavigate }) {
-  const { profile, workoutPlan, dietPlan, updateProfile, showToast, t } = useApp();
+  const { profile, workoutPlan, dietPlan, updateProfile, showToast, t, lang } = useApp();
   useBackButton(onBack);
   const [savingGoal, setSavingGoal] = useState(null);
   const [safety, setSafety] = useState(null);
+  // Filled in by GoalPacePicker's onChange; only actually saved on tap, same
+  // pattern as PantrySheet/DietPrefsSheet — a drag-slider firing PATCH on
+  // every tick would be a lot of requests for nothing.
+  const [pendingGoalPace, setPendingGoalPace] = useState(null);
+  const [savingPace, setSavingPace] = useState(false);
 
   const bmi = bmiInfo(profile?.weightKg, profile?.heightCm);
   const tone = bmi ? BMI_TONE[bmi.key] : BMI_TONE.normal;
@@ -79,6 +86,20 @@ export default function HealthData({ onBack, onNavigate }) {
       showToast(e.message || t("common.error"), "error");
     } finally {
       setSavingGoal(null);
+    }
+  }
+
+  async function savePace() {
+    if (!pendingGoalPace) return;
+    setSavingPace(true);
+    try {
+      await updateProfile({ targetWeightKg: pendingGoalPace.targetWeightKg, paceWeeks: pendingGoalPace.paceWeeks });
+      haptic("success");
+      showToast(t("profile.targetsRecalc"), "success");
+    } catch (e) {
+      showToast(e.message || t("common.error"), "error");
+    } finally {
+      setSavingPace(false);
     }
   }
 
@@ -129,6 +150,37 @@ export default function HealthData({ onBack, onNavigate }) {
           ))}
         </div>
         <SafetyNotice safety={safety} t={t} className="mt-2.5" />
+
+        {/* Same picker onboarding shows when a direction is first picked —
+            pulled into its own component so users who already finished
+            onboarding (i.e. everyone before this shipped) can still reach a
+            custom pace, not just whoever is mid-onboarding from now on. */}
+        {(profile?.goal === "lose" || profile?.goal === "gain") && Number.isFinite(profile?.weightKg) && (
+          <>
+            <GoalPacePicker
+              key={profile.goal}
+              goal={profile.goal}
+              currentKg={profile.weightKg}
+              initialTargetWeight={profile.targetWeightKg ?? defaultTarget(profile.goal, profile.weightKg)}
+              initialPaceWeeks={
+                Number.isFinite(profile.targetPaceKgPerWeek) && Number.isFinite(profile.targetWeightKg)
+                  ? estimateGoalAtRate({
+                      goal: profile.goal,
+                      currentKg: profile.weightKg,
+                      targetKg: profile.targetWeightKg,
+                      rateKgPerWeek: profile.targetPaceKgPerWeek,
+                    })?.weeks ?? null
+                  : null
+              }
+              onChange={setPendingGoalPace}
+              lang={lang}
+              t={t}
+            />
+            <Button full className="mt-3" loading={savingPace} onClick={savePace}>
+              <Check size={17} /> {t("common.save")}
+            </Button>
+          </>
+        )}
       </Section>
 
       {/* Daily targets */}

@@ -2,23 +2,20 @@ import { useMemo, useState } from "react";
 import {
   ChevronLeft, ChevronRight, Sparkles, TrendingDown, TrendingUp, Scale, Award, Zap,
   Home, Building2, Clock, Dumbbell, Check, ShieldAlert, Flame, User2, Users, Trees, Activity,
-  Minus, Plus, CalendarClock, Languages, Crown, Footprints,
+  Languages, Crown, Footprints,
 } from "lucide-react";
 import { Button, OptionCard } from "../components/ui.jsx";
 import SafetyNotice from "../components/SafetyNotice.jsx";
 import MuscleTargetPicker from "../components/MuscleTargetPicker.jsx";
+import GoalPacePicker from "../components/GoalPacePicker.jsx";
 import PremiumSheet from "./profile/PremiumSheet.jsx";
 import { formatSetPlan, generateWorkoutPlan, localizeDay, rulesNote } from "../lib/aiPlanEngine.js";
 import { bestProgram, PROGRAMS } from "../data/programs.js";
 import { localizeExercise } from "../data/exerciseText.js";
-import { estimateGoal, defaultTarget, targetBounds, rateForWeeks, stepTargetForGoal } from "../lib/goalPlan.js";
-import { shortDate } from "../lib/format.js";
+import { defaultTarget, stepTargetForGoal } from "../lib/goalPlan.js";
 import { LANGUAGES, hasStoredLanguage } from "../lib/i18n.js";
 import { haptic } from "../telegram.js";
 import { useApp } from "../store.jsx";
-
-/** Bounds only make sense once a plausible bodyweight has been entered. */
-const bodyValidFor = (kg) => Number.isFinite(kg) && kg >= 30 && kg <= 300;
 
 /**
  * Must match AGE_MIN / AGE_MAX in the backend's lib/calorie.js. The server
@@ -47,9 +44,6 @@ const LEVELS = [
 ];
 
 const DAYS = [3, 4, 5];
-
-/** Quick-pick weeks for the custom-pace control — roughly 6 weeks / 3 months / 6 months. */
-const PACE_PRESETS = [6, 13, 26];
 
 const EQUIPMENT = [
   { id: "home-none", Icon: Home },
@@ -193,11 +187,9 @@ export default function Onboarding({ onFinish }) {
   const [duration, setDuration] = useState(null);
   const [injuries, setInjuries] = useState("");
   const [targets, setTargets] = useState(null);
-  const [targetWeight, setTargetWeight] = useState(null);
-  // Off by default: the safe %bodyweight estimate below is what most users
-  // see. Turning this on lets them pick their own weeks instead.
-  const [customPaceOn, setCustomPaceOn] = useState(false);
-  const [paceWeeks, setPaceWeeks] = useState(null);
+  // Filled in by GoalPacePicker's onChange — see its own comment for why
+  // paceWeeks is null (not just omitted) when the custom pace isn't in use.
+  const [goalPace, setGoalPace] = useState({ targetWeightKg: null, paceWeeks: null });
 
   // Step 11 only: "personal" shows the AI-personalized plan (Premium), "preset"
   // switches to picking one of the free ready-made programs instead.
@@ -209,23 +201,6 @@ export default function Onboarding({ onFinish }) {
     heightCm: Number(height),
     weightKg: Number(weight),
   };
-
-  const bounds = useMemo(
-    () => (bodyValidFor(nums.weightKg) && (goal === "lose" || goal === "gain") ? targetBounds(goal, nums.weightKg) : null),
-    [goal, nums.weightKg]
-  );
-
-  const goalEstimate = useMemo(
-    () => estimateGoal({ goal, currentKg: nums.weightKg, targetKg: targetWeight }),
-    [goal, nums.weightKg, targetWeight]
-  );
-
-  // Live preview only — the server recomputes and clamps this again on save
-  // (routes/onboarding.js), so a manipulated client value can't buy an unsafe rate.
-  const paceEstimate = useMemo(
-    () => (customPaceOn ? rateForWeeks({ goal, currentKg: nums.weightKg, targetKg: targetWeight, weeks: paceWeeks }) : null),
-    [customPaceOn, goal, nums.weightKg, targetWeight, paceWeeks]
-  );
 
   const bodyValid =
     nums.age >= AGE_MIN && nums.age <= AGE_MAX &&
@@ -265,11 +240,12 @@ export default function Onboarding({ onFinish }) {
       activityLevel: activity, goal, pregnant: gender === "female" && pregnant,
       fitnessLevel: level || "beginner",
       equipment, daysPerWeek: days, sessionDuration: duration, injuries,
-      targetWeightKg: targetWeight ?? undefined,
-      // Only sent when the user actually engaged the custom-pace control and
-      // it resolved to a real number — otherwise the server falls back to its
-      // own default %bodyweight rate exactly as before this feature existed.
-      paceWeeks: customPaceOn && paceEstimate ? paceWeeks : undefined,
+      targetWeightKg: goalPace.targetWeightKg ?? undefined,
+      // null (not undefined) when the custom-pace control isn't in use — the
+      // server falls back to its own default %bodyweight rate either way,
+      // this just matches what routes/profile.js expects to tell "off" apart
+      // from "not sent at all". See GoalPacePicker.
+      paceWeeks: goalPace.paceWeeks,
       focusMuscles,
     };
   }
@@ -518,170 +494,20 @@ export default function Onboarding({ onFinish }) {
                   Icon={g.Icon}
                   title={t(`onboarding.goals.${g.id}.title`)}
                   desc={t(`onboarding.goals.${g.id}.desc`)}
-                  onClick={() => {
-                    setGoal(g.id);
-                    // Seed a realistic target the moment a direction is picked.
-                    setTargetWeight(defaultTarget(g.id, nums.weightKg));
-                    // A pace chosen for the old goal/target rarely still makes
-                    // sense — restart the choice rather than carry it over.
-                    setCustomPaceOn(false);
-                    setPaceWeeks(null);
-                  }}
+                  onClick={() => setGoal(g.id)}
                 />
               ))}
 
-              {(goal === "lose" || goal === "gain") && bounds && (
-                <div className="animate-fade-up mt-5">
-                  <p className="mb-2.5 text-[11px] font-bold uppercase tracking-[0.14em] text-faint">
-                    {t("onboarding.targetTitle")}
-                  </p>
-
-                  <div className="card px-5 py-5">
-                    <div className="flex items-center justify-center gap-4">
-                      <button
-                        onClick={() => setTargetWeight((v) => Math.max(bounds.min, (v ?? 0) - 1))}
-                        aria-label={t("onboarding.decrease")}
-                        className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-borderSoft bg-surfaceAlt active:scale-95"
-                      >
-                        <Minus size={17} className="text-muted" />
-                      </button>
-                      <div className="text-center">
-                        <p className="tabular text-[38px] font-bold leading-none text-neon">{targetWeight ?? "—"}</p>
-                        <p className="mt-1 text-[12px] text-faint">kg</p>
-                      </div>
-                      <button
-                        onClick={() => setTargetWeight((v) => Math.min(bounds.max, (v ?? 0) + 1))}
-                        aria-label={t("onboarding.increase")}
-                        className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-borderSoft bg-surfaceAlt active:scale-95"
-                      >
-                        <Plus size={17} className="text-muted" />
-                      </button>
-                    </div>
-
-                    <input
-                      type="range"
-                      min={bounds.min}
-                      max={bounds.max}
-                      value={targetWeight ?? bounds.min}
-                      onChange={(e) => setTargetWeight(Number(e.target.value))}
-                      aria-label={t("onboarding.targetWeightLabel")}
-                      className="mt-5 w-full accent-[color:rgb(var(--c-neon))]"
-                    />
-                    <div className="tabular mt-1 flex justify-between text-[11px] text-faint">
-                      <span>{bounds.min} kg</span>
-                      <span>{bounds.max} kg</span>
-                    </div>
-                  </div>
-
-                  {goalEstimate && (
-                    <div className="animate-fade-up mt-3 flex items-start gap-3 rounded-2xl border border-cyan/25 bg-cyan/[0.07] px-4 py-3.5">
-                      <CalendarClock size={17} className="mt-0.5 shrink-0 text-cyan" />
-                      <div className="min-w-0">
-                        <p className="text-[13px] font-bold text-ink">
-                          {t("onboarding.targetBy", { date: shortDate(goalEstimate.targetDate, lang) })}
-                        </p>
-                        <p className="mt-1 text-[11.5px] leading-relaxed text-muted">
-                          {t("onboarding.targetDetail", {
-                            kg: Math.abs(goalEstimate.deltaKg),
-                            weeks: goalEstimate.weeks,
-                            rate: goalEstimate.weeklyRateKg,
-                          })}
-                          {goalEstimate.months >= 1 ? t("onboarding.monthsSuffix", { months: goalEstimate.months }) : ""}
-                        </p>
-                        <p className="mt-1.5 text-[11px] leading-relaxed text-faint">
-                          {t("onboarding.targetSafe")}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {goalEstimate && !customPaceOn && (
-                    <button
-                      onClick={() => {
-                        haptic("light");
-                        setCustomPaceOn(true);
-                        setPaceWeeks(goalEstimate.weeks);
-                      }}
-                      className="mt-3 w-full text-center text-[12px] font-semibold text-cyan"
-                    >
-                      {t("onboarding.customPaceToggle")}
-                    </button>
-                  )}
-
-                  {customPaceOn && (
-                    <div className="animate-fade-up card mt-3 px-5 py-5">
-                      <div className="flex items-center justify-between">
-                        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-faint">
-                          {t("onboarding.customPaceTitle")}
-                        </p>
-                        <button
-                          onClick={() => {
-                            haptic("light");
-                            setCustomPaceOn(false);
-                            setPaceWeeks(null);
-                          }}
-                          className="text-[11px] font-semibold text-faint"
-                        >
-                          {t("onboarding.customPaceOff")}
-                        </button>
-                      </div>
-
-                      <div className="mt-3 flex gap-2">
-                        {PACE_PRESETS.map((w) => (
-                          <button
-                            key={w}
-                            onClick={() => {
-                              haptic("select");
-                              setPaceWeeks(w);
-                            }}
-                            className={`flex-1 rounded-xl border px-2 py-2 text-[12px] font-bold transition-colors ${
-                              paceWeeks === w
-                                ? "border-neon bg-neon/10 text-neon"
-                                : "border-borderSoft bg-surfaceAlt text-muted"
-                            }`}
-                          >
-                            {w} {t("onboarding.weeksUnit")}
-                          </button>
-                        ))}
-                      </div>
-
-                      <div className="mt-3 flex items-center justify-center gap-4">
-                        <button
-                          onClick={() => setPaceWeeks((w) => Math.max(1, (w ?? 1) - 1))}
-                          aria-label={t("onboarding.decrease")}
-                          className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-borderSoft bg-surfaceAlt active:scale-95"
-                        >
-                          <Minus size={15} className="text-muted" />
-                        </button>
-                        <p className="tabular text-[20px] font-bold text-ink">
-                          {paceWeeks ?? "—"} <span className="text-[12px] font-normal text-faint">{t("onboarding.weeksUnit")}</span>
-                        </p>
-                        <button
-                          onClick={() => setPaceWeeks((w) => Math.min(104, (w ?? 1) + 1))}
-                          aria-label={t("onboarding.increase")}
-                          className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-borderSoft bg-surfaceAlt active:scale-95"
-                        >
-                          <Plus size={15} className="text-muted" />
-                        </button>
-                      </div>
-
-                      {paceEstimate && (
-                        <div
-                          className={`mt-3 rounded-xl px-3 py-2.5 text-[11.5px] leading-relaxed ${
-                            paceEstimate.safe ? "bg-cyan/[0.07] text-muted" : "bg-amber/[0.1] text-amber"
-                          }`}
-                        >
-                          {paceEstimate.safe
-                            ? t("onboarding.paceSafe", { rate: paceEstimate.rateKgPerWeek })
-                            : t("onboarding.paceUnsafe", {
-                                requested: paceEstimate.requestedRateKg,
-                                max: paceEstimate.rateKgPerWeek,
-                              })}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
+              {(goal === "lose" || goal === "gain") && (
+                <GoalPacePicker
+                  key={goal}
+                  goal={goal}
+                  currentKg={nums.weightKg}
+                  initialTargetWeight={defaultTarget(goal, nums.weightKg)}
+                  onChange={setGoalPace}
+                  lang={lang}
+                  t={t}
+                />
               )}
             </StepShell>
           )}
