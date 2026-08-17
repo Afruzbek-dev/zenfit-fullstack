@@ -4,9 +4,10 @@ import {
   Minus, ChevronDown, ChevronRight, ShoppingBasket, AlertTriangle, BookOpen,
 } from "lucide-react";
 import {
-  Screen, ScreenHeader, Section, Chip, Sheet, Button, EmptyState, ErrorNote, FitBadge,
+  Screen, ScreenHeader, Section, Chip, Sheet, Button, EmptyState, ErrorNote, FitBadge, CompositionCard,
 } from "../components/ui.jsx";
 import PantrySheet, { pantryPayload } from "../components/PantrySheet.jsx";
+import DietPrefsSheet from "../components/DietPrefsSheet.jsx";
 import { CATEGORIES, filterFoods, foodName, macros, servingMacros, FOOD_BY_ID } from "../data/foods.js";
 import { buildDietPlan, sortPlansForGoal } from "../data/dietPlans.js";
 import { foodFit } from "../lib/foodFit.js";
@@ -199,18 +200,13 @@ function DietPlanCard({ onOpenPremium, onOpenPantry, onOpenRecipe }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [locked, setLocked] = useState(false);
+  const [prefsOpen, setPrefsOpen] = useState(false);
 
   const premium = Boolean(subscription?.isPremium);
   const pantry = profile?.pantry || [];
   const hasPantry = pantry.length > 0;
 
-  async function generate() {
-    // Don't spend a request to be told no — the client already knows.
-    if (!premium) {
-      setLocked(true);
-      onOpenPremium?.();
-      return;
-    }
+  async function doGenerate() {
     setBusy(true);
     setError(null);
     try {
@@ -229,9 +225,38 @@ function DietPlanCard({ onOpenPremium, onOpenPantry, onOpenRecipe }) {
     }
   }
 
+  async function generate() {
+    // Don't spend a request to be told no — the client already knows.
+    if (!premium) {
+      setLocked(true);
+      onOpenPremium?.();
+      return;
+    }
+    // Asked once, reused on every regeneration after — see DietPrefsSheet.
+    // The sheet itself resumes generation on save (onSaved below), so this
+    // check only ever opens it, never calls doGenerate directly.
+    if (!profile?.dietPrefs) {
+      setPrefsOpen(true);
+      return;
+    }
+    await doGenerate();
+  }
+
+  const prefsSheet = (
+    <DietPrefsSheet
+      open={prefsOpen}
+      onClose={() => setPrefsOpen(false)}
+      onSaved={() => {
+        setPrefsOpen(false);
+        doGenerate();
+      }}
+    />
+  );
+
   if (!dietPlan) {
     return (
       <>
+        {prefsSheet}
         {error && <div className="mb-2"><ErrorNote onRetry={generate}>{error}</ErrorNote></div>}
         <button
           onClick={generate}
@@ -275,6 +300,7 @@ function DietPlanCard({ onOpenPremium, onOpenPantry, onOpenRecipe }) {
 
   return (
     <div className="card px-4 py-4">
+      {prefsSheet}
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
@@ -288,9 +314,14 @@ function DietPlanCard({ onOpenPremium, onOpenPantry, onOpenRecipe }) {
           </div>
           {dietPlan.summary && <p className="mt-1 text-[11.5px] leading-relaxed text-muted">{dietPlan.summary}</p>}
         </div>
-        <button onClick={generate} disabled={busy} className="shrink-0 text-[11.5px] font-bold text-neon disabled:opacity-50">
-          {busy ? "…" : t("recipesScreen.refresh")}
-        </button>
+        <div className="flex shrink-0 items-center gap-3">
+          <button onClick={() => setPrefsOpen(true)} className="text-[11.5px] font-bold text-faint">
+            {t("dietPrefs.edit")}
+          </button>
+          <button onClick={generate} disabled={busy} className="text-[11.5px] font-bold text-neon disabled:opacity-50">
+            {busy ? "…" : t("recipesScreen.refresh")}
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-col gap-2">
@@ -449,6 +480,13 @@ export default function RecipesScreen({ onBack }) {
 
   const detailFactor = detail ? (detail.kind === "dish" ? portion : grams / 100) : 1;
   const detailMacros = detail ? macros(detail, detailFactor) : null;
+  // Catalogue composition is static, three-language data (unlike the scan's
+  // single-language AI answer), so it is resolved to the current language
+  // here — CompositionCard itself only ever renders flat arrays.
+  const detailComposition = detail?.composition && {
+    benefits: detail.composition.benefits[lang] || detail.composition.benefits.uz,
+    harms: detail.composition.harms[lang] || detail.composition.harms.uz,
+  };
   // Scored against the portion currently dialled in, so dragging the grams down
   // is visibly the thing that turns a red verdict green.
   const detailFit = useMemo(
@@ -657,6 +695,12 @@ export default function RecipesScreen({ onBack }) {
                   ))}
                 </ul>
               </>
+            )}
+
+            {detailComposition && (
+              <div className="mb-4">
+                <CompositionCard composition={detailComposition} />
+              </div>
             )}
 
             {detailFit && (

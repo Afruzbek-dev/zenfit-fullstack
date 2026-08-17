@@ -1,11 +1,12 @@
 import { useRef, useState } from "react";
 import {
   Flame, Droplets, Dumbbell, Camera, Plus, Trash2, Minus, Activity,
-  UtensilsCrossed, TrendingUp, Sparkles, BarChart3, Info, ChevronRight,
+  UtensilsCrossed, TrendingUp, Sparkles, BarChart3, Info, ChevronRight, Footprints,
 } from "lucide-react";
 import { Screen, Section, StatTile, ProgressRing, MacroBar, EmptyState, Skeleton, Button, ListRow } from "../components/ui.jsx";
 import ActivitySheet from "../components/ActivitySheet.jsx";
 import { ACTIVITY_BY_ID } from "../data/activities.js";
+import { stepTargetForGoal } from "../lib/goalPlan.js";
 import { useApp } from "../store.jsx";
 import { haptic } from "../telegram.js";
 
@@ -70,8 +71,9 @@ function RecentFoods({ foods, busyKey, onLog, t }) {
 }
 
 export default function HomeScreen({ onNavigate }) {
-  const { user, profile, summary, meals, recentFoods, activities, addMeal, removeMeal, removeActivity, addWater, showToast, workoutPlan, t } = useApp();
+  const { user, profile, summary, meals, recentFoods, activities, addMeal, removeMeal, removeActivity, addWater, addSteps, showToast, workoutPlan, t } = useApp();
   const [waterBusy, setWaterBusy] = useState(false);
+  const [stepsBusy, setStepsBusy] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
   const [recentBusy, setRecentBusy] = useState(null);
   // The state above drives the disabled prop, but state only takes effect after
@@ -126,6 +128,20 @@ export default function HomeScreen({ onNavigate }) {
       setWaterBusy(false);
     }
   }
+
+  async function steps(delta) {
+    setStepsBusy(true);
+    try {
+      await addSteps(delta);
+      haptic("success");
+    } catch (e) {
+      showToast(e.message || t("common.error"), "error");
+    } finally {
+      setStepsBusy(false);
+    }
+  }
+
+  const stepTarget = stepTargetForGoal(profile?.goal);
 
   const greeting = (() => {
     const h = new Date().getHours();
@@ -268,6 +284,45 @@ export default function HomeScreen({ onNavigate }) {
               className="grid h-9 w-9 place-items-center rounded-xl bg-cyan/15 active:scale-95 disabled:opacity-40"
             >
               <Plus size={15} className="text-cyan" />
+            </button>
+          </div>
+        </div>
+      </Section>
+
+      {/* Steps */}
+      <Section title={t("home.steps")}>
+        <div className="card flex items-center gap-3 px-4 py-3.5">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-amber/12">
+            <Footprints size={19} className="text-amber" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="tabular text-[15px] font-bold text-ink">
+              {summary.stepsToday}
+              <span className="text-[12px] font-semibold text-faint"> / {stepTarget} {t("home.stepsUnit")}</span>
+            </p>
+            <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-borderSoft">
+              <div
+                className="h-full rounded-full bg-amber transition-[width] duration-500"
+                style={{ width: `${Math.min((summary.stepsToday / stepTarget) * 100, 100)}%` }}
+              />
+            </div>
+          </div>
+          <div className="flex shrink-0 gap-1.5">
+            <button
+              onClick={() => steps(-1000)}
+              disabled={stepsBusy || summary.stepsToday <= 0}
+              aria-label="1000 qadam"
+              className="grid h-9 w-9 place-items-center rounded-xl border border-borderSoft bg-surfaceAlt active:scale-95 disabled:opacity-30"
+            >
+              <Minus size={15} className="text-muted" />
+            </button>
+            <button
+              onClick={() => steps(1000)}
+              disabled={stepsBusy}
+              aria-label="1000 qadam"
+              className="grid h-9 w-9 place-items-center rounded-xl bg-amber/15 active:scale-95 disabled:opacity-40"
+            >
+              <Plus size={15} className="text-amber" />
             </button>
           </div>
         </div>

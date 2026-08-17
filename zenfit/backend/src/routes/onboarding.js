@@ -2,7 +2,7 @@ import { Router } from "express";
 import { query, queryOne } from "../db.js";
 import { requireAuth } from "../middleware/auth.js";
 import { computeTargets, AGE_MIN, AGE_MAX } from "../lib/calorie.js";
-import { estimateGoal, isValidTarget } from "../lib/goalPlan.js";
+import { estimateGoal, estimateGoalAtRate, isValidTarget, rateForWeeks } from "../lib/goalPlan.js";
 import { mapProfile } from "../lib/mappers.js";
 import { sanitizeFocusMuscles } from "../lib/muscleFocus.js";
 
@@ -19,7 +19,7 @@ router.post("/", requireAuth, async (req, res, next) => {
     const {
       gender, age, heightCm, weightKg, activityLevel, goal,
       fitnessLevel, equipment, daysPerWeek, sessionDuration, injuries, targetWeightKg,
-      pregnant, focusMuscles,
+      pregnant, focusMuscles, paceWeeks,
     } = req.body || {};
 
     // AGE_MIN/AGE_MAX come from the calorie engine so this route and the profile
@@ -48,15 +48,34 @@ router.post("/", requireAuth, async (req, res, next) => {
      * renders from `safety.reasons` is the useful half of a refusal without
      * the dead end.
      */
-    const targets = computeTargets({ gender, age, heightCm, weightKg, activityLevel, goal, pregnant: isPregnant });
-    const effectiveGoal = targets.goal;
+    const preTargets = computeTargets({ gender, age, heightCm, weightKg, activityLevel, goal, pregnant: isPregnant });
+    const effectiveGoal = preTargets.goal;
+    const requestedTargetKg = Number(targetWeightKg);
+    const validTarget = isValidTarget({ goal: effectiveGoal, currentKg: weightKg, targetKg: requestedTargetKg });
+
+    // A client-sent pace is never trusted directly — rateForWeeks recomputes
+    // it server-side and clamps to the same safety ceiling the default path
+    // uses, so a user cannot pick their way to an unsafe rate.
+    const pace =
+      validTarget && Number.isFinite(paceWeeks) && paceWeeks >= 1
+        ? rateForWeeks({ goal: effectiveGoal, currentKg: weightKg, targetKg: requestedTargetKg, weeks: paceWeeks })
+        : null;
+
+    // Recompute with the chosen pace's rate feeding the deficit/surplus —
+    // only when one was actually picked, so the default flat -500/+400 path
+    // is untouched for everyone else.
+    const targets = pace
+      ? computeTargets({ gender, age, heightCm, weightKg, activityLevel, goal, pregnant: isPregnant, weeklyRateKg: pace.rateKgPerWeek })
+      : preTargets;
 
     // The date is derived here rather than trusted from the client, so the
     // promise the user sees is always the safe-rate one. Keyed off the
     // effective goal: a downgraded "lose" must not keep a slimming deadline.
-    const target = isValidTarget({ goal: effectiveGoal, currentKg: weightKg, targetKg: Number(targetWeightKg) })
-      ? estimateGoal({ goal: effectiveGoal, currentKg: weightKg, targetKg: Number(targetWeightKg) })
-      : null;
+    const target = !validTarget
+      ? null
+      : pace
+        ? estimateGoalAtRate({ goal: effectiveGoal, currentKg: weightKg, targetKg: requestedTargetKg, rateKgPerWeek: pace.rateKgPerWeek })
+        : estimateGoal({ goal: effectiveGoal, currentKg: weightKg, targetKg: requestedTargetKg });
 
     await query(
       `UPDATE profiles SET
@@ -65,10 +84,10 @@ router.post("/", requireAuth, async (req, res, next) => {
          daily_calorie_target = $7, carbs_target_g = $8, protein_target_g = $9, fat_target_g = $10,
          fitness_level = $11, equipment = $12, days_per_week = $13,
          session_duration = $14, injuries = $15,
-         target_weight_kg = $16, target_date = $17, pregnant = $18,
-         focus_muscles = $19,
+         target_weight_kg = $16, target_date = $17, target_pace_kg_per_week = $18, pregnant = $19,
+         focus_muscles = $20,
          neat_confirmed = true, onboarding_completed = true, updated_at = now()
-       WHERE user_id = $20`,
+       WHERE user_id = $21`,
       [
         gender, age, heightCm, weightKg, activityLevel, effectiveGoal,
         targets.dailyCalorieTarget, targets.carbsTargetG, targets.proteinTargetG, targets.fatTargetG,
@@ -77,8 +96,9 @@ router.post("/", requireAuth, async (req, res, next) => {
         Number.isFinite(daysPerWeek) ? daysPerWeek : null,
         sessionDuration || null,
         injuries || null,
-        target ? Number(targetWeightKg) : null,
+        target ? requestedTargetKg : null,
         target ? target.targetDate : null,
+        pace ? pace.rateKgPerWeek : null,
         isPregnant,
         sanitizeFocusMuscles(focusMuscles),
         req.userId,

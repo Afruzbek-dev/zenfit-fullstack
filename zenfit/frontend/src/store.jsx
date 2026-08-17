@@ -247,6 +247,11 @@ export function AppProvider({ children }) {
     setSummary((prev) => (prev ? { ...prev, waterMl: res.waterMl } : prev));
   }, []);
 
+  const addSteps = useCallback(async (n) => {
+    const res = await api.addSteps(n);
+    setSummary((prev) => (prev ? { ...prev, stepsToday: res.stepsToday } : prev));
+  }, []);
+
   /*
    * Logged exercise never changes `remaining` — see the matching comment in
    * lib/stats.js getDayStats for why. These optimistic updates only touch
@@ -360,14 +365,14 @@ export function AppProvider({ children }) {
       status, error, boot, refresh,
       user, profile, setProfile, subscription, setSubscription,
       summary, meals, recentFoods, activities, workoutPlan, dietPlan, setDietPlan, workoutHistory,
-      addMeal, removeMeal, addWater, logWorkout, saveWorkoutPlan, completeOnboarding,
+      addMeal, removeMeal, addWater, addSteps, logWorkout, saveWorkoutPlan, completeOnboarding,
       addActivity, removeActivity, updateProfile,
       lang, setLanguage, theme, setTheme, t,
       toast, showToast,
     }),
     [
       status, error, boot, refresh, user, profile, subscription, summary, meals, recentFoods,
-      activities, workoutPlan, dietPlan, workoutHistory, addMeal, removeMeal, addWater,
+      activities, workoutPlan, dietPlan, workoutHistory, addMeal, removeMeal, addWater, addSteps,
       logWorkout, saveWorkoutPlan, completeOnboarding, addActivity, removeActivity,
       updateProfile, lang, setLanguage, theme, setTheme, t, toast, showToast,
     ]

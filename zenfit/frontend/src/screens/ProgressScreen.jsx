@@ -5,7 +5,7 @@ import SafetyNotice from "../components/SafetyNotice.jsx";
 import { api } from "../api.js";
 import { useApp } from "../store.jsx";
 import { localDateKey, weekdayShort } from "../lib/format.js";
-import { estimateGoal } from "../lib/goalPlan.js";
+import { estimateGoal, estimateGoalAtRate } from "../lib/goalPlan.js";
 import { haptic } from "../telegram.js";
 
 /**
@@ -293,7 +293,13 @@ function GoalProgressCard({ profile, history, t }) {
   if (!Number.isFinite(targetKg) || !Number.isFinite(currentKg)) return null;
 
   const startKg = history?.[0]?.weightKg ?? currentKg;
-  const estimate = estimateGoal({ goal, currentKg, targetKg });
+  // A custom pace chosen in onboarding (or HealthData) drives the same ETA
+  // here, so this card and the promise the user picked never disagree.
+  const customRate = Number(profile?.targetPaceKgPerWeek);
+  const estimate =
+    Number.isFinite(customRate) && customRate > 0
+      ? estimateGoalAtRate({ goal, currentKg, targetKg, rateKgPerWeek: customRate })
+      : estimateGoal({ goal, currentKg, targetKg });
   const reached = !estimate;
 
   const totalSpan = Math.abs(targetKg - startKg);

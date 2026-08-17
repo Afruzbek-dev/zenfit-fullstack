@@ -64,6 +64,11 @@ export function buildSchema(pg) {
       water_target_ml      INTEGER DEFAULT 2500,
       target_weight_kg     ${REAL},
       target_date          TEXT,
+      -- Non-null when the user picked their own pace (weeks to reach
+      -- target_weight_kg) instead of the default %bodyweight rate — see
+      -- lib/goalPlan.js. Drives both target_date and the calorie deficit in
+      -- lib/calorie.js's computeTargets(). Null means "use the default".
+      target_pace_kg_per_week ${REAL},
       display_name         TEXT,
       language             TEXT DEFAULT 'uz',
       theme                TEXT DEFAULT 'dark',
@@ -79,6 +84,9 @@ export function buildSchema(pg) {
       -- have at home, used to build a meal plan out of what is actually in the
       -- kitchen. Ids only — the nutrition values stay in the client catalogue.
       pantry               TEXT,
+      -- Diet-plan questionnaire answers (restrictions, meals/day, eats out) —
+      -- JSON object. Asked once before the first AI diet plan, reused after.
+      diet_prefs           TEXT,
       -- Muscle groups the user asked to emphasise. JSON array of picker ids;
       -- the split builder turns them into training days.
       focus_muscles        TEXT,
@@ -145,6 +153,15 @@ export function buildSchema(pg) {
       id        ${ID},
       user_id   ${FK} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       ml        INTEGER NOT NULL,
+      logged_at ${TS}
+    )`,
+
+    // Manually logged, same shape as water_logs — a running daily total, not
+    // a set-exact-value. Feeds the step count next to the onboarding target.
+    `CREATE TABLE IF NOT EXISTS step_logs (
+      id        ${ID},
+      user_id   ${FK} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      steps     INTEGER NOT NULL,
       logged_at ${TS}
     )`,
 
@@ -251,6 +268,7 @@ export function buildSchema(pg) {
     `CREATE INDEX IF NOT EXISTS idx_exercise_sets_log      ON exercise_sets(workout_log_id)`,
     `CREATE INDEX IF NOT EXISTS idx_chat_user_time         ON chat_messages(user_id, created_at DESC)`,
     `CREATE INDEX IF NOT EXISTS idx_water_user_date        ON water_logs(user_id, logged_at DESC)`,
+    `CREATE INDEX IF NOT EXISTS idx_steps_user_date        ON step_logs(user_id, logged_at DESC)`,
     `CREATE INDEX IF NOT EXISTS idx_weight_user_date       ON weight_history(user_id, recorded_at DESC)`,
     `CREATE INDEX IF NOT EXISTS idx_ai_plans_user_active   ON ai_plans(user_id, plan_type, is_active, created_at DESC)`,
     `CREATE INDEX IF NOT EXISTS idx_ai_usage_user_feature  ON ai_usage(user_id, feature, used_at DESC)`,
@@ -264,6 +282,6 @@ export function buildSchema(pg) {
 /** Tables that must have RLS enabled on Postgres — i.e. all of them. */
 export const RLS_TABLES = [
   "users", "profiles", "meals", "workout_logs", "exercise_sets", "ai_plans",
-  "chat_messages", "water_logs", "weight_history", "subscriptions",
+  "chat_messages", "water_logs", "step_logs", "weight_history", "subscriptions",
   "activities", "payments", "payment_cards", "app_settings", "ai_usage",
 ];

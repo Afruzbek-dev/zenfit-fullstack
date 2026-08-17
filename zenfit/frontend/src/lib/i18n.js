@@ -36,7 +36,7 @@ const uz = {
     morning: "Xayrli tong", day: "Xayrli kun", evening: "Xayrli kech", night: "Xayrli tun",
     remaining: "kkal qoldi", over: "ortiqcha", eaten: "Yeyildi", target: "Me'yor", burned: "Sarflandi",
     protein: "Oqsil", carbs: "Uglevod", fat: "Yog'",
-    water: "Suv", todayStatus: "Bugungi holat", meals: "Ovqat", workouts: "Mashq", streak: "Streak",
+    water: "Suv", steps: "Qadamlar", stepsUnit: "qadam", todayStatus: "Bugungi holat", meals: "Ovqat", workouts: "Mashq", streak: "Streak",
     todayMeals: "Bugungi ovqatlar", addMeal: "+ Qo'shish", recent: "Yana qo'shish",
     noMeals: "Hali ovqat qo'shilmagan", noMealsDesc: "Taom rasmini skanerlang yoki retseptlardan tanlang.",
     scanWithAi: "AI bilan skanerlash",
@@ -108,9 +108,20 @@ const uz = {
     tapSetToStart: "Setni bosib boshlang va bajargach belgilang",
 
     cam: {
-      button: "Kamera bilan sanash",
+      start: "Kamera bilan boshlash",
+      startDesc: "Telefonni ro'paraga qo'ying — sanoq, dam va keyingi set o'zi aylanadi",
+      button: "Shu setni kamera bilan",
       loadingModel: "Kuzatuv modeli yuklanmoqda…",
       positionHint: "Butun gavdangiz ko'rinishi uchun orqaroqqa turing",
+      getReady: "Tayyor bo'ling",
+      startNow: "Hozir boshlash",
+      next: "Keyingi",
+      finishSet: "Setni tugatish",
+      finishSetLast: "Mashqni tugatish",
+      minusRep: "Bitta kam",
+      plusRep: "Bitta ko'p",
+      sessionDone: "Mashq tugadi 💪",
+      deepReps: "chuqur",
       depthGood: "Yaxshi chuqurlik 👍",
       depthShallow: "Pastroq tushing",
       kneeCave: "Tizzalar ichkariga qisilmasin",
@@ -118,7 +129,7 @@ const uz = {
       modelFailed: "Kuzatuv modelini yuklab bo'lmadi — internetni tekshiring",
       finish: "Yakunlash",
       experimental: "Hisoblash taxminiy — sonini o'zingiz ham tekshiring",
-      applied: "{n} takror yozildi",
+      sessionApplied: "{n} set · {reps} takror yozildi",
     },
 
     planTitle: "AI Shaxsiy Reja",
@@ -244,7 +255,7 @@ const uz = {
 
   recipes: {
     planTitle: "AI kunlik ovqat rejasi", planThinking: "AI reja tuzmoqda…",
-    planDesc: "Me'yoringizga mos 4 mahal ovqat — milliy taomlar bilan",
+    planDesc: "Me'yoringizga mos, sog'lom va sodda 4 mahal ovqat",
     planLocked: "Premium'ni faollashtiring va shaxsiy ovqat rejasi oling",
     planFailed: "Reja tuzib bo'lmadi",
   },
@@ -296,6 +307,20 @@ const uz = {
     fromPantry: "Sizdagi mahsulotlardan",
   },
 
+  dietPrefs: {
+    title: "Bir necha savol",
+    subtitle: "Aniqroq reja tuzish uchun — bir marta so'raymiz, keyingi safar qayta so'ramaymiz.",
+    restrictionsTitle: "Cheklov yoki allergiya bormi?",
+    restrictions: { vegetarian: "Vegetarian", lactose: "Laktozasiz", gluten: "Glyutensiz" },
+    notePlaceholder: "Boshqa allergiya yoki yoqtirmagan taom (ixtiyoriy)",
+    mealsTitle: "Kuniga necha marta ovqatlanasiz?",
+    eatsOutTitle: "Asosan qayerda ovqatlanasiz?",
+    eatsOutFalse: "Uyda",
+    eatsOutTrue: "Ko'pincha tashqarida",
+    save: "Saqlash va reja tuzish",
+    edit: "Savollarni tahrirlash",
+  },
+
   /* Pre-made meal plans — the free counterpart to the AI one. */
   dietPreset: {
     section: "Tayyor ovqatlanish rejalari",
@@ -312,8 +337,8 @@ const uz = {
       highprotein: "Oqsilga boy menyu",
     },
     descs: {
-      "balanced-uz": "Suli, shurpa, tovuq va grechka — kundalik oddiy mahsulotlardan muvozanatli kun.",
-      "lose-lowcal": "Tvorog, mastava va oq baliq — to'q tutadigan, lekin yengil kun.",
+      "balanced-uz": "Suli, yasmiq sho'rva, tovuq va grechka — kundalik oddiy mahsulotlardan muvozanatli kun.",
+      "lose-lowcal": "Tvorog, tunets salati va oq baliq — to'q tutadigan, lekin yengil kun.",
       "gain-mass": "Ko'p kaloriya va oqsil — mashqdan keyin tiklanish uchun.",
       budget: "Yasmiq, kartoshka, tuxum va qatiq — eng arzon mahsulotlardan to'liq kun.",
       highprotein: "Tuxum, tovuq, losos va tvorog — oqsil me'yorini bemalol yopadi.",
@@ -403,7 +428,7 @@ const ru = {
     morning: "Доброе утро", day: "Добрый день", evening: "Добрый вечер", night: "Доброй ночи",
     remaining: "ккал осталось", over: "превышение", eaten: "Съедено", target: "Норма", burned: "Сожжено",
     protein: "Белки", carbs: "Углеводы", fat: "Жиры",
-    water: "Вода", todayStatus: "Сегодня", meals: "Приёмы", workouts: "Тренировки", streak: "Серия",
+    water: "Вода", steps: "Шаги", stepsUnit: "шагов", todayStatus: "Сегодня", meals: "Приёмы", workouts: "Тренировки", streak: "Серия",
     todayMeals: "Приёмы пищи сегодня", addMeal: "+ Добавить", recent: "Добавить снова",
     noMeals: "Пока ничего не добавлено", noMealsDesc: "Отсканируйте блюдо или выберите из рецептов.",
     scanWithAi: "Сканировать с AI",
@@ -473,9 +498,20 @@ const ru = {
     tapSetToStart: "Нажмите на подход, чтобы начать, и отметьте после выполнения",
 
     cam: {
-      button: "Считать через камеру",
+      start: "Начать с камерой",
+      startDesc: "Поставьте телефон напротив — счёт, отдых и следующий подход идут сами",
+      button: "Этот подход с камерой",
       loadingModel: "Загрузка модели отслеживания…",
       positionHint: "Отойдите назад, чтобы попасть в кадр целиком",
+      getReady: "Приготовьтесь",
+      startNow: "Начать сейчас",
+      next: "Далее",
+      finishSet: "Завершить подход",
+      finishSetLast: "Завершить упражнение",
+      minusRep: "На одно меньше",
+      plusRep: "На одно больше",
+      sessionDone: "Упражнение выполнено 💪",
+      deepReps: "глубоких",
       depthGood: "Хорошая глубина 👍",
       depthShallow: "Опуститесь ниже",
       kneeCave: "Не сводите колени внутрь",
@@ -483,7 +519,7 @@ const ru = {
       modelFailed: "Не удалось загрузить модель — проверьте интернет",
       finish: "Завершить",
       experimental: "Подсчёт приблизительный — тоже сверяйтесь сами",
-      applied: "Записано {n} повторений",
+      sessionApplied: "Записано: {n} подх. · {reps} повт.",
     },
 
     planTitle: "Персональный AI-план",
@@ -604,7 +640,7 @@ const ru = {
 
   recipes: {
     planTitle: "AI план питания на день", planThinking: "AI составляет план…",
-    planDesc: "4 приёма пищи под вашу норму — с национальными блюдами",
+    planDesc: "4 приёма пищи под вашу норму — простые и полезные блюда",
     planLocked: "Активируйте Premium и получите персональный план питания",
     planFailed: "Не удалось составить план",
   },
@@ -650,6 +686,20 @@ const ru = {
     fromPantry: "Из ваших продуктов",
   },
 
+  dietPrefs: {
+    title: "Пара вопросов",
+    subtitle: "Для более точного плана — спросим один раз, в следующий раз уже не будем.",
+    restrictionsTitle: "Есть ограничения или аллергия?",
+    restrictions: { vegetarian: "Вегетарианец", lactose: "Без лактозы", gluten: "Без глютена" },
+    notePlaceholder: "Другая аллергия или нелюбимая еда (необязательно)",
+    mealsTitle: "Сколько раз в день едите?",
+    eatsOutTitle: "Где обычно едите?",
+    eatsOutFalse: "Дома",
+    eatsOutTrue: "Часто вне дома",
+    save: "Сохранить и составить план",
+    edit: "Изменить ответы",
+  },
+
   dietPreset: {
     section: "Готовые планы питания",
     desc: "Порции подстраиваются под вашу дневную норму",
@@ -665,8 +715,8 @@ const ru = {
       highprotein: "Меню с высоким белком",
     },
     descs: {
-      "balanced-uz": "Овсянка, шурпа, курица и гречка — сбалансированный день из обычных продуктов.",
-      "lose-lowcal": "Творог, мастава и белая рыба — сытный, но лёгкий день.",
+      "balanced-uz": "Овсянка, чечевичный суп, курица и гречка — сбалансированный день из обычных продуктов.",
+      "lose-lowcal": "Творог, салат с тунцом и белая рыба — сытный, но лёгкий день.",
       "gain-mass": "Много калорий и белка — для восстановления после тренировок.",
       budget: "Чечевица, картофель, яйца и катык — полный день из самых недорогих продуктов.",
       highprotein: "Яйца, курица, лосось и творог — легко закрывает норму белка.",

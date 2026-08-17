@@ -8,6 +8,15 @@
 
 import { callModel } from "./aiProvider.js";
 
+/**
+ * The features that are plain text generation — trainer answers and the two
+ * plan builders — go to OpenRouter first when a key is set there, since a free
+ * model handles them well enough and they are the chattiest calls in the app.
+ * Recognition stays on the main provider: it reads photos and its numbers end
+ * up in the user's diary, so it is the wrong place to save money.
+ */
+const TEXT_PROVIDER = { prefer: "openrouter" };
+
 function extractJson(text) {
   const cleaned = text.replace(/```json/gi, "").replace(/```/g, "").trim();
   // Models occasionally add a sentence before the object — grab the outermost braces.
@@ -197,7 +206,7 @@ function buildTrainerSystemPrompt(ctx) {
 
 export async function trainerChat({ messages, context }) {
   const system = buildTrainerSystemPrompt(context);
-  const text = await callModel(messages, { maxTokens: 900, system });
+  const text = await callModel(messages, { maxTokens: 900, system, ...TEXT_PROVIDER });
   return text;
 }
 
@@ -216,13 +225,51 @@ export async function trainerChat({ messages, context }) {
 const pantryLine = (f) =>
   `- ${f.name}: ${f.kcal} kcal, oqsil ${f.protein}g, uglevod ${f.carbs}g, yog' ${f.fat}g (${f.unit})`;
 
+/** Meal slot labels per chosen count — the JSON "slot" field the client keys its icons off (RecipesScreen.jsx's SLOT_KEYS). */
+const MEAL_SLOT_SETS = {
+  3: ["Nonushta", "Tushlik", "Kechki ovqat"],
+  4: ["Nonushta", "Tushlik", "Kechki ovqat", "Gazak"],
+  5: ["Nonushta", "Gazak", "Tushlik", "Kechki ovqat", "Gazak"],
+};
+
+const RESTRICTION_UZ = {
+  vegetarian: "vegetarian (go'sht va baliqsiz)",
+  lactose: "laktozasiz (sut mahsulotlari o'rniga laktozasiz yoki o'simlik asosidagilar)",
+  gluten: "glyutensiz (bug'doy, arpa, javdar mahsulotlarisiz)",
+};
+
+/**
+ * The diet-plan questionnaire's answers (DietPrefsSheet.jsx), folded into the
+ * prompt the same way pantryBlock folds in the catalogue — restrictions as a
+ * hard constraint, everything else as a steer rather than a rule, since a
+ * meal-count and an eating-out habit are preferences, not allergies.
+ */
+function prefsInstruction(preferences) {
+  if (!preferences) return "";
+  const lines = [];
+  const restrictions = Array.isArray(preferences.restrictions)
+    ? preferences.restrictions.map((r) => RESTRICTION_UZ[r]).filter(Boolean)
+    : [];
+  if (restrictions.length) {
+    lines.push(`- Ovqatlanish cheklovi: ${restrictions.join(", ")}. Rejada bularga zid taom bo'lmasin.`);
+  }
+  const note = String(preferences.note || "").trim().slice(0, 140);
+  if (note) lines.push(`- Qo'shimcha (allergiya yoki yoqtirmaydigan taom): ${note}. Bularni ishlatma.`);
+  if (preferences.eatsOut) {
+    lines.push("- Foydalanuvchi ko'pincha tashqarida ovqatlanadi — taomlar oddiy va tashqarida topish oson bo'lsin.");
+  }
+  return lines.length ? `\n\nFOYDALANUVCHI TANLOVLARI:\n${lines.join("\n")}` : "";
+}
+
 export async function generateDietPlan(ctx) {
-  const { profile, pantry } = ctx;
+  const { profile, pantry, preferences } = ctx;
   const goalUz = { lose: "ozish", maintain: "vaznni saqlash", gain: "massa yig'ish" }[profile.goal] || profile.goal;
   const fromPantry = Array.isArray(pantry) && pantry.length > 0;
+  const slots = MEAL_SLOT_SETS[preferences?.mealsPerDay] || MEAL_SLOT_SETS[4];
 
-  const system = `Sen o'zbek oshxonasini yaxshi biladigan nutritsiologsan. Foydalanuvchiga real, arzon va topish oson mahsulotlardan kunlik ovqatlanish rejasi tuzasan.
-Mahalliy taomlarni (osh, shurpa, non, tvorog, qatiq, somsa) hisobga ol, lekin maqsadga mos porsiyalarda.
+  const system = `Sen sog'lom va sodda diet-retseptlarga ixtisoslashgan nutritsiologsan — oz sonli ingredient, tez tayyorlanadigan, protein-boy taomlar (Mob Kitchen uslubidagi diet oshxona). Foydalanuvchiga real, arzon va O'zbekistonda topish oson mahsulotlardan kunlik ovqatlanish rejasi tuzasan.
+Asosiy tanlov: grilda/pechda pishirilgan tovuq/baliq/mol go'shti, sabzavotli salat va sho'rvalar, tuxum taomlari, tvorog/yogurt asosidagi taomlar, guruch/bulg'ur/yasmiq kabi sodda garnirlar.
+Og'ir va yog'li milliy taomlarni (osh, lag'mon, manti, somsa, norin, dimlama kabi qovurilgan/dimlangan taomlarni) rejaga asosiy ovqat sifatida QO'SHMA — ular diet uchun mos emas. Bir kunlik rejada ulardan birortasi ham bo'lmasligi kerak.
 FAQAT JSON qaytar, markdown yoki izoh qo'shma.`;
 
   // With a pantry the job changes from "compose a sensible day" to "compose a
@@ -245,7 +292,7 @@ Agar ro'yxatdagi mahsulotlar kunlik me'yorni to'ldirishga yetmasa, "missing" may
 - Jins: ${profile.gender === "female" ? "ayol" : "erkak"}, yosh ${profile.age}, bo'y ${profile.height_cm}sm, vazn ${profile.weight_kg}kg
 - Maqsad: ${goalUz}
 - Kunlik me'yor: ${profile.daily_calorie_target} kcal
-- Makro: oqsil ${profile.protein_target_g}g, uglevod ${profile.carbs_target_g}g, yog' ${profile.fat_target_g}g${pantryBlock}
+- Makro: oqsil ${profile.protein_target_g}g, uglevod ${profile.carbs_target_g}g, yog' ${profile.fat_target_g}g${pantryBlock}${prefsInstruction(preferences)}
 
 JSON format:
 {
@@ -255,9 +302,14 @@ JSON format:
   ],
   "tips": ["qisqa maslahat 1", "qisqa maslahat 2", "qisqa maslahat 3"]${fromPantry ? ',\n  "missing": ["yetishmayotgan mahsulot nomi"]' : ""}
 }
-meals massivida 4 ta ovqat bo'lsin: Nonushta, Tushlik, Kechki ovqat, Gazak. Jami kaloriya me'yorga yaqin bo'lsin (±100 kcal).`;
+meals massivida ${slots.length} ta ovqat bo'lsin: ${slots.join(", ")}. Jami kaloriya me'yorga yaqin bo'lsin (±100 kcal).`;
 
-  const text = await callModel([{ role: "user", content: prompt }], { maxTokens: 1600, system, json: true });
+  const text = await callModel([{ role: "user", content: prompt }], {
+    maxTokens: 1600,
+    system,
+    json: true,
+    ...TEXT_PROVIDER,
+  });
   return { ...extractJson(text), source: fromPantry ? "pantry" : "ai" };
 }
 
@@ -287,6 +339,11 @@ JSON format:
   "focusPoints": ["diqqat qaratish kerak bo'lgan nuqta 1", "nuqta 2"]
 }`;
 
-  const text = await callModel([{ role: "user", content: prompt }], { maxTokens: 900, system, json: true });
+  const text = await callModel([{ role: "user", content: prompt }], {
+    maxTokens: 900,
+    system,
+    json: true,
+    ...TEXT_PROVIDER,
+  });
   return extractJson(text);
 }

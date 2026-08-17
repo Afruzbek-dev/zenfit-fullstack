@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import {
   ChevronLeft, ChevronRight, Sparkles, TrendingDown, TrendingUp, Scale, Award, Zap,
   Home, Building2, Clock, Dumbbell, Check, ShieldAlert, Flame, User2, Users, Trees, Activity,
-  Minus, Plus, CalendarClock, Languages, Crown,
+  Minus, Plus, CalendarClock, Languages, Crown, Footprints,
 } from "lucide-react";
 import { Button, OptionCard } from "../components/ui.jsx";
 import SafetyNotice from "../components/SafetyNotice.jsx";
@@ -11,7 +11,7 @@ import PremiumSheet from "./profile/PremiumSheet.jsx";
 import { formatSetPlan, generateWorkoutPlan, localizeDay, rulesNote } from "../lib/aiPlanEngine.js";
 import { bestProgram, PROGRAMS } from "../data/programs.js";
 import { localizeExercise } from "../data/exerciseText.js";
-import { estimateGoal, defaultTarget, targetBounds } from "../lib/goalPlan.js";
+import { estimateGoal, defaultTarget, targetBounds, rateForWeeks, stepTargetForGoal } from "../lib/goalPlan.js";
 import { shortDate } from "../lib/format.js";
 import { LANGUAGES, hasStoredLanguage } from "../lib/i18n.js";
 import { haptic } from "../telegram.js";
@@ -47,6 +47,9 @@ const LEVELS = [
 ];
 
 const DAYS = [3, 4, 5];
+
+/** Quick-pick weeks for the custom-pace control — roughly 6 weeks / 3 months / 6 months. */
+const PACE_PRESETS = [6, 13, 26];
 
 const EQUIPMENT = [
   { id: "home-none", Icon: Home },
@@ -191,6 +194,10 @@ export default function Onboarding({ onFinish }) {
   const [injuries, setInjuries] = useState("");
   const [targets, setTargets] = useState(null);
   const [targetWeight, setTargetWeight] = useState(null);
+  // Off by default: the safe %bodyweight estimate below is what most users
+  // see. Turning this on lets them pick their own weeks instead.
+  const [customPaceOn, setCustomPaceOn] = useState(false);
+  const [paceWeeks, setPaceWeeks] = useState(null);
 
   // Step 11 only: "personal" shows the AI-personalized plan (Premium), "preset"
   // switches to picking one of the free ready-made programs instead.
@@ -211,6 +218,13 @@ export default function Onboarding({ onFinish }) {
   const goalEstimate = useMemo(
     () => estimateGoal({ goal, currentKg: nums.weightKg, targetKg: targetWeight }),
     [goal, nums.weightKg, targetWeight]
+  );
+
+  // Live preview only — the server recomputes and clamps this again on save
+  // (routes/onboarding.js), so a manipulated client value can't buy an unsafe rate.
+  const paceEstimate = useMemo(
+    () => (customPaceOn ? rateForWeeks({ goal, currentKg: nums.weightKg, targetKg: targetWeight, weeks: paceWeeks }) : null),
+    [customPaceOn, goal, nums.weightKg, targetWeight, paceWeeks]
   );
 
   const bodyValid =
@@ -252,6 +266,10 @@ export default function Onboarding({ onFinish }) {
       fitnessLevel: level || "beginner",
       equipment, daysPerWeek: days, sessionDuration: duration, injuries,
       targetWeightKg: targetWeight ?? undefined,
+      // Only sent when the user actually engaged the custom-pace control and
+      // it resolved to a real number — otherwise the server falls back to its
+      // own default %bodyweight rate exactly as before this feature existed.
+      paceWeeks: customPaceOn && paceEstimate ? paceWeeks : undefined,
       focusMuscles,
     };
   }
@@ -504,6 +522,10 @@ export default function Onboarding({ onFinish }) {
                     setGoal(g.id);
                     // Seed a realistic target the moment a direction is picked.
                     setTargetWeight(defaultTarget(g.id, nums.weightKg));
+                    // A pace chosen for the old goal/target rarely still makes
+                    // sense — restart the choice rather than carry it over.
+                    setCustomPaceOn(false);
+                    setPaceWeeks(null);
                   }}
                 />
               ))}
@@ -572,6 +594,93 @@ export default function Onboarding({ onFinish }) {
                       </div>
                     </div>
                   )}
+
+                  {goalEstimate && !customPaceOn && (
+                    <button
+                      onClick={() => {
+                        haptic("light");
+                        setCustomPaceOn(true);
+                        setPaceWeeks(goalEstimate.weeks);
+                      }}
+                      className="mt-3 w-full text-center text-[12px] font-semibold text-cyan"
+                    >
+                      {t("onboarding.customPaceToggle")}
+                    </button>
+                  )}
+
+                  {customPaceOn && (
+                    <div className="animate-fade-up card mt-3 px-5 py-5">
+                      <div className="flex items-center justify-between">
+                        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-faint">
+                          {t("onboarding.customPaceTitle")}
+                        </p>
+                        <button
+                          onClick={() => {
+                            haptic("light");
+                            setCustomPaceOn(false);
+                            setPaceWeeks(null);
+                          }}
+                          className="text-[11px] font-semibold text-faint"
+                        >
+                          {t("onboarding.customPaceOff")}
+                        </button>
+                      </div>
+
+                      <div className="mt-3 flex gap-2">
+                        {PACE_PRESETS.map((w) => (
+                          <button
+                            key={w}
+                            onClick={() => {
+                              haptic("select");
+                              setPaceWeeks(w);
+                            }}
+                            className={`flex-1 rounded-xl border px-2 py-2 text-[12px] font-bold transition-colors ${
+                              paceWeeks === w
+                                ? "border-neon bg-neon/10 text-neon"
+                                : "border-borderSoft bg-surfaceAlt text-muted"
+                            }`}
+                          >
+                            {w} {t("onboarding.weeksUnit")}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="mt-3 flex items-center justify-center gap-4">
+                        <button
+                          onClick={() => setPaceWeeks((w) => Math.max(1, (w ?? 1) - 1))}
+                          aria-label={t("onboarding.decrease")}
+                          className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-borderSoft bg-surfaceAlt active:scale-95"
+                        >
+                          <Minus size={15} className="text-muted" />
+                        </button>
+                        <p className="tabular text-[20px] font-bold text-ink">
+                          {paceWeeks ?? "—"} <span className="text-[12px] font-normal text-faint">{t("onboarding.weeksUnit")}</span>
+                        </p>
+                        <button
+                          onClick={() => setPaceWeeks((w) => Math.min(104, (w ?? 1) + 1))}
+                          aria-label={t("onboarding.increase")}
+                          className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-borderSoft bg-surfaceAlt active:scale-95"
+                        >
+                          <Plus size={15} className="text-muted" />
+                        </button>
+                      </div>
+
+                      {paceEstimate && (
+                        <div
+                          className={`mt-3 rounded-xl px-3 py-2.5 text-[11.5px] leading-relaxed ${
+                            paceEstimate.safe ? "bg-cyan/[0.07] text-muted" : "bg-amber/[0.1] text-amber"
+                          }`}
+                        >
+                          {paceEstimate.safe
+                            ? t("onboarding.paceSafe", { rate: paceEstimate.rateKgPerWeek })
+                            : t("onboarding.paceUnsafe", {
+                                requested: paceEstimate.requestedRateKg,
+                                max: paceEstimate.rateKgPerWeek,
+                              })}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </StepShell>
@@ -612,6 +721,19 @@ export default function Onboarding({ onFinish }) {
                 <div className="mt-4 flex justify-center gap-4 border-t border-borderSoft pt-3 text-[11px] text-faint">
                   <span>BMR <b className="tabular text-muted">{targets.bmr}</b></span>
                   <span>TDEE <b className="tabular text-muted">{targets.tdee}</b></span>
+                </div>
+              </div>
+
+              <div className="card mt-3 flex w-full items-center gap-3 px-5 py-4 text-left">
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-cyan/12">
+                  <Footprints size={19} className="text-cyan" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-faint">{t("onboarding.stepTarget")}</p>
+                  <p className="tabular text-[16px] font-bold text-ink">
+                    {String(stepTargetForGoal(safety?.goal || goal)).replace(/\B(?=(\d{3})+(?!\d))/g, " ")}
+                    <span className="ml-1 text-[11px] font-normal text-faint">{t("onboarding.stepsUnit")}</span>
+                  </p>
                 </div>
               </div>
 

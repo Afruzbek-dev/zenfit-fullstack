@@ -110,6 +110,8 @@ export const api = {
   getMonthActivity: () => request("GET", `/api/tracking/month?tz=${tz()}`),
   addWater: (ml) => request("POST", "/api/tracking/water", { body: { ml, tz: tz() } }),
   resetWater: () => request("DELETE", `/api/tracking/water/today?tz=${tz()}`),
+  addSteps: (n) => request("POST", "/api/tracking/steps", { body: { steps: n, tz: tz() } }),
+  resetSteps: () => request("DELETE", `/api/tracking/steps/today?tz=${tz()}`),
   getWeightHistory: () => request("GET", "/api/tracking/weight"),
 
   /* plans */

@@ -251,11 +251,22 @@ export function calculateBMR({ gender, age, heightCm, weightKg }) {
 }
 
 /**
+ * kcal per kg of bodyweight change per week, from the standard ~7700 kcal/kg
+ * energy-density assumption spread over 7 days. Turns a chosen weekly rate
+ * (lib/goalPlan.js's rateForWeeks/estimateGoalAtRate) into a daily
+ * deficit/surplus, in the same units the flat 500/400 figures below were.
+ */
+const RATE_KCAL_PER_KG = 1100;
+
+/**
  * @param {{gender:'male'|'female', age:number, heightCm:number, weightKg:number,
  *          activityLevel: keyof typeof ACTIVITY_MULTIPLIERS, goal:'lose'|'maintain'|'gain',
- *          pregnant?: boolean}} input
+ *          pregnant?: boolean, weeklyRateKg?: number}} input
+ *          weeklyRateKg: when the user picked their own pace instead of the
+ *          default, the deficit/surplus below scales to match it rather than
+ *          using the flat figure. Omit to keep today's behaviour exactly.
  */
-export function computeTargets({ gender, age, heightCm, weightKg, activityLevel, goal, pregnant = false }) {
+export function computeTargets({ gender, age, heightCm, weightKg, activityLevel, goal, pregnant = false, weeklyRateKg }) {
   const safety = assessGoalSafety({ gender, age, heightCm, weightKg, goal, pregnant });
   // From here on the *effective* goal is used, never the requested one.
   const effectiveGoal = safety.goal;
@@ -275,22 +286,30 @@ export function computeTargets({ gender, age, heightCm, weightKg, activityLevel,
   const heightM = heightCm / 100;
   const refKg = Math.min(weightKg, 25 * heightM * heightM);
 
+  const hasCustomRate = Number.isFinite(weeklyRateKg) && weeklyRateKg > 0;
+
   let target;
   if (effectiveGoal === "lose") {
     /*
      * Four floors, whichever binds hardest:
-     *   - a flat 500 kcal cut is the starting point;
+     *   - a flat 500 kcal cut is the starting point (or, with a chosen pace,
+     *     that pace's own deficit — still just the starting point);
      *   - 1200 (women) / 1500 (men) as an absolute minimum. The old code used
      *     1200 for both, which is the female figure;
      *   - the user's own BMR. A 62 kg man used to be handed 1345 kcal against a
      *     BMR of 1537 — a target below the energy his body burns at rest;
      *   - 75% of TDEE, so the deficit scales with body size. A flat 500 is 14%
      *     of a large man's TDEE but 36% of a small woman's.
+     * A faster chosen pace cannot push below these — it just narrows the gap
+     * to whichever floor was already binding.
      */
+    const dailyDeficit = hasCustomRate ? weeklyRateKg * RATE_KCAL_PER_KG : 500;
     const absoluteFloor = gender === "female" ? 1200 : 1500;
-    target = Math.max(tdee - 500, absoluteFloor, bmr, tdee * 0.75);
+    target = Math.max(tdee - dailyDeficit, absoluteFloor, bmr, tdee * 0.75);
   } else if (effectiveGoal === "gain") {
-    target = tdee + 400; // muskul massasi uchun mo''tadil ortiqcha
+    // muskul massasi uchun mo''tadil ortiqcha — yoki tanlangan sur'atga mos ortiqcha
+    const dailySurplus = hasCustomRate ? weeklyRateKg * RATE_KCAL_PER_KG : 400;
+    target = tdee + dailySurplus;
   } else {
     target = tdee;
   }

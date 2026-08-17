@@ -60,6 +60,9 @@ async function run() {
   /* ----- goal weight and the date it should be reached ------------------ */
   await addColumn("profiles", "target_weight_kg", "REAL", "REAL");
   await addColumn("profiles", "target_date", "TEXT", "TEXT");
+  // Non-null when the user picked their own pace instead of the default
+  // %bodyweight rate — see lib/goalPlan.js's rateForWeeks/estimateGoalAtRate.
+  await addColumn("profiles", "target_pace_kg_per_week", "DOUBLE PRECISION", "REAL");
 
   /* ----- manual (card transfer) payments -------------------------------- *
    * Until a payment provider is live, users transfer to a card and upload a
@@ -103,6 +106,12 @@ async function run() {
    * correcting a food's macros never means rewriting stored rows.
    * ---------------------------------------------------------------------- */
   await addColumn("profiles", "pantry", "TEXT", "TEXT");
+
+  /* ----- diet-plan questionnaire ------------------------------------------ *
+   * Restrictions, meals/day, eats-out — asked once before the first AI diet
+   * plan (see routes/ai.js's /diet-plan) and reused on every regeneration.
+   * ---------------------------------------------------------------------- */
+  await addColumn("profiles", "diet_prefs", "TEXT", "TEXT");
 
   /* ----- target muscle groups -------------------------------------------- *
    * A JSON array of muscle-picker ids ("chest", "back"…). The workout split is

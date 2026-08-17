@@ -1,6 +1,6 @@
 import { Router } from "express";
 import multer from "multer";
-import { query, queryOne, daysAgoIso } from "../db.js";
+import { query, queryOne, daysAgoIso, parseJsonColumn } from "../db.js";
 import { requireAuth } from "../middleware/auth.js";
 import { rateLimit } from "../middleware/rateLimit.js";
 import { mapChatMessage, mapSubscription } from "../lib/mappers.js";
@@ -337,7 +337,12 @@ router.post("/diet-plan", requireAuth, rateLimit({ key: "diet", windowMs: 300_00
       });
     }
 
-    const plan = await generateDietPlan({ profile, pantry: sanitizePantry(req.body?.pantry) });
+    // Read from the stored profile, not the request body — the questionnaire
+    // (DietPrefsSheet) saves through PATCH /api/profile like everything else,
+    // so this is always whatever was last confirmed, never trusted from the
+    // generate call itself.
+    const preferences = parseJsonColumn(profile.diet_prefs);
+    const plan = await generateDietPlan({ profile, pantry: sanitizePantry(req.body?.pantry), preferences });
 
     await query("UPDATE ai_plans SET is_active = false WHERE user_id = $1 AND plan_type = 'diet'", [req.userId]);
     const rows = await query(

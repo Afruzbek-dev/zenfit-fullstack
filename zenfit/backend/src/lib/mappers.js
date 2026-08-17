@@ -27,6 +27,7 @@ export function mapProfile(p) {
     waterTargetMl: p.water_target_ml ?? 2500,
     targetWeightKg: p.target_weight_kg,
     targetDate: p.target_date,
+    targetPaceKgPerWeek: p.target_pace_kg_per_week,
     displayName: p.display_name,
     language: p.language || "uz",
     theme: p.theme || "dark",
@@ -41,6 +42,7 @@ export function mapProfile(p) {
     // somehow holds a non-array — the pantry UI maps over this on every render.
     pantry: Array.isArray(pantry) ? pantry : [],
     focusMuscles: Array.isArray(focusMuscles) ? focusMuscles : [],
+    dietPrefs: parseJsonColumn(p.diet_prefs),
     neatConfirmed: bool(p.neat_confirmed),
     onboardingCompleted: bool(p.onboarding_completed),
   };

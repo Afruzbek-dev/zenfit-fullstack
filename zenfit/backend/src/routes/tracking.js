@@ -122,6 +122,42 @@ router.delete("/water/today", requireAuth, async (req, res, next) => {
   }
 });
 
+/* ----------------------------- steps ------------------------------ *
+ * Manually logged, same shape as water: each POST adds to (or, negative,
+ * corrects) today's total rather than setting it, so "log another 2,000
+ * steps" after checking your phone again later is the natural action, not
+ * "re-enter the running total" — and the same -1000/+1000 widget pattern as
+ * water's -250/+250 works without a separate "undo" path. Purely
+ * informational — unlike workouts/activities, this never feeds
+ * capExerciseCredit or the calorie budget.
+ * ------------------------------------------------------------------- */
+
+router.post("/steps", requireAuth, async (req, res, next) => {
+  try {
+    const steps = Number(req.body?.steps);
+    if (!Number.isFinite(steps) || steps === 0 || Math.abs(steps) > 20_000) {
+      return res.status(400).json({ error: "invalid_steps" });
+    }
+    await query("INSERT INTO step_logs (user_id, steps) VALUES ($1, $2)", [req.userId, Math.round(steps)]);
+    const tz = Number(req.body?.tz) || 0;
+    const stats = await getDayStats(req.userId, null, tz);
+    res.status(201).json({ stepsToday: stats.stepsToday });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.delete("/steps/today", requireAuth, async (req, res, next) => {
+  try {
+    const tz = Number(req.query.tz) || 0;
+    const { start, end } = dayRange(null, tz);
+    await query("DELETE FROM step_logs WHERE user_id = $1 AND logged_at >= $2 AND logged_at < $3", [req.userId, start, end]);
+    res.status(204).end();
+  } catch (err) {
+    next(err);
+  }
+});
+
 /* ----------------------------- weight ---------------------------- */
 
 router.get("/weight", requireAuth, async (req, res, next) => {

@@ -21,7 +21,7 @@ export default {
     morning: "Good morning", day: "Good afternoon", evening: "Good evening", night: "Good night",
     remaining: "kcal left", over: "over", eaten: "Eaten", target: "Target", burned: "Burned",
     protein: "Protein", carbs: "Carbs", fat: "Fat",
-    water: "Water", todayStatus: "Today", meals: "Meals", workouts: "Workouts", streak: "Streak",
+    water: "Water", steps: "Steps", stepsUnit: "steps", todayStatus: "Today", meals: "Meals", workouts: "Workouts", streak: "Streak",
     todayMeals: "Today's meals", addMeal: "+ Add", recent: "Log again",
     noMeals: "Nothing logged yet", noMealsDesc: "Scan a photo of your food or pick from recipes.",
     scanWithAi: "Scan with AI",
@@ -91,9 +91,20 @@ export default {
     tapSetToStart: "Tap a set to start it, then mark it done",
 
     cam: {
-      button: "Count with camera",
+      start: "Start with the camera",
+      startDesc: "Prop the phone up facing you — counting, rest and the next set run themselves",
+      button: "This set with the camera",
       loadingModel: "Loading the tracking model…",
       positionHint: "Step back so your whole body is in frame",
+      getReady: "Ready to go",
+      startNow: "Start now",
+      next: "Next",
+      finishSet: "End the set",
+      finishSetLast: "End the exercise",
+      minusRep: "One fewer",
+      plusRep: "One more",
+      sessionDone: "Exercise done 💪",
+      deepReps: "deep",
       depthGood: "Good depth 👍",
       depthShallow: "Go lower",
       kneeCave: "Don't let your knees cave in",
@@ -101,7 +112,7 @@ export default {
       modelFailed: "Couldn't load the tracking model — check your connection",
       finish: "Finish",
       experimental: "The count is approximate — keep an eye on it yourself",
-      applied: "{n} reps filled in",
+      sessionApplied: "{n} sets · {reps} reps recorded",
     },
 
     planTitle: "Your AI plan",
@@ -222,7 +233,7 @@ export default {
 
   recipes: {
     planTitle: "AI daily meal plan", planThinking: "AI is building your plan…",
-    planDesc: "Four meals matched to your target — with local dishes",
+    planDesc: "Four meals matched to your target — simple, healthy dishes",
     planLocked: "Activate Premium to get a personal meal plan",
     planFailed: "Could not build the plan",
   },
@@ -268,6 +279,20 @@ export default {
     fromPantry: "From your products",
   },
 
+  dietPrefs: {
+    title: "A couple of questions",
+    subtitle: "For a more accurate plan — we'll ask once, and won't ask again next time.",
+    restrictionsTitle: "Any restrictions or allergies?",
+    restrictions: { vegetarian: "Vegetarian", lactose: "Lactose-free", gluten: "Gluten-free" },
+    notePlaceholder: "Other allergy or food you dislike (optional)",
+    mealsTitle: "How many meals a day?",
+    eatsOutTitle: "Where do you mostly eat?",
+    eatsOutFalse: "At home",
+    eatsOutTrue: "Often eating out",
+    save: "Save and build plan",
+    edit: "Edit answers",
+  },
+
   dietPreset: {
     section: "Ready-made meal plans",
     desc: "Portions are scaled to your daily target",
@@ -283,8 +308,8 @@ export default {
       highprotein: "High-protein menu",
     },
     descs: {
-      "balanced-uz": "Oats, shurpa, chicken and buckwheat — a balanced day from everyday food.",
-      "lose-lowcal": "Tvorog, mastava and white fish — filling, but light.",
+      "balanced-uz": "Oats, lentil soup, chicken and buckwheat — a balanced day from everyday food.",
+      "lose-lowcal": "Tvorog, tuna salad and white fish — filling, but light.",
       "gain-mass": "Plenty of calories and protein — for recovering between sessions.",
       budget: "Lentils, potato, eggs and qatiq — a full day from the cheapest staples.",
       highprotein: "Eggs, chicken, salmon and tvorog — covers the protein target easily.",

@@ -61,9 +61,9 @@ export function dayRange(dateStr, tzOffsetMinutes = 0) {
 export async function getDayStats(userId, dateStr, tzOffsetMinutes = 0) {
   const { day, start, end } = dayRange(dateStr, tzOffsetMinutes);
 
-  // Issued together: these five are independent, and awaiting them in sequence
+  // Issued together: these six are independent, and awaiting them in sequence
   // paid a full network round trip each — noticeable even inside one region.
-  const [meals, workouts, activities, water, profile] = await Promise.all([
+  const [meals, workouts, activities, water, steps, profile] = await Promise.all([
     query(
       `SELECT kcal, carbs, protein, fat FROM meals
         WHERE user_id = $1 AND logged_at >= $2 AND logged_at < $3`,
@@ -81,6 +81,11 @@ export async function getDayStats(userId, dateStr, tzOffsetMinutes = 0) {
     ),
     queryOne(
       `SELECT COALESCE(SUM(ml), 0) AS total FROM water_logs
+        WHERE user_id = $1 AND logged_at >= $2 AND logged_at < $3`,
+      [userId, start, end]
+    ),
+    queryOne(
+      `SELECT COALESCE(SUM(steps), 0) AS total FROM step_logs
         WHERE user_id = $1 AND logged_at >= $2 AND logged_at < $3`,
       [userId, start, end]
     ),
@@ -141,6 +146,7 @@ export async function getDayStats(userId, dateStr, tzOffsetMinutes = 0) {
     activityMinutes: activities.reduce((sum, a) => sum + (a.duration_min || 0), 0),
     waterMl: Number(water?.total || 0),
     waterTargetMl: profile?.water_target_ml || 2500,
+    stepsToday: Number(steps?.total || 0),
     target,
     remaining: target - totals.kcal,
     mealCount: meals.length,

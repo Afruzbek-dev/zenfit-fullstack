@@ -2,7 +2,7 @@ import { Router } from "express";
 import { query, queryOne } from "../db.js";
 import { requireAuth } from "../middleware/auth.js";
 import { computeTargets, AGE_MIN, AGE_MAX } from "../lib/calorie.js";
-import { defaultTarget, isValidTarget, estimateGoal } from "../lib/goalPlan.js";
+import { defaultTarget, isValidTarget, estimateGoal, estimateGoalAtRate, rateForWeeks } from "../lib/goalPlan.js";
 import { mapProfile, mapSubscription } from "../lib/mappers.js";
 import { sanitizeFocusMuscles } from "../lib/muscleFocus.js";
 
@@ -168,30 +168,36 @@ router.patch("/", requireAuth, async (req, res, next) => {
       metricsTouched = true;
     }
 
+    /**
+     * A downgraded goal has to be known before the target-direction logic
+     * below reads metrics.goal, but a chosen pace has to be known before the
+     * *real* calorie recompute, since it changes the deficit/surplus now
+     * (lib/calorie.js), not just the displayed ETA. Two passes, same shape as
+     * routes/onboarding.js: a pre-pass here just to settle the effective
+     * goal, the real recompute after the target/pace block below.
+     */
     let safety = null;
+    let preTargets = null;
     if (metricsTouched && metrics.age && metrics.heightCm && metrics.weightKg) {
-      const t = computeTargets(metrics);
-      safety = t.safety;
-      set("daily_calorie_target", t.dailyCalorieTarget);
-      set("carbs_target_g", t.carbsTargetG);
-      set("protein_target_g", t.proteinTargetG);
-      set("fat_target_g", t.fatTargetG);
+      preTargets = computeTargets(metrics);
       // The engine may have refused the requested goal. Store the one it
       // actually used, or the row would claim "lose" while carrying a
       // maintenance target — and the next edit would recompute from that lie.
-      if (t.goal !== metrics.goal) {
-        set("goal", t.goal);
-        metrics.goal = t.goal;
+      if (preTargets.goal !== metrics.goal) {
+        set("goal", preTargets.goal);
+        metrics.goal = preTargets.goal;
       }
     }
 
     /**
-     * Goal weight & timeline. Nothing in this route ever wrote these columns
-     * before — onboarding was the only place a target could be set, so a goal
-     * changed later (e.g. HealthData's goal picker) or a safety downgrade left
-     * the Progress screen with no target to show progress against.
+     * Goal weight, timeline & pace. Nothing in this route ever wrote these
+     * columns before — onboarding was the only place a target could be set,
+     * so a goal changed later (e.g. HealthData's goal picker) or a safety
+     * downgrade left the Progress screen with no target to show progress
+     * against.
      */
-    if (metricsTouched || b.targetWeightKg !== undefined) {
+    let pace = null;
+    if (metricsTouched || b.targetWeightKg !== undefined || b.paceWeeks !== undefined) {
       if (metrics.goal === "lose" || metrics.goal === "gain") {
         const requested = Number.isFinite(b.targetWeightKg) ? b.targetWeightKg : null;
         const stored = existing.target_weight_kg;
@@ -205,17 +211,50 @@ router.patch("/", requireAuth, async (req, res, next) => {
           // First time this goal became directional, or the stored target no
           // longer makes sense (goal switch, downgrade, or weighed past it).
           targetKg = defaultTarget(metrics.goal, metrics.weightKg);
+        } else {
+          // Nothing new requested and the stored target still makes sense —
+          // keep aiming at it, so a pace recompute after e.g. a fresh
+          // weigh-in has something current to work from.
+          targetKg = stored;
         }
 
         if (targetKg != null) {
-          const est = estimateGoal({ goal: metrics.goal, currentKg: metrics.weightKg, targetKg });
+          // A client-sent pace is never trusted directly — rateForWeeks
+          // recomputes and clamps it server-side. No new paceWeeks this
+          // request keeps the previously stored pace (a weigh-in alone
+          // shouldn't silently revert a chosen pace to the default) as long
+          // as the target itself didn't just change underneath it.
+          const storedPace = Number.isFinite(existing.target_pace_kg_per_week) ? existing.target_pace_kg_per_week : null;
+          const targetIsUnchanged = storedValid && targetKg === stored;
+
+          if (Number.isFinite(b.paceWeeks) && b.paceWeeks >= 1) {
+            pace = rateForWeeks({ goal: metrics.goal, currentKg: metrics.weightKg, targetKg, weeks: b.paceWeeks });
+          } else if (storedPace != null && targetIsUnchanged) {
+            pace = { rateKgPerWeek: storedPace };
+          }
+
+          const target = pace
+            ? estimateGoalAtRate({ goal: metrics.goal, currentKg: metrics.weightKg, targetKg, rateKgPerWeek: pace.rateKgPerWeek })
+            : estimateGoal({ goal: metrics.goal, currentKg: metrics.weightKg, targetKg });
+
           set("target_weight_kg", targetKg);
-          set("target_date", est?.targetDate || null);
+          set("target_date", target?.targetDate || null);
+          set("target_pace_kg_per_week", pace ? pace.rateKgPerWeek : null);
         }
       } else if (b.goal === "maintain") {
         set("target_weight_kg", null);
         set("target_date", null);
+        set("target_pace_kg_per_week", null);
       }
+    }
+
+    if (preTargets) {
+      const t = pace ? computeTargets({ ...metrics, weeklyRateKg: pace.rateKgPerWeek }) : preTargets;
+      safety = t.safety;
+      set("daily_calorie_target", t.dailyCalorieTarget);
+      set("carbs_target_g", t.carbsTargetG);
+      set("protein_target_g", t.proteinTargetG);
+      set("fat_target_g", t.fatTargetG);
     }
 
     /* ----- training preferences ----------------------------------------- */
@@ -246,6 +285,24 @@ router.patch("/", requireAuth, async (req, res, next) => {
           .filter((id) => id && /^[a-z0-9-]{1,40}$/i.test(id))
       )].slice(0, PANTRY_MAX);
       set("pantry", ids.length ? JSON.stringify(ids) : null);
+    }
+
+    /**
+     * Diet-plan questionnaire answers (DietPrefsSheet.jsx) — asked once,
+     * reused by routes/ai.js's /diet-plan on every regeneration. Checked
+     * against a fixed restriction list for the same reason as pantry ids:
+     * this ends up in an AI prompt, so an unknown value is a bug or a probe
+     * either way, not a food.
+     */
+    if (b.dietPrefs && typeof b.dietPrefs === "object") {
+      const KNOWN_RESTRICTIONS = new Set(["vegetarian", "lactose", "gluten"]);
+      const restrictions = Array.isArray(b.dietPrefs.restrictions)
+        ? [...new Set(b.dietPrefs.restrictions.filter((r) => KNOWN_RESTRICTIONS.has(r)))]
+        : [];
+      const mealsPerDay = [3, 4, 5].includes(b.dietPrefs.mealsPerDay) ? b.dietPrefs.mealsPerDay : 4;
+      const eatsOut = b.dietPrefs.eatsOut === true;
+      const note = String(b.dietPrefs.note || "").trim().slice(0, 140);
+      set("diet_prefs", JSON.stringify({ restrictions, mealsPerDay, eatsOut, note }));
     }
 
     /*
