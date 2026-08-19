@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
   Crown, LogOut, ChevronRight, UserCog, HeartPulse, CreditCard, Settings2,
-  HelpCircle, Building2, FileText, Dumbbell,
+  HelpCircle, Building2, FileText, Dumbbell, UtensilsCrossed,
 } from "lucide-react";
 import { Screen, Section } from "../components/ui.jsx";
 import Avatar from "../components/Avatar.jsx";
@@ -43,6 +43,7 @@ export default function ProfileScreen({ onNavigate, initialView = null }) {
   const { profile, user, subscription, summary, t } = useApp();
   const [view, setView] = useState(initialView);
   const [premiumOpen, setPremiumOpen] = useState(false);
+  const [bannerImgFailed, setBannerImgFailed] = useState(false);
 
   const back = () => setView(null);
 
@@ -106,25 +107,42 @@ export default function ProfileScreen({ onNavigate, initialView = null }) {
               haptic("light");
               setPremiumOpen(true);
             }}
-            className="relative flex w-full items-center gap-3 overflow-hidden rounded-2xl bg-neon px-5 py-5 text-left active:scale-[0.99]"
+            className="relative flex w-full flex-col overflow-hidden rounded-2xl bg-[#0a0a0c] px-5 py-5 text-left active:scale-[0.99]"
           >
-            {/* Same radial-bleed technique as the app-wide aurora background,
-                just brighter and scoped to this card. */}
             <span
               aria-hidden
               className="pointer-events-none absolute inset-0"
-              style={{ background: "radial-gradient(120% 140% at 88% 6%, rgb(var(--c-neonOn) / 0.24), transparent 62%)" }}
+              style={{ background: "radial-gradient(75% 100% at 6% 0%, rgb(var(--c-neon) / 0.18), transparent 55%)" }}
             />
-            <Dumbbell
-              aria-hidden
-              size={104}
-              strokeWidth={1.5}
-              className="pointer-events-none absolute -bottom-6 -right-5 rotate-[-18deg] text-neonOn/20"
-            />
-            <span className="relative min-w-0 flex-1">
-              <span className="block text-[15px] font-bold text-neonOn">{t("profile.premium")}</span>
-              <span className="mt-1 block max-w-[215px] text-[12px] leading-relaxed text-neonOn/75">
-                {t("profile.premiumDesc")}
+            {/* premium-banner.png is a wide, black-background hero graphic (not a
+                small transparent icon) — its own black blends into the card bg
+                with no visible seam, which is why the card is hardcoded dark
+                instead of following the surface theme token. */}
+            {bannerImgFailed ? (
+              <Dumbbell
+                aria-hidden
+                size={108}
+                strokeWidth={1.5}
+                className="pointer-events-none absolute -bottom-7 -right-6 rotate-[-18deg] text-neon/10"
+              />
+            ) : (
+              <img
+                src="/premium-banner.png"
+                alt=""
+                aria-hidden
+                onError={() => setBannerImgFailed(true)}
+                className="pointer-events-none absolute inset-y-0 right-0 w-[44%] object-cover object-center"
+              />
+            )}
+            <span className="relative z-10 flex items-center gap-1.5 text-[15px] font-bold text-white">
+              <Crown size={14} className="shrink-0 text-neon" /> {t("profile.premium")}
+            </span>
+            <span className="relative z-10 mt-2.5 flex max-w-[54%] flex-col items-start gap-1.5">
+              <span className="inline-flex items-center gap-1 rounded-lg bg-white/10 px-2.5 py-1.5 text-[11px] font-bold text-white/90">
+                <UtensilsCrossed size={11} className="shrink-0" /> {t("profile.premiumDietChip")}
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-lg bg-white/10 px-2.5 py-1.5 text-[11px] font-bold text-white/90">
+                <Dumbbell size={11} className="shrink-0" /> {t("profile.premiumWorkoutChip")}
               </span>
             </span>
           </button>

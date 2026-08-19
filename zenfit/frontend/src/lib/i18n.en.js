@@ -190,6 +190,7 @@ export default {
     offer: "Terms of service", offerDesc: "Terms of use",
     logout: "Log out", logoutConfirm: "Log out of your account?",
     premium: "ZenFit Premium", premiumDesc: "Unlimited AI scanner, trainer, and all programs", premiumTrial: "Premium (trial)",
+    premiumDietChip: "My diet plan", premiumWorkoutChip: "My workout plan",
     dailyTarget: "Daily target",
 
     name: "Name", namePlaceholder: "Your name", gender: "Gender", male: "Male", female: "Female",

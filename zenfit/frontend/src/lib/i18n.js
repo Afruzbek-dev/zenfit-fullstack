@@ -212,6 +212,7 @@ const uz = {
     offer: "Ommaviy oferta", offerDesc: "Foydalanish shartlari",
     logout: "Hisobdan chiqish", logoutConfirm: "Hisobdan chiqasizmi?",
     premium: "ZenFit Premium", premiumDesc: "Cheksiz AI skaner, trener va barcha dasturlar", premiumTrial: "Premium (sinov muddati)",
+    premiumDietChip: "Dieta rejam", premiumWorkoutChip: "Mashq rejam",
     dailyTarget: "Kunlik me'yor",
 
     name: "Ism", namePlaceholder: "Ismingiz", gender: "Jins", male: "Erkak", female: "Ayol",
@@ -598,6 +599,7 @@ const ru = {
     offer: "Публичная оферта", offerDesc: "Условия использования",
     logout: "Выйти из аккаунта", logoutConfirm: "Выйти из аккаунта?",
     premium: "ZenFit Premium", premiumDesc: "Безлимитный AI сканер, тренер и все программы", premiumTrial: "Premium (пробный период)",
+    premiumDietChip: "Мой рацион", premiumWorkoutChip: "Мои тренировки",
     dailyTarget: "Дневная норма",
 
     name: "Имя", namePlaceholder: "Ваше имя", gender: "Пол", male: "Мужской", female: "Женский",
