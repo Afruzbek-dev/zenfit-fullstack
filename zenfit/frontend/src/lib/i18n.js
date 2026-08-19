@@ -41,7 +41,7 @@ const uz = {
     noMeals: "Hali ovqat qo'shilmagan", noMealsDesc: "Taom rasmini skanerlang yoki retseptlardan tanlang.",
     scanWithAi: "AI bilan skanerlash",
     qaScan: "AI Skan", qaRecipes: "Retsept", qaProgress: "Statistika", qaTrainer: "AI Trener", qaActivity: "Faollik",
-    qaDietPlan: "Dieta rejasi", qaWorkoutPlan: "Mashq rejasi", qaChallenges: "Chellenjlar",
+    qaDietPlan: "Dieta rejam", qaWorkoutPlan: "Mashq rejam", qaChallenges: "Chellenjlar",
     planNudge: "AI mashq rejasini tuzing", planNudgeDesc: "Vazningizga mos kg'lar bilan haftalik reja",
     days: "kun", ta: "ta",
     burnCapped: "Belgilangan mashqlar {raw} kkal beradi, lekin kunlik hisobga {cap} kkal qo'shildi — bir kunlik chegara.",
@@ -212,7 +212,6 @@ const uz = {
     offer: "Ommaviy oferta", offerDesc: "Foydalanish shartlari",
     logout: "Hisobdan chiqish", logoutConfirm: "Hisobdan chiqasizmi?",
     premium: "ZenFit Premium", premiumDesc: "Cheksiz AI skaner, trener va barcha dasturlar", premiumTrial: "Premium (sinov muddati)",
-    premiumDietChip: "Dieta rejam", premiumWorkoutChip: "Mashq rejam",
     dailyTarget: "Kunlik me'yor",
 
     name: "Ism", namePlaceholder: "Ismingiz", gender: "Jins", male: "Erkak", female: "Ayol",
@@ -350,6 +349,7 @@ const uz = {
   premium: {
     choosePlan: "Rejani tanlang", payByCard: "Karta orqali to'lash", payTitle: "To'lov",
     card: "Karta", copyCard: "Karta raqamini nusxalash", copied: "Nusxalandi ✓",
+    referralDiscount: "Taklif havolasi orqali kelganingiz uchun {percent}% chegirma qo'llandi",
     step1: "Yuqoridagi kartaga ko'rsatilgan summani o'tkazing.",
     step2: "To'lov chekining skrinshotini oling.",
     step3: "Pastdagi tugma orqali Telegramda adminimizga yuboring va skrinshotni ilova qiling.",
@@ -364,6 +364,8 @@ const uz = {
     trialStart: "Bepul sinovni boshlash",
     trialStartedTitle: "Sinov boshlandi!",
     trialStartedDesc: "3 kun davomida barcha premium imkoniyatlardan bepul foydalanasiz. Muddat tugagach, oddiy rejaga qaytasiz.",
+    trialOfferTitle: "Sizga sovg'a bor!", trialOfferDesc: "Sizga maxsus 3 kunlik bepul Premium sinovi ochildi. Hoziroq faollashtirasizmi?",
+    trialOfferLater: "Keyinroq",
     features: {
       unlimitedScan: { title: "Cheksiz AI skaner", desc: "Taom rasmini istagancha skanerlang" },
       unlimitedTrainer: { title: "Cheksiz AI trener", desc: "Suhbat limitisiz, istalgan vaqtda savol bering" },
@@ -435,7 +437,7 @@ const ru = {
     noMeals: "Пока ничего не добавлено", noMealsDesc: "Отсканируйте блюдо или выберите из рецептов.",
     scanWithAi: "Сканировать с AI",
     qaScan: "AI Скан", qaRecipes: "Рецепт", qaProgress: "Статистика", qaTrainer: "AI Тренер", qaActivity: "Активность",
-    qaDietPlan: "План питания", qaWorkoutPlan: "План тренировок", qaChallenges: "Челленджи",
+    qaDietPlan: "Мой рацион", qaWorkoutPlan: "Мои тренировки", qaChallenges: "Челленджи",
     planNudge: "Составьте план тренировок", planNudgeDesc: "Недельный план с весами под вас",
     days: "дн", ta: "шт",
     burnCapped: "Отмеченные тренировки дают {raw} ккал, но в дневной расчёт вошло {cap} ккал — это предел за сутки.",
@@ -599,7 +601,6 @@ const ru = {
     offer: "Публичная оферта", offerDesc: "Условия использования",
     logout: "Выйти из аккаунта", logoutConfirm: "Выйти из аккаунта?",
     premium: "ZenFit Premium", premiumDesc: "Безлимитный AI сканер, тренер и все программы", premiumTrial: "Premium (пробный период)",
-    premiumDietChip: "Мой рацион", premiumWorkoutChip: "Мои тренировки",
     dailyTarget: "Дневная норма",
 
     name: "Имя", namePlaceholder: "Ваше имя", gender: "Пол", male: "Мужской", female: "Женский",
@@ -730,6 +731,7 @@ const ru = {
   premium: {
     choosePlan: "Выберите план", payByCard: "Оплатить картой", payTitle: "Оплата",
     card: "Карта", copyCard: "Скопировать номер карты", copied: "Скопировано ✓",
+    referralDiscount: "Скидка {percent}% применена — вы пришли по реферальной ссылке",
     step1: "Переведите указанную сумму на карту выше.",
     step2: "Сделайте скриншот чека об оплате.",
     step3: "Отправьте его администратору в Telegram кнопкой ниже и приложите скриншот.",
@@ -744,6 +746,8 @@ const ru = {
     trialStart: "Начать бесплатный пробный период",
     trialStartedTitle: "Пробный период начат!",
     trialStartedDesc: "В течение 3 дней вам доступны все премиум-функции бесплатно. По окончании вы вернётесь на бесплатный план.",
+    trialOfferTitle: "У вас есть подарок!", trialOfferDesc: "Для вас открыт специальный бесплатный 3-дневный пробный период Premium. Активировать сейчас?",
+    trialOfferLater: "Позже",
     features: {
       unlimitedScan: { title: "Безлимитный AI сканер", desc: "Сканируйте блюда без ограничений" },
       unlimitedTrainer: { title: "Безлимитный AI тренер", desc: "Задавайте вопросы в любое время без лимита" },

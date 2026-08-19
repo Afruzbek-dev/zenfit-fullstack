@@ -5,6 +5,7 @@ import { signToken, verifyToken } from "../lib/jwt.js";
 import { getSettings, setSettings, SETTING_KEYS } from "../lib/settings.js";
 import { getTelegramFileUrl, sendTelegramNotification } from "../bot.js";
 import { PLANS } from "./payment.js";
+import { rewardReferralConversion } from "../lib/referrals.js";
 
 const router = Router();
 
@@ -419,6 +420,44 @@ router.post("/users/:id/premium", async (req, res, next) => {
   }
 });
 
+/**
+ * Unlocks the trial-offer popup for one user. The trial itself stays
+ * something the user starts by tapping "activate" — this only grants the
+ * *option*, it does not start the trial or touch expires_at.
+ */
+router.post("/users/:id/trial-offer", async (req, res, next) => {
+  try {
+    const id = req.params.id;
+    const user = await queryOne("SELECT id, telegram_id FROM users WHERE id = $1", [id]);
+    if (!user) return res.status(404).json({ error: "not_found" });
+
+    const sub = await queryOne("SELECT * FROM subscriptions WHERE user_id = $1", [id]);
+    if (sub?.trial_used_at) {
+      return res.status(409).json({ error: "trial_already_used", message: "Bu foydalanuvchi sinovni allaqachon ishlatgan." });
+    }
+    if (sub?.trial_offer_granted_at) {
+      return res.status(409).json({ error: "already_granted", message: "Sinov taklifi allaqachon berilgan." });
+    }
+
+    const updated = await queryOne(
+      `UPDATE subscriptions SET trial_offer_granted_at = now(), updated_at = now()
+        WHERE user_id = $1 RETURNING *`,
+      [id]
+    );
+
+    if (user.telegram_id) {
+      sendTelegramNotification(
+        user.telegram_id,
+        `🎁 <b>Sizga 3 kunlik bepul Premium sinovi taklif qilindi!</b>\n\nUni faollashtirish uchun ilovani oching.`
+      ).catch(() => {});
+    }
+
+    res.json({ subscription: updated });
+  } catch (err) {
+    next(err);
+  }
+});
+
 /* ----------------------- payment review queue --------------------- */
 
 router.get("/payments", async (req, res, next) => {
@@ -494,6 +533,12 @@ router.post("/payments/:id/approve", async (req, res, next) => {
         [payment.id]
       ),
     ]);
+
+    // Best-effort: pays the referrer's conversion bonus if (and only if) this
+    // user was referred and this is the first payment ever approved for them —
+    // rewardReferralConversion no-ops otherwise. Must not block the approval
+    // itself from succeeding.
+    rewardReferralConversion(payment.user_id).catch((err) => console.error("[referrals] conversion bonus:", err.message));
 
     const user = await queryOne("SELECT telegram_id FROM users WHERE id = $1", [payment.user_id]);
     if (user?.telegram_id) {

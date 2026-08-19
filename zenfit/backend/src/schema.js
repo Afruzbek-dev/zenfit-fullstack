@@ -181,6 +181,10 @@ export function buildSchema(pg) {
       -- Set once, the first (and only) time this user starts the 3-day trial —
       -- distinct from expires_at so a lapsed trial can't just be restarted.
       trial_used_at  ${TS_NULL},
+      -- Set by an admin in the admin panel to unlock the trial-offer popup for
+      -- this specific user. The trial stays admin-gated: POST /trial/start
+      -- refuses to run unless this is set, same once-only guard as trial_used_at.
+      trial_offer_granted_at ${TS_NULL},
       updated_at     ${TS}
     )`,
 
@@ -255,7 +259,15 @@ export function buildSchema(pg) {
       id          ${ID},
       referrer_id ${FK} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       referee_id  ${FK} NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+      -- Running total granted to the referrer for this referral: SIGNUP_REWARD_DAYS
+      -- at capture time, plus CONVERSION_REWARD_DAYS once (if ever) the referee
+      -- makes their first purchase — see converted_at below.
       reward_days INTEGER NOT NULL,
+      -- Set once, the first time the referee's payment is approved. Both the
+      -- guard against paying the referrer's conversion bonus twice (e.g. on a
+      -- renewal) and the switch for whether the referee still qualifies for
+      -- their one-time referral discount.
+      converted_at ${TS_NULL},
       created_at  ${TS}
     )`,
 

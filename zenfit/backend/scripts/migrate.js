@@ -99,6 +99,19 @@ async function run() {
    * ---------------------------------------------------------------------- */
   await addColumn("subscriptions", "trial_used_at", usingPostgres ? "TIMESTAMPTZ" : "TEXT", "TEXT");
 
+  /* ----- admin-gated trial offer ------------------------------------------ *
+   * Set by an admin picking a user in the admin panel; POST /trial/start now
+   * refuses to run until this is set — see routes/payment.js.
+   * ---------------------------------------------------------------------- */
+  await addColumn("subscriptions", "trial_offer_granted_at", usingPostgres ? "TIMESTAMPTZ" : "TEXT", "TEXT");
+
+  /* ----- referral conversion bonus ---------------------------------------- *
+   * Set once, the first time a referred user's payment is approved — pays the
+   * referrer a bonus on top of the flat signup reward, and cuts off the
+   * referee's one-time purchase discount. See lib/referrals.js.
+   * ---------------------------------------------------------------------- */
+  await addColumn("referrals", "converted_at", usingPostgres ? "TIMESTAMPTZ" : "TEXT", "TEXT");
+
   /* ----- "Mahsulotlarim" pantry ------------------------------------------ *
    * A JSON array of food catalogue ids the user has at home. The AI meal plan
    * reads it to build a day out of what is actually in the kitchen instead of

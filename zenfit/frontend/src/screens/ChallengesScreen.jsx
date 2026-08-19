@@ -64,7 +64,7 @@ function ReferralCard() {
 
   function shareLink() {
     haptic("light");
-    const text = t("challengesScreen.shareText", { days: 5 });
+    const text = t("challengesScreen.shareText", { discount: 10 });
     openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(info.link)}&text=${encodeURIComponent(text)}`);
   }
 
@@ -79,7 +79,9 @@ function ReferralCard() {
         </span>
         <div className="min-w-0">
           <p className="text-[13.5px] font-bold text-ink">{t("challengesScreen.inviteTitle")}</p>
-          <p className="text-[11.5px] leading-relaxed text-muted">{t("challengesScreen.inviteDesc", { days: 5 })}</p>
+          <p className="text-[11.5px] leading-relaxed text-muted">
+            {t("challengesScreen.inviteDesc", { signupDays: 1, bonusDays: 7, discount: 10 })}
+          </p>
         </div>
       </div>
 

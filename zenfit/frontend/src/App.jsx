@@ -4,6 +4,7 @@ import { useApp } from "./store.jsx";
 import { initTelegram, haptic, setBackButton } from "./telegram.js";
 import { applyTheme } from "./lib/theme.js";
 import { Toast, Button } from "./components/ui.jsx";
+import TrialOfferSheet from "./components/TrialOfferSheet.jsx";
 import Onboarding from "./screens/Onboarding.jsx";
 import HomeScreen from "./screens/HomeScreen.jsx";
 import WorkoutsScreen from "./screens/WorkoutsScreen.jsx";
@@ -172,6 +173,7 @@ export default function App() {
     <div className="app-atmosphere min-h-screen">
       {screens[tab] ?? screens.home}
 
+      <TrialOfferSheet />
       <Toast message={toast?.message} tone={toast?.tone} />
       <BottomNav active={tab} onChange={setTab} t={t} />
     </div>

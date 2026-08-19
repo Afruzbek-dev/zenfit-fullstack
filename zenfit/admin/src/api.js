@@ -81,6 +81,7 @@ export const api = {
     request("GET", `/api/admin/users?search=${encodeURIComponent(search)}&limit=${limit}&offset=${offset}`),
   user: (id) => request("GET", `/api/admin/users/${id}`),
   grantPremium: (id, body) => request("POST", `/api/admin/users/${id}/premium`, body),
+  grantTrialOffer: (id) => request("POST", `/api/admin/users/${id}/trial-offer`, {}),
 
   payments: (status) => request("GET", `/api/admin/payments${status ? `?status=${status}` : ""}`),
   approvePayment: (id) => request("POST", `/api/admin/payments/${id}/approve`, {}),

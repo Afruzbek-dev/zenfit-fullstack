@@ -1,10 +1,18 @@
 import { query, queryOne } from "../db.js";
 
-/** Bonus days granted to both the referrer and the referee, per successful referral. */
-export const REFERRAL_REWARD_DAYS = 5;
+/** Days granted to the referrer the moment a friend signs up through their link. */
+export const SIGNUP_REWARD_DAYS = 1;
+
+/** Extra days granted to the referrer once — the first time that friend actually buys premium. */
+export const CONVERSION_REWARD_DAYS = 7;
+
+/** One-time discount on the referee's first purchase, while they haven't converted yet. */
+export const REFEREE_DISCOUNT_PERCENT = 10;
 
 /**
- * Links a brand-new user to whoever referred them, and rewards both sides.
+ * Links a brand-new user to whoever referred them, and starts the referrer's
+ * signup reward. The referee gets nothing here — their reward is the
+ * purchase discount in refereeDiscountPercent(), not a subscription extension.
  *
  * Only ever called with `isNewUser === true` from lib/users.js, so the
  * referee's subscription cannot already be an active paid one — it was created
@@ -27,18 +35,56 @@ export async function captureReferral(refereeId, startParam) {
   try {
     await query(
       "INSERT INTO referrals (referrer_id, referee_id, reward_days) VALUES ($1, $2, $3)",
-      [referrerId, refereeId, REFERRAL_REWARD_DAYS]
+      [referrerId, refereeId, SIGNUP_REWARD_DAYS]
     );
   } catch {
     // referee_id UNIQUE violation — this user was already captured (a race, or
-    // a repeat call). Benign: rewards were already granted the first time.
+    // a repeat call). Benign: the reward was already granted the first time.
     return;
   }
 
-  await Promise.all([
-    extendSubscription(referrerId, REFERRAL_REWARD_DAYS),
-    extendSubscription(refereeId, REFERRAL_REWARD_DAYS),
-  ]);
+  await extendSubscription(referrerId, SIGNUP_REWARD_DAYS);
+}
+
+/**
+ * Pays the referrer's conversion bonus the first (and only) time the referee
+ * they brought in actually buys premium — called from routes/admin.js once a
+ * manual payment is approved. Guarded by `converted_at` rather than re-deriving
+ * "is this their first payment" from the payments table, so a renewal never
+ * pays the bonus twice.
+ */
+export async function rewardReferralConversion(refereeId) {
+  const referral = await queryOne(
+    "SELECT * FROM referrals WHERE referee_id = $1 AND converted_at IS NULL",
+    [refereeId]
+  );
+  if (!referral) return;
+
+  await query(
+    "UPDATE referrals SET converted_at = now(), reward_days = reward_days + $1 WHERE id = $2",
+    [CONVERSION_REWARD_DAYS, referral.id]
+  );
+  await extendSubscription(referral.referrer_id, CONVERSION_REWARD_DAYS);
+}
+
+/**
+ * The discount this user still qualifies for on a purchase they're about to
+ * make: REFEREE_DISCOUNT_PERCENT while they were referred and haven't
+ * converted yet, 0 otherwise (never referred, or already bought once before —
+ * this is a one-time welcome discount, not a standing one).
+ */
+export async function refereeDiscountPercent(userId) {
+  try {
+    const referral = await queryOne("SELECT converted_at FROM referrals WHERE referee_id = $1", [userId]);
+    if (!referral || referral.converted_at) return 0;
+    return REFEREE_DISCOUNT_PERCENT;
+  } catch (err) {
+    // Never let a discount lookup break the actual payment-start flow — a
+    // missed discount is recoverable (the admin can grant it by hand), a
+    // broken checkout for every user is not.
+    console.error("[referrals] discount lookup:", err.message);
+    return 0;
+  }
 }
 
 /**

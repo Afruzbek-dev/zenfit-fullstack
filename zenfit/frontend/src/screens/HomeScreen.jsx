@@ -250,7 +250,7 @@ export default function HomeScreen({ onNavigate }) {
         <QuickAction Icon={UtensilsCrossed} label={t("home.qaRecipes")} onClick={() => onNavigate("recipes")} />
         <QuickAction Icon={BarChart3} label={t("home.qaProgress")} onClick={() => onNavigate("progress")} />
       </div>
-      <div className="mb-5 grid grid-cols-[1fr_1fr_2fr] gap-2.5">
+      <div className="mb-5 grid grid-cols-3 gap-2.5">
         <QuickAction Icon={ClipboardList} label={t("home.qaDietPlan")} onClick={() => onNavigate("dietplan")} />
         <QuickAction Icon={Dumbbell} label={t("home.qaWorkoutPlan")} onClick={() => onNavigate("workouts")} />
         <QuickAction Icon={Trophy} label={t("home.qaChallenges")} onClick={() => onNavigate("challenges")} />

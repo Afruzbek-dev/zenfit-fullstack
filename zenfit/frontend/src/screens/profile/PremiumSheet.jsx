@@ -17,7 +17,7 @@ const FEATURES = [
 ];
 
 /** Card number, copy button and the Telegram hand-off to the admin. */
-function CardStep({ order, card, plan, adminUsername, onBack, onSent }) {
+function CardStep({ order, card, plan, discountPercent, originalAmountUzs, adminUsername, onBack, onSent }) {
   const { t, showToast } = useApp();
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -63,8 +63,19 @@ function CardStep({ order, card, plan, adminUsername, onBack, onSent }) {
             <CreditCard size={14} className="text-neon" />
             {card.bank || t("premium.card")}
           </span>
-          <span className="tabular text-[15px] font-bold text-neon">{uzNumber(plan.amountUzs)} so'm</span>
+          <span className="flex items-baseline gap-1.5">
+            {discountPercent > 0 && (
+              <span className="tabular text-[12px] text-faint line-through">{uzNumber(originalAmountUzs)}</span>
+            )}
+            <span className="tabular text-[15px] font-bold text-neon">{uzNumber(order.amountUzs)} so'm</span>
+          </span>
         </div>
+
+        {discountPercent > 0 && (
+          <p className="mb-3 flex items-center gap-1.5 rounded-lg bg-neon/10 px-3 py-2 text-[11.5px] font-bold text-neon">
+            <Gift size={13} /> {t("premium.referralDiscount", { percent: discountPercent })}
+          </p>
+        )}
 
         <p className="tabular select-all text-[21px] font-bold tracking-wider text-ink">{card.number}</p>
         {card.holder && <p className="mt-1 text-[13px] font-semibold uppercase text-muted">{card.holder}</p>}
@@ -157,6 +168,8 @@ export default function PremiumSheet({ open, onClose }) {
   const [order, setOrder] = useState(null);
   const [card, setCard] = useState(null);
   const [adminUsername, setAdminUsername] = useState(null);
+  const [discountPercent, setDiscountPercent] = useState(0);
+  const [originalAmountUzs, setOriginalAmountUzs] = useState(0);
   const [busy, setBusy] = useState(false);
   const [trialBusy, setTrialBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -183,6 +196,8 @@ export default function PremiumSheet({ open, onClose }) {
       setOrder(res.payment);
       setCard(res.card);
       setAdminUsername(res.adminUsername);
+      setDiscountPercent(res.discountPercent || 0);
+      setOriginalAmountUzs(res.originalAmountUzs || 0);
       setStep("card");
     } catch (e) {
       setError(
@@ -212,7 +227,7 @@ export default function PremiumSheet({ open, onClose }) {
 
   const plan = plans.find((p) => p.id === selected);
   const title = step === "card" ? t("premium.payTitle") : t("profile.premium");
-  const trialAvailable = !subscription?.isPremium && !subscription?.trialUsed;
+  const trialAvailable = !subscription?.isPremium && !subscription?.trialUsed && subscription?.trialOfferGranted;
 
   if (!open) return null;
 
@@ -232,6 +247,8 @@ export default function PremiumSheet({ open, onClose }) {
           order={order}
           card={card}
           plan={plan}
+          discountPercent={discountPercent}
+          originalAmountUzs={originalAmountUzs}
           adminUsername={adminUsername}
           onBack={() => setStep("plans")}
           onSent={() => setStep("sent")}

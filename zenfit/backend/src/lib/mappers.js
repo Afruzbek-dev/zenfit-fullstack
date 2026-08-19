@@ -185,7 +185,7 @@ export function mapFriend(f) {
 }
 
 export function mapSubscription(s) {
-  if (!s) return { plan: "free", status: "inactive", isPremium: false, trialUsed: false };
+  if (!s) return { plan: "free", status: "inactive", isPremium: false, trialUsed: false, trialOfferGranted: false };
   const active = s.status === "active" && (!s.expires_at || new Date(s.expires_at) > new Date());
   return {
     plan: s.plan,
@@ -194,5 +194,6 @@ export function mapSubscription(s) {
     expiresAt: s.expires_at,
     isPremium: active,
     trialUsed: Boolean(s.trial_used_at),
+    trialOfferGranted: Boolean(s.trial_offer_granted_at),
   };
 }

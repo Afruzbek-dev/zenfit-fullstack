@@ -105,10 +105,11 @@ export const uz = {
 
   challengesScreen: {
     title: "Chellenjlar", subtitle: "Do'stlaringiz bilan birga g'alaba qiling",
-    inviteTitle: "Do'stlaringizni taklif qiling", inviteDesc: "Siz ham, do'stingiz ham +{days} kun Premium olasiz",
+    inviteTitle: "Do'stlaringizni taklif qiling",
+    inviteDesc: "Taklif qilsangiz +{signupDays} kun, do'stingiz Premium sotib olsa yana +{bonusDays} kun premium olasiz. Do'stingizga esa {discount}% chegirma!",
     invited: "Taklif qilingan", daysEarned: "Yutilgan kun",
     copyLink: "Nusxalash", share: "Ulashish", linkPending: "Havola tez orada tayyor bo'ladi.",
-    shareText: "ZenFit'ga qo'shiling — birga mashq qilamiz! Mening havolam orqali kirsangiz, ikkalamizga ham +{days} kun Premium beriladi.",
+    shareText: "ZenFit'ga qo'shiling — birga mashq qilamiz! Mening havolam orqali kirsangiz, Premium sotib olganingizda {discount}% chegirma olasiz.",
     leaderboard: "Do'stlar reytingi", invitedYou: "Sizni taklif qildi",
     noFriends: "Hali do'stlaringiz yo'q. Birinchi bo'lib taklif qiling!",
     comingTitle: "Tez orada",
@@ -315,10 +316,11 @@ export const ru = {
 
   challengesScreen: {
     title: "Челленджи", subtitle: "Побеждайте вместе с друзьями",
-    inviteTitle: "Пригласите друзей", inviteDesc: "Вы и ваш друг получите по +{days} дней Premium",
+    inviteTitle: "Пригласите друзей",
+    inviteDesc: "Вы получаете +{signupDays} день, а если друг купит Premium — ещё +{bonusDays} дней. Другу — скидка {discount}%!",
     invited: "Приглашено", daysEarned: "Дней получено",
     copyLink: "Копировать", share: "Поделиться", linkPending: "Ссылка скоро будет готова.",
-    shareText: "Присоединяйся к ZenFit — будем тренироваться вместе! По моей ссылке мы оба получим по +{days} дней Premium.",
+    shareText: "Присоединяйся к ZenFit — будем тренироваться вместе! Перейдя по моей ссылке, ты получишь скидку {discount}% на Premium.",
     leaderboard: "Рейтинг друзей", invitedYou: "Пригласил(а) вас",
     noFriends: "Пока нет друзей. Пригласите первым!",
     comingTitle: "Скоро",
@@ -521,10 +523,11 @@ export const en = {
 
   challengesScreen: {
     title: "Challenges", subtitle: "Win together with friends",
-    inviteTitle: "Invite your friends", inviteDesc: "You and your friend both get +{days} days of Premium",
+    inviteTitle: "Invite your friends",
+    inviteDesc: "You get +{signupDays} day, and +{bonusDays} more once your friend buys Premium. Your friend gets {discount}% off!",
     invited: "Invited", daysEarned: "Days earned",
     copyLink: "Copy", share: "Share", linkPending: "The link will be ready soon.",
-    shareText: "Join me on ZenFit — let's train together! With my link we both get +{days} days of Premium.",
+    shareText: "Join me on ZenFit — let's train together! Use my link and get {discount}% off Premium.",
     leaderboard: "Friends leaderboard", invitedYou: "Invited you",
     noFriends: "No friends yet. Be the first to invite someone!",
     comingTitle: "Coming soon",

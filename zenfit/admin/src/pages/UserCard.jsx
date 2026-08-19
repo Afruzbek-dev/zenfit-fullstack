@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Crown, User2, Utensils, Dumbbell, Activity, MessageSquare, Flame, ShieldOff, Check } from "lucide-react";
+import { Crown, User2, Utensils, Dumbbell, Activity, MessageSquare, Flame, ShieldOff, Check, Gift } from "lucide-react";
 import { api } from "../api.js";
 import { Modal, Badge, Spinner, ErrorNote, uzNumber, fmtDate, fmtDateTime } from "../components/ui.jsx";
 
@@ -83,6 +83,21 @@ export default function UserCard({ userId, onClose, onChanged }) {
     setError(null);
     try {
       await api.grantPremium(userId, { revoke: true });
+      const fresh = await api.user(userId);
+      setData(fresh);
+      onChanged?.();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function grantTrialOffer() {
+    setBusy(true);
+    setError(null);
+    try {
+      await api.grantTrialOffer(userId);
       const fresh = await api.user(userId);
       setData(fresh);
       onChanged?.();
@@ -272,8 +287,19 @@ export default function UserCard({ userId, onClose, onChanged }) {
             </p>
 
             {premium && (
-              <button disabled={busy} onClick={revoke} className="btn-danger w-full">
+              <button disabled={busy} onClick={revoke} className="btn-danger w-full mb-4">
                 <ShieldOff size={15} /> Premiumni bekor qilish
+              </button>
+            )}
+
+            <h4 className="mb-2 text-[11px] font-bold uppercase tracking-[0.14em] text-faint">3 kunlik sinov</h4>
+            {sub?.trial_used_at ? (
+              <p className="text-[12px] text-faint">Foydalanuvchi sinovdan allaqachon foydalangan.</p>
+            ) : sub?.trial_offer_granted_at ? (
+              <p className="text-[12px] text-faint">Taklif berildi — foydalanuvchi hali faollashtirmagan.</p>
+            ) : (
+              <button disabled={busy} onClick={grantTrialOffer} className="btn-ghost w-full">
+                <Gift size={14} /> 3 kunlik sinovga ruxsat berish
               </button>
             )}
 

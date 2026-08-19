@@ -6,6 +6,7 @@ import { rateLimit } from "../middleware/rateLimit.js";
 import { mapSubscription, mapPayment, mapCard } from "../lib/mappers.js";
 import { getSettings, getAdminChatId, getAdminUsername, manualPaymentReady } from "../lib/settings.js";
 import { sendTelegramNotification } from "../bot.js";
+import { refereeDiscountPercent } from "../lib/referrals.js";
 
 const router = Router();
 
@@ -43,10 +44,22 @@ const TRIAL_DAYS = 3;
  * One-time 3-day trial, started by the user's own tap rather than granted
  * automatically at onboarding — see trial_used_at, which makes this a single
  * use per account regardless of how many times the trial itself lapses.
+ *
+ * Admin-gated: an admin must grant trial_offer_granted_at for this specific
+ * user in the admin panel before this route will run at all. The frontend
+ * only shows the offer popup / PremiumSheet CTA once that flag is set, but
+ * this check is what actually enforces it — a client-side-only gate would be
+ * bypassable by calling the endpoint directly.
  */
 router.post("/trial/start", requireAuth, async (req, res, next) => {
   try {
     const row = await queryOne("SELECT * FROM subscriptions WHERE user_id = $1", [req.userId]);
+    if (!row?.trial_offer_granted_at) {
+      return res.status(403).json({
+        error: "trial_not_offered",
+        message: "Sinov muddati hali sizga ochilmagan.",
+      });
+    }
     if (row?.trial_used_at) {
       return res.status(409).json({
         error: "trial_already_used",
@@ -94,7 +107,9 @@ router.post("/manual/start", requireAuth, async (req, res, next) => {
     const settings = await getSettings();
 
     // Reuse an order the user already started for this plan rather than
-    // stacking up pending rows every time they reopen the sheet.
+    // stacking up pending rows every time they reopen the sheet. The discount
+    // (if any) is only computed for a brand-new order — an already-pending one
+    // keeps whatever amount it was created with, same as plan_title etc.
     let order = await queryOne(
       `SELECT * FROM payments
         WHERE user_id = $1 AND plan_id = $2 AND method = 'manual' AND status = 'pending'
@@ -102,18 +117,27 @@ router.post("/manual/start", requireAuth, async (req, res, next) => {
       [req.userId, plan.id]
     );
 
+    let discountPercent = 0;
     if (!order) {
+      discountPercent = await refereeDiscountPercent(req.userId);
+      const amountUzs = discountPercent
+        ? Math.round((plan.amountUzs * (100 - discountPercent)) / 100)
+        : plan.amountUzs;
       order = await queryOne(
         `INSERT INTO payments (user_id, provider, plan_id, plan_title, amount_uzs, status, method)
          VALUES ($1, 'card', $2, $3, $4, 'pending', 'manual')
          RETURNING *`,
-        [req.userId, plan.id, plan.title, plan.amountUzs]
+        [req.userId, plan.id, plan.title, amountUzs]
       );
+    } else {
+      discountPercent = order.amount_uzs < plan.amountUzs ? Math.round(100 - (order.amount_uzs / plan.amountUzs) * 100) : 0;
     }
 
     res.json({
       payment: mapPayment(order),
       plan,
+      discountPercent,
+      originalAmountUzs: discountPercent ? plan.amountUzs : undefined,
       card: {
         number: settings.payment_card_number,
         holder: settings.payment_card_holder,

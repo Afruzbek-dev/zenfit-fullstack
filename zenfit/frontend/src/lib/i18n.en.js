@@ -26,7 +26,7 @@ export default {
     noMeals: "Nothing logged yet", noMealsDesc: "Scan a photo of your food or pick from recipes.",
     scanWithAi: "Scan with AI",
     qaScan: "AI Scan", qaRecipes: "Recipes", qaProgress: "Stats", qaTrainer: "AI Trainer", qaActivity: "Activity",
-    qaDietPlan: "Diet plan", qaWorkoutPlan: "Workout plan", qaChallenges: "Challenges",
+    qaDietPlan: "My diet plan", qaWorkoutPlan: "My workout plan", qaChallenges: "Challenges",
     planNudge: "Build your AI workout plan", planNudgeDesc: "A weekly plan with weights matched to you",
     days: "d", ta: "",
     burnCapped: "Your logged sessions come to {raw} kcal, but {cap} kcal went into today's budget — that's the daily ceiling.",
@@ -190,7 +190,6 @@ export default {
     offer: "Terms of service", offerDesc: "Terms of use",
     logout: "Log out", logoutConfirm: "Log out of your account?",
     premium: "ZenFit Premium", premiumDesc: "Unlimited AI scanner, trainer, and all programs", premiumTrial: "Premium (trial)",
-    premiumDietChip: "My diet plan", premiumWorkoutChip: "My workout plan",
     dailyTarget: "Daily target",
 
     name: "Name", namePlaceholder: "Your name", gender: "Gender", male: "Male", female: "Female",
@@ -321,6 +320,7 @@ export default {
   premium: {
     choosePlan: "Choose a plan", payByCard: "Pay by card", payTitle: "Payment",
     card: "Card", copyCard: "Copy card number", copied: "Copied ✓",
+    referralDiscount: "{percent}% discount applied — you joined via a referral link",
     step1: "Transfer the amount shown to the card above.",
     step2: "Take a screenshot of the payment receipt.",
     step3: "Send it to our admin on Telegram with the button below and attach the screenshot there.",
@@ -335,6 +335,8 @@ export default {
     trialStart: "Start free trial",
     trialStartedTitle: "Trial started!",
     trialStartedDesc: "You have full premium access for 3 days. When it ends, you'll return to the free plan.",
+    trialOfferTitle: "You've got a gift!", trialOfferDesc: "A special 3-day free Premium trial has been unlocked for you. Activate it now?",
+    trialOfferLater: "Later",
     features: {
       unlimitedScan: { title: "Unlimited AI scanner", desc: "Scan as many meals as you like" },
       unlimitedTrainer: { title: "Unlimited AI trainer", desc: "Ask anything, any time, with no message limit" },
