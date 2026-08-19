@@ -40,7 +40,7 @@ router.post("/", async (req, res, next) => {
       const result = validateTelegramInitData(initData, botToken);
       if (!result?.user?.id) return res.status(401).json({ error: "invalid_init_data" });
 
-      const user = await upsertUser(result.user);
+      const user = await upsertUser(result.user, { referralCode: result.startParam });
       userId = user.id;
       issuedToken = signToken({ sub: user.id });
     }

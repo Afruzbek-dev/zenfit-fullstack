@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import {
   Flame, Droplets, Dumbbell, Camera, Plus, Trash2, Minus, Activity,
   UtensilsCrossed, TrendingUp, Sparkles, BarChart3, Info, ChevronRight, Footprints,
+  ClipboardList, Trophy,
 } from "lucide-react";
 import { Screen, Section, StatTile, ProgressRing, MacroBar, EmptyState, Skeleton, Button, ListRow } from "../components/ui.jsx";
 import ActivitySheet from "../components/ActivitySheet.jsx";
@@ -21,7 +22,7 @@ function QuickAction({ Icon, label, onClick, tone = "surface" }) {
         haptic("light");
         onClick();
       }}
-      className={`flex flex-1 flex-col items-center gap-1.5 rounded-2xl px-2 py-3.5 active:scale-[0.96] ${tones[tone]}`}
+      className={`flex w-full flex-col items-center gap-1.5 rounded-2xl px-2 py-3.5 active:scale-[0.96] ${tones[tone]}`}
     >
       <Icon size={19} />
       <span className="text-[11px] font-bold leading-none">{label}</span>
@@ -243,11 +244,16 @@ export default function HomeScreen({ onNavigate }) {
       )}
 
       {/* Quick actions — the destinations that are not tabs. */}
-      <div className="mb-5 flex gap-2.5">
+      <div className="mb-2.5 grid grid-cols-4 gap-2.5">
         <QuickAction Icon={Camera} label={t("home.qaScan")} tone="neon" onClick={() => onNavigate("scan")} />
         <QuickAction Icon={Activity} label={t("home.qaActivity")} onClick={() => setActivityOpen(true)} />
         <QuickAction Icon={UtensilsCrossed} label={t("home.qaRecipes")} onClick={() => onNavigate("recipes")} />
         <QuickAction Icon={BarChart3} label={t("home.qaProgress")} onClick={() => onNavigate("progress")} />
+      </div>
+      <div className="mb-5 grid grid-cols-[1fr_1fr_2fr] gap-2.5">
+        <QuickAction Icon={ClipboardList} label={t("home.qaDietPlan")} onClick={() => onNavigate("dietplan")} />
+        <QuickAction Icon={Dumbbell} label={t("home.qaWorkoutPlan")} onClick={() => onNavigate("workouts")} />
+        <QuickAction Icon={Trophy} label={t("home.qaChallenges")} onClick={() => onNavigate("challenges")} />
       </div>
 
       {/* Water */}

@@ -95,6 +95,26 @@ export const uz = {
     },
   },
 
+  dietPlanScreen: {
+    title: "Dieta rejangiz", subtitle: "Nonushta, tushlik va kechki ovqat rejangiz",
+    aiTips: "AI maslahatlari", getTips: "Maslahat olish",
+    customTitle: "O'zim tuzaman", customShow: "Ko'rsatish", customHide: "Yashirish",
+    customDesc: "Har bir ovqatlanish vaqtiga o'zingiz mahsulot qo'shib, doimiy reja tuzing.",
+    addToSlot: "Qo'shish", otherSlot: "Boshqa", pickFood: "Mahsulot tanlang",
+  },
+
+  challengesScreen: {
+    title: "Chellenjlar", subtitle: "Do'stlaringiz bilan birga g'alaba qiling",
+    inviteTitle: "Do'stlaringizni taklif qiling", inviteDesc: "Siz ham, do'stingiz ham +{days} kun Premium olasiz",
+    invited: "Taklif qilingan", daysEarned: "Yutilgan kun",
+    copyLink: "Havolani nusxalash", share: "Ulashish", linkPending: "Havola tez orada tayyor bo'ladi.",
+    shareText: "ZenFit'ga qo'shiling — birga mashq qilamiz! Mening havolam orqali kirsangiz, ikkalamizga ham +{days} kun Premium beriladi.",
+    leaderboard: "Do'stlar reytingi", invitedYou: "Sizni taklif qildi",
+    noFriends: "Hali do'stlaringiz yo'q. Birinchi bo'lib taklif qiling!",
+    comingTitle: "Tez orada",
+    comingDesc: "Do'stlaringizni taklif qiling, birga musobaqalashing va sovg'alar yutib oling.",
+  },
+
   onboarding: {
     welcomeTitle: "ZenFit'ga xush kelibsiz",
     welcomeDesc: "Bir necha savol — va sizga moslashtirilgan kaloriya me'yori hamda mashq rejasi tayyor bo'ladi.",
@@ -285,6 +305,26 @@ export const ru = {
     },
   },
 
+  dietPlanScreen: {
+    title: "Ваш план питания", subtitle: "Завтрак, обед и ужин на день",
+    aiTips: "AI советы", getTips: "Получить совет",
+    customTitle: "Составить самому", customShow: "Показать", customHide: "Скрыть",
+    customDesc: "Добавляйте продукты в каждый приём пищи сами и сохраните постоянный план.",
+    addToSlot: "Добавить", otherSlot: "Другое", pickFood: "Выберите продукт",
+  },
+
+  challengesScreen: {
+    title: "Челленджи", subtitle: "Побеждайте вместе с друзьями",
+    inviteTitle: "Пригласите друзей", inviteDesc: "Вы и ваш друг получите по +{days} дней Premium",
+    invited: "Приглашено", daysEarned: "Дней получено",
+    copyLink: "Скопировать ссылку", share: "Поделиться", linkPending: "Ссылка скоро будет готова.",
+    shareText: "Присоединяйся к ZenFit — будем тренироваться вместе! По моей ссылке мы оба получим по +{days} дней Premium.",
+    leaderboard: "Рейтинг друзей", invitedYou: "Пригласил(а) вас",
+    noFriends: "Пока нет друзей. Пригласите первым!",
+    comingTitle: "Скоро",
+    comingDesc: "Приглашайте друзей, соревнуйтесь вместе и получайте награды.",
+  },
+
   onboarding: {
     welcomeTitle: "Добро пожаловать в ZenFit",
     welcomeDesc: "Несколько вопросов — и мы соберём вашу норму калорий и план тренировок.",
@@ -469,6 +509,26 @@ export const en = {
       grain: "Grains & bread", veg: "Vegetables", fruit: "Fruit", nut: "Nuts", oil: "Oils",
       sweet: "Sweets", drink: "Drinks", fast: "Fast food",
     },
+  },
+
+  dietPlanScreen: {
+    title: "Your diet plan", subtitle: "Breakfast, lunch, and dinner for the day",
+    aiTips: "AI tips", getTips: "Get advice",
+    customTitle: "Build it myself", customShow: "Show", customHide: "Hide",
+    customDesc: "Add foods into each meal time yourself and keep a standing plan.",
+    addToSlot: "Add", otherSlot: "Other", pickFood: "Pick a food",
+  },
+
+  challengesScreen: {
+    title: "Challenges", subtitle: "Win together with friends",
+    inviteTitle: "Invite your friends", inviteDesc: "You and your friend both get +{days} days of Premium",
+    invited: "Invited", daysEarned: "Days earned",
+    copyLink: "Copy link", share: "Share", linkPending: "The link will be ready soon.",
+    shareText: "Join me on ZenFit — let's train together! With my link we both get +{days} days of Premium.",
+    leaderboard: "Friends leaderboard", invitedYou: "Invited you",
+    noFriends: "No friends yet. Be the first to invite someone!",
+    comingTitle: "Coming soon",
+    comingDesc: "Invite friends, compete together, and earn rewards.",
   },
 
   onboarding: {

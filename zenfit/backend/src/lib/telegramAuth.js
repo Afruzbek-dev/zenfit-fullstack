@@ -4,8 +4,11 @@ import crypto from "node:crypto";
  * Verifies the `initData` string Telegram passes to a Mini App.
  * Spec: https://core.telegram.org/bots/webapps#validating-data-received-via-the-mini-app
  *
- * Returns { user, authDate } if valid, or null if the signature is bad,
- * missing, or too old.
+ * Returns { user, authDate, startParam } if valid, or null if the signature is
+ * bad, missing, or too old. `startParam` is whatever followed `?startapp=` on
+ * the link the user opened the app with (e.g. a referral code) — it rides
+ * inside the same HMAC-signed query string as `user`, so it is exactly as
+ * tamper-resistant, with no extra verification needed.
  */
 export function validateTelegramInitData(initData, botToken, maxAgeSeconds = 86400) {
   if (!initData || !botToken) return null;
@@ -35,5 +38,5 @@ export function validateTelegramInitData(initData, botToken, maxAgeSeconds = 864
   const userJson = params.get("user");
   const user = userJson ? JSON.parse(userJson) : null;
 
-  return { user, authDate };
+  return { user, authDate, startParam: params.get("start_param") || null };
 }

@@ -94,6 +94,41 @@ function PlanDayCard({ item, doneCount, onOpen, t }) {
   );
 }
 
+/** A ready-made program card. Falls back to a gradient+emoji tile until its photo lands under public/programs/. */
+function ProgramCard({ program, onClick, t }) {
+  const [imgFailed, setImgFailed] = useState(false);
+  const showImage = program.image && !imgFailed;
+
+  return (
+    <button
+      onClick={onClick}
+      className="flex w-[168px] shrink-0 flex-col overflow-hidden rounded-2xl border border-borderSoft bg-surface text-left active:scale-[0.98]"
+    >
+      <div className="relative aspect-square w-full overflow-hidden bg-surfaceAlt">
+        {showImage ? (
+          <img
+            src={program.image}
+            alt=""
+            loading="lazy"
+            onError={() => setImgFailed(true)}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-neon/20 via-surfaceAlt to-surfaceAlt">
+            <span className="text-5xl">{program.emoji}</span>
+          </div>
+        )}
+      </div>
+      <div className="px-3 py-2.5">
+        <p className="truncate text-[13px] font-bold text-ink">{program.title}</p>
+        <p className="mt-0.5 truncate text-[11px] text-muted">
+          {t("workout.programMeta", { days: program.days, weeks: program.weeks })}
+        </p>
+      </div>
+    </button>
+  );
+}
+
 function RegenerateSheet({ open, onClose, onDone, onLocked }) {
   const { profile, subscription, saveWorkoutPlan, showToast, t } = useApp();
   const [days, setDays] = useState(profile?.daysPerWeek || 3);
@@ -337,15 +372,9 @@ export default function WorkoutsScreen() {
           </Section>
 
           <Section title={t("workout.readyPrograms")}>
-            <div className="flex flex-col gap-2">
+            <div className="-mx-5 flex gap-3 overflow-x-auto px-5 pb-1 no-scrollbar">
               {PROGRAMS.map((p) => (
-                <ListRow
-                  key={p.id}
-                  emoji={p.emoji}
-                  title={p.title}
-                  subtitle={`${p.trainer} • ${t("workout.programMeta", { days: p.days, weeks: p.weeks })}`}
-                  onClick={() => pickProgram(p)}
-                />
+                <ProgramCard key={p.id} program={p} t={t} onClick={() => pickProgram(p)} />
               ))}
             </div>
           </Section>

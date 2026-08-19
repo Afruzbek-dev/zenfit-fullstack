@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
   Crown, LogOut, ChevronRight, UserCog, HeartPulse, CreditCard, Settings2,
-  HelpCircle, Building2, FileText,
+  HelpCircle, Building2, FileText, Dumbbell,
 } from "lucide-react";
 import { Screen, Section } from "../components/ui.jsx";
 import Avatar from "../components/Avatar.jsx";
@@ -102,17 +102,31 @@ export default function ProfileScreen({ onNavigate, initialView = null }) {
       {!subscription?.isPremium && (
         <Section>
           <button
-            onClick={() => setPremiumOpen(true)}
-            className="card card-lit flex w-full items-center gap-3 px-4 py-4 text-left active:scale-[0.99]"
+            onClick={() => {
+              haptic("light");
+              setPremiumOpen(true);
+            }}
+            className="relative flex w-full items-center gap-3 overflow-hidden rounded-2xl bg-neon px-5 py-5 text-left active:scale-[0.99]"
           >
-            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-amber/12">
-              <Crown size={19} className="text-amber" />
+            {/* Same radial-bleed technique as the app-wide aurora background,
+                just brighter and scoped to this card. */}
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-0"
+              style={{ background: "radial-gradient(120% 140% at 88% 6%, rgb(var(--c-neonOn) / 0.24), transparent 62%)" }}
+            />
+            <Dumbbell
+              aria-hidden
+              size={104}
+              strokeWidth={1.5}
+              className="pointer-events-none absolute -bottom-6 -right-5 rotate-[-18deg] text-neonOn/20"
+            />
+            <span className="relative min-w-0 flex-1">
+              <span className="block text-[15px] font-bold text-neonOn">{t("profile.premium")}</span>
+              <span className="mt-1 block max-w-[215px] text-[12px] leading-relaxed text-neonOn/75">
+                {t("profile.premiumDesc")}
+              </span>
             </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-[13.5px] font-bold text-ink">{t("profile.premium")}</span>
-              <span className="mt-0.5 block text-[11.5px] text-muted">{t("profile.premiumDesc")}</span>
-            </span>
-            <ChevronRight size={16} className="shrink-0 text-faint" />
           </button>
         </Section>
       )}

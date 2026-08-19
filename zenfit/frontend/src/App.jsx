@@ -9,6 +9,8 @@ import HomeScreen from "./screens/HomeScreen.jsx";
 import WorkoutsScreen from "./screens/WorkoutsScreen.jsx";
 import ScanScreen from "./screens/ScanScreen.jsx";
 import RecipesScreen from "./screens/RecipesScreen.jsx";
+import DietPlanScreen from "./screens/DietPlanScreen.jsx";
+import ChallengesScreen from "./screens/ChallengesScreen.jsx";
 import ChatScreen from "./screens/ChatScreen.jsx";
 import ProgressScreen from "./screens/ProgressScreen.jsx";
 import ProfileScreen from "./screens/ProfileScreen.jsx";
@@ -21,7 +23,7 @@ const TABS = [
   { id: "profile", key: "nav.profile", Icon: User2 },
 ];
 
-const SECONDARY = ["recipes", "progress"];
+const SECONDARY = ["recipes", "dietplan", "progress", "challenges"];
 
 function BottomNav({ active, onChange, t }) {
   return (
@@ -161,7 +163,9 @@ export default function App() {
     chat: <ChatScreen onNavigate={setTab} />,
     profile: <ProfileScreen key={profileView || "root"} onNavigate={setTab} initialView={profileView} />,
     recipes: <RecipesScreen onBack={() => setTab("home")} />,
+    dietplan: <DietPlanScreen onBack={() => setTab("home")} />,
     progress: <ProgressScreen onBack={() => setTab("home")} />,
+    challenges: <ChallengesScreen onBack={() => setTab("home")} />,
   };
 
   return (

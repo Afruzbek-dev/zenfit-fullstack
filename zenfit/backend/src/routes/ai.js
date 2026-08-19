@@ -10,6 +10,7 @@ import {
   askFoodQuestion,
   trainerChat,
   generateDietPlan,
+  enhanceDietPlan,
   enhanceWorkoutPlan,
   translateDishName,
 } from "../lib/aiFeatures.js";
@@ -351,6 +352,29 @@ router.post("/diet-plan", requireAuth, rateLimit({ key: "diet", windowMs: 300_00
     );
 
     res.json({ plan, id: rows[0]?.id });
+  } catch (err) {
+    handleAiError(err, res);
+  }
+});
+
+/** Adds AI commentary on top of whichever diet plan the client currently has open. */
+router.post("/diet-plan/enhance", requireAuth, rateLimit({ key: "enhance", windowMs: 300_000, max: 4 }), async (req, res) => {
+  try {
+    const { plan } = req.body || {};
+    if (!plan?.meals?.length) return res.status(400).json({ error: "plan_required" });
+
+    const profile = await queryOne("SELECT * FROM profiles WHERE user_id = $1", [req.userId]);
+    if (!profile) return res.status(400).json({ error: "onboarding_required" });
+
+    if (!(await isPremium(req.userId))) {
+      return res.status(402).json({
+        error: "premium_required",
+        message: "AI ovqatlanish maslahatlari Premium imkoniyati. Premium'ni faollashtiring.",
+      });
+    }
+
+    const enhancement = await enhanceDietPlan({ profile, plan });
+    res.json({ enhancement });
   } catch (err) {
     handleAiError(err, res);
   }

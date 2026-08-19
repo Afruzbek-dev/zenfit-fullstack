@@ -150,6 +150,40 @@ export function mapChatMessage(m) {
   return { id: m.id, role: m.role, content: m.content, createdAt: m.created_at };
 }
 
+export function mapCustomDietItem(i) {
+  return {
+    id: i.id,
+    slotIndex: i.slot_index,
+    foodId: i.food_id,
+    name: i.name,
+    emoji: i.emoji,
+    portion: i.portion,
+    kcal: i.kcal,
+    carbs: i.carbs,
+    protein: i.protein,
+    fat: i.fat,
+    createdAt: i.created_at,
+  };
+}
+
+export function mapReferralSummary(row) {
+  return {
+    referredCount: Number(row?.count) || 0,
+    rewardDaysEarned: Number(row?.reward_days) || 0,
+  };
+}
+
+export function mapFriend(f) {
+  return {
+    id: f.id,
+    firstName: f.first_name,
+    username: f.username,
+    avatarUrl: f.avatar_url,
+    streak: f.streak || 0,
+    isMyReferrer: Boolean(f.is_my_referrer),
+  };
+}
+
 export function mapSubscription(s) {
   if (!s) return { plan: "free", status: "inactive", isPremium: false, trialUsed: false };
   const active = s.status === "active" && (!s.expires_at || new Date(s.expires_at) > new Date());

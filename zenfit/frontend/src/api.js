@@ -137,6 +137,16 @@ export const api = {
   // original "compose anything" plan.
   generateDietPlan: (pantry) => request("POST", "/api/ai/diet-plan", { body: pantry?.length ? { pantry } : {} }),
   enhanceWorkoutPlan: (plan) => request("POST", "/api/ai/workout-plan/enhance", { body: { plan } }),
+  enhanceDietPlan: (plan) => request("POST", "/api/ai/diet-plan/enhance", { body: { plan } }),
+
+  /* diet plan — "o'zim tuzaman" custom plan */
+  getCustomDietPlan: () => request("GET", "/api/diet-plan/custom"),
+  addCustomDietItem: (body) => request("POST", "/api/diet-plan/custom/items", { body }),
+  deleteCustomDietItem: (id) => request("DELETE", `/api/diet-plan/custom/items/${id}`),
+
+  /* referrals / friends */
+  getReferralInfo: () => request("GET", "/api/referrals/me"),
+  getFriends: () => request("GET", `/api/referrals/friends?tz=${tz()}`),
 
   /* payment */
   getSubscription: () => request("GET", "/api/payment/subscription"),

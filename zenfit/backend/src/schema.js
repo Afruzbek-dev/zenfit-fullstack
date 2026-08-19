@@ -247,6 +247,48 @@ export function buildSchema(pg) {
       used_at ${TS}
     )`,
 
+    // An edge between two users, not an attribute of one — referee_id is UNIQUE
+    // so a user can be captured as somebody's referee at most once, ever, which
+    // is what actually stops double-crediting (the app-level "is this user
+    // brand new" check is only a fast path in front of this guarantee).
+    `CREATE TABLE IF NOT EXISTS referrals (
+      id          ${ID},
+      referrer_id ${FK} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      referee_id  ${FK} NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+      reward_days INTEGER NOT NULL,
+      created_at  ${TS}
+    )`,
+
+    // The "o'zim tuzaman" (build-your-own) diet plan: one row per food a user
+    // has added into a meal-time slot. A relational table, not a JSON column
+    // like pantry/diet_prefs, because this is edited one item at a time rather
+    // than saved as a whole sheet — a JSON blob would race on near-simultaneous
+    // adds. No versioning/is_active column: unlike ai_plans this never
+    // "regenerates", so exactly one plan per user falls out of the schema
+    // itself rather than needing an active-row flag.
+    `CREATE TABLE IF NOT EXISTS custom_diet_plan_items (
+      id         ${ID},
+      user_id    ${FK} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      -- 0-based index into MEAL_SLOT_SETS[mealsPerDay] (lib/aiFeatures.js) —
+      -- NOT the slot label, because the 5-meal set has two slots both
+      -- labelled "Gazak" and a label cannot be a unique key there.
+      slot_index INTEGER NOT NULL,
+      -- Optional pointer back to the client-only food catalogue, kept purely
+      -- so the recipe-link button can still find a match. Macros below are
+      -- snapshotted at add-time (the backend has no catalogue to re-resolve
+      -- against), so a later catalogue edit or removal never changes a
+      -- plan row that already exists.
+      food_id    TEXT,
+      name       TEXT NOT NULL,
+      emoji      TEXT,
+      portion    TEXT,
+      kcal       INTEGER NOT NULL,
+      carbs      INTEGER,
+      protein    INTEGER,
+      fat        INTEGER,
+      created_at ${TS}
+    )`,
+
     /* ----- indexes ------------------------------------------------------- *
      * Every one of these serves a query that runs on the hot path. They were
      * previously declared on the SQLite side only, so whether production had
@@ -276,6 +318,8 @@ export function buildSchema(pg) {
     `CREATE INDEX IF NOT EXISTS idx_payments_user_date     ON payments(user_id, created_at DESC)`,
     `CREATE INDEX IF NOT EXISTS idx_payments_status        ON payments(status, created_at DESC)`,
     `CREATE INDEX IF NOT EXISTS idx_cards_user             ON payment_cards(user_id, created_at DESC)`,
+    `CREATE INDEX IF NOT EXISTS idx_referrals_referrer     ON referrals(referrer_id, created_at DESC)`,
+    `CREATE INDEX IF NOT EXISTS idx_custom_diet_items_user ON custom_diet_plan_items(user_id, slot_index, id)`,
   ];
 }
 
@@ -284,4 +328,5 @@ export const RLS_TABLES = [
   "users", "profiles", "meals", "workout_logs", "exercise_sets", "ai_plans",
   "chat_messages", "water_logs", "step_logs", "weight_history", "subscriptions",
   "activities", "payments", "payment_cards", "app_settings", "ai_usage",
+  "referrals", "custom_diet_plan_items",
 ];

@@ -226,7 +226,10 @@ const pantryLine = (f) =>
   `- ${f.name}: ${f.kcal} kcal, oqsil ${f.protein}g, uglevod ${f.carbs}g, yog' ${f.fat}g (${f.unit})`;
 
 /** Meal slot labels per chosen count — the JSON "slot" field the client keys its icons off (RecipesScreen.jsx's SLOT_KEYS). */
-const MEAL_SLOT_SETS = {
+// Exported so routes/dietPlan.js can resolve the same slot labels for the
+// user-editable custom plan — slot_index there is a position into this array,
+// not a re-worded copy of it.
+export const MEAL_SLOT_SETS = {
   3: ["Nonushta", "Tushlik", "Kechki ovqat"],
   4: ["Nonushta", "Tushlik", "Kechki ovqat", "Gazak"],
   5: ["Nonushta", "Gazak", "Tushlik", "Kechki ovqat", "Gazak"],
@@ -341,6 +344,36 @@ JSON format:
 
   const text = await callModel([{ role: "user", content: prompt }], {
     maxTokens: 900,
+    system,
+    json: true,
+    ...TEXT_PROVIDER,
+  });
+  return extractJson(text);
+}
+
+/** Adds AI commentary on top of whichever diet plan (AI-generated, preset, or custom) is currently active. */
+export async function enhanceDietPlan({ profile, plan }) {
+  const system = `Sen sertifikatlangan nutritsiologsan. Tayyor ovqatlanish rejasiga qisqa, amaliy maslahat berasan.
+FAQAT JSON qaytar, markdown qo'shma. O'zbek tilida yoz.`;
+
+  const mealList = (plan.meals || [])
+    .map((m) => `${m.slot || ""}: ${m.name} (${m.kcal} kkal)`.trim())
+    .join("\n");
+
+  const prompt = `Foydalanuvchi: ${profile.gender === "female" ? "ayol" : "erkak"}, ${profile.age} yosh, ${profile.weight_kg}kg, maqsad: ${profile.goal}, kunlik kaloriya me'yori: ${profile.daily_calorie_target || "-"}.
+
+Kunlik ovqatlanish rejasi:
+${mealList}
+
+JSON format:
+{
+  "advice": "2-3 gap shaxsiy maslahat",
+  "swapTip": "rejadagi bitta taomni sog'lomroq muqobiliga almashtirish bo'yicha 1 gap",
+  "hydrationTip": "suv ichish yoki ovqatlanish tartibi bo'yicha 1 gap"
+}`;
+
+  const text = await callModel([{ role: "user", content: prompt }], {
+    maxTokens: 700,
     system,
     json: true,
     ...TEXT_PROVIDER,

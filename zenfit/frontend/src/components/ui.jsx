@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { X, ChevronRight, ChevronLeft, Loader2, Minus, Plus } from "lucide-react";
+import { X, ChevronRight, ChevronLeft, Loader2, Minus, Plus, ThumbsUp, ThumbsDown } from "lucide-react";
 import { haptic } from "../telegram.js";
 // store.jsx does not import this module, so reaching for the context here is
 // safe — no cycle — and it keeps every screen's back button on one label.
@@ -370,6 +370,41 @@ export function FitBadge({ fit, aiNote }) {
           ✨ {aiNote}
         </p>
       )}
+    </div>
+  );
+}
+
+/**
+ * What is actually worth knowing about a specific food's composition — not a
+ * nutrition-label recitation. Used two ways: on an AI scan result (Premium
+ * only, one language — whatever the model answered in) and on a catalogue
+ * food (free for everyone, already language-resolved by the caller from the
+ * food's `{uz,ru,en}` data) — so this component only ever sees flat arrays
+ * and does not care which source it came from. Empty input renders nothing.
+ */
+export function CompositionCard({ composition }) {
+  const { t } = useApp();
+  const benefits = composition?.benefits?.filter(Boolean) || [];
+  const harms = composition?.harms?.filter(Boolean) || [];
+  if (!benefits.length && !harms.length) return null;
+
+  return (
+    <div className="card px-4 py-3.5">
+      <p className="mb-2.5 text-[11px] font-bold uppercase tracking-wider text-faint">{t("scan.compositionTitle")}</p>
+      <div className="flex flex-col gap-2">
+        {benefits.map((b, i) => (
+          <div key={`b${i}`} className="flex items-start gap-2">
+            <ThumbsUp size={13} className="mt-0.5 shrink-0 text-neon" />
+            <p className="text-[12px] leading-relaxed text-ink">{b}</p>
+          </div>
+        ))}
+        {harms.map((h, i) => (
+          <div key={`h${i}`} className="flex items-start gap-2">
+            <ThumbsDown size={13} className="mt-0.5 shrink-0 text-amber" />
+            <p className="text-[12px] leading-relaxed text-ink">{h}</p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
