@@ -67,7 +67,7 @@ router.post("/", async (req, res, next) => {
     }
 
     const { start, end } = dayRange(null, tz);
-    const [stats, streak, meals, workoutPlan, dietPlan, workoutLogs, activities, recentFoods] = await Promise.all([
+    const [stats, streak, meals, workoutPlan, dietPlan, activeProgram, workoutLogs, activities, recentFoods] = await Promise.all([
       getDayStats(userId, null, tz),
       getStreak(userId, tz),
       query(
@@ -81,6 +81,12 @@ router.post("/", async (req, res, next) => {
       ),
       queryOne(
         `SELECT * FROM ai_plans WHERE user_id = $1 AND plan_type = 'diet' AND is_active = true
+          ORDER BY created_at DESC LIMIT 1`,
+        [userId]
+      ),
+      // A ready-made programme runs alongside the AI plan, not instead of it.
+      queryOne(
+        `SELECT * FROM ai_plans WHERE user_id = $1 AND plan_type = 'program' AND is_active = true
           ORDER BY created_at DESC LIMIT 1`,
         [userId]
       ),
@@ -101,6 +107,7 @@ router.post("/", async (req, res, next) => {
       meals: meals.map(mapMeal),
       workoutPlan: mapPlan(workoutPlan)?.plan ?? null,
       dietPlan: mapPlan(dietPlan)?.plan ?? null,
+      activeProgram: mapPlan(activeProgram)?.plan ?? null,
       workoutLogs: workoutLogs.map(mapWorkoutLog),
       activities: activities.map(mapActivity),
       recentFoods,

@@ -301,10 +301,14 @@ export function buildSchema(pg) {
       created_at ${TS}
     )`,
 
-    // Admin-authored announcements, broadcast to a chosen audience — see
-    // routes/challenges.js (user-facing read) and routes/admin.js
-    // (create/delete). No progress-tracking columns by design: this is a
-    // motivational announcement, not a tracked goal.
+    // Challenges people join and are ranked in. Authored either by an admin
+    // (created_by_user_id NULL, broadcast to a chosen audience) or by a Premium
+    // user (created_by_user_id set, open to everyone).
+    //
+    // NOTE: this table predates the metric/target/participants columns below.
+    // Because CREATE TABLE IF NOT EXISTS is a no-op where it already exists,
+    // those four columns are ALSO declared in scripts/migrate.js phase 2 —
+    // adding one here alone would never reach production.
     `CREATE TABLE IF NOT EXISTS challenges (
       id            ${ID},
       title         TEXT NOT NULL,
@@ -316,16 +320,51 @@ export function buildSchema(pg) {
       -- now()/true/false/$n). NULL means open-ended.
       ends_at       ${TS_NULL},
       created_by    TEXT,
+      -- What the leaderboard ranks by: steps | workouts | kcal | active_days.
+      metric        TEXT NOT NULL DEFAULT 'active_days',
+      -- The number to reach. NULL means "no target, just rank everyone".
+      goal_target   ${REAL},
+      -- Falls back to created_at when NULL, which is what every row written
+      -- before this column existed has.
+      starts_at     ${TS_NULL},
+      created_by_user_id ${FK},
       created_at    ${TS}
     )`,
 
     // One row per targeted user, only populated when audience = 'selected'.
     // The 'all'/'premium'/'free' audiences are resolved by query instead.
+    // Distinct from challenge_participants: being sent a challenge is not the
+    // same as having joined it.
     `CREATE TABLE IF NOT EXISTS challenge_recipients (
       id           ${ID},
       challenge_id ${FK} NOT NULL REFERENCES challenges(id) ON DELETE CASCADE,
       user_id      ${FK} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       created_at   ${TS}
+    )`,
+
+    // Who actually signed up. Only these users appear on a leaderboard, and
+    // only their metric totals are computed.
+    `CREATE TABLE IF NOT EXISTS challenge_participants (
+      id           ${ID},
+      challenge_id ${FK} NOT NULL REFERENCES challenges(id) ON DELETE CASCADE,
+      user_id      ${FK} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      joined_at    ${TS}
+    )`,
+
+    // A calorie debt the user asked to be reminded about, raised from the
+    // high-fat/high-calorie meal alert. Deliberately not linked to meals(id):
+    // the row is a snapshot of a decision, and deleting the meal later should
+    // not silently erase the reminder that was already accepted.
+    `CREATE TABLE IF NOT EXISTS burn_reminders (
+      id           ${ID},
+      user_id      ${FK} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      meal_name    TEXT,
+      kcal         INTEGER NOT NULL,
+      walk_minutes INTEGER,
+      created_at   ${TS},
+      -- Set once the burn logged since created_at covers kcal, or when the
+      -- user dismisses it. NULL means still outstanding.
+      cleared_at   ${TS_NULL}
     )`,
 
     /* ----- indexes ------------------------------------------------------- *
@@ -361,6 +400,11 @@ export function buildSchema(pg) {
     `CREATE INDEX IF NOT EXISTS idx_custom_diet_items_user ON custom_diet_plan_items(user_id, slot_index, id)`,
     `CREATE INDEX IF NOT EXISTS idx_challenge_recipients_challenge ON challenge_recipients(challenge_id)`,
     `CREATE INDEX IF NOT EXISTS idx_challenge_recipients_user      ON challenge_recipients(user_id, challenge_id)`,
+    // Unique so a double-tapped "join" cannot enter someone twice and skew
+    // their own leaderboard row; the route still checks first for a clean 200.
+    `CREATE UNIQUE INDEX IF NOT EXISTS idx_challenge_participants_uniq ON challenge_participants(challenge_id, user_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_challenge_participants_user        ON challenge_participants(user_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_burn_reminders_user ON burn_reminders(user_id, created_at DESC)`,
   ];
 }
 
@@ -370,4 +414,5 @@ export const RLS_TABLES = [
   "chat_messages", "water_logs", "step_logs", "weight_history", "subscriptions",
   "activities", "payments", "payment_cards", "app_settings", "ai_usage",
   "referrals", "custom_diet_plan_items", "challenges", "challenge_recipients",
+  "challenge_participants", "burn_reminders",
 ];

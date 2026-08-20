@@ -343,11 +343,11 @@ router.post("/diet-plan", requireAuth, rateLimit({ key: "diet", windowMs: 300_00
     // so this is always whatever was last confirmed, never trusted from the
     // generate call itself.
     const preferences = parseJsonColumn(profile.diet_prefs);
-    // A pure generator — the client shows the user 3 candidates and only
-    // POST /api/plans (routes/plans.js) persists the one actually chosen.
-    const { plans } = await generateDietPlan({ profile, pantry: sanitizePantry(req.body?.pantry), preferences });
+    // A pure generator — only POST /api/plans (routes/plans.js) persists,
+    // which is also what keeps the previous week around as history.
+    const { plan } = await generateDietPlan({ profile, pantry: sanitizePantry(req.body?.pantry), preferences });
 
-    res.json({ plans });
+    res.json({ plan });
   } catch (err) {
     handleAiError(err, res);
   }
@@ -357,7 +357,9 @@ router.post("/diet-plan", requireAuth, rateLimit({ key: "diet", windowMs: 300_00
 router.post("/diet-plan/enhance", requireAuth, rateLimit({ key: "enhance", windowMs: 300_000, max: 4 }), async (req, res) => {
   try {
     const { plan } = req.body || {};
-    if (!plan?.meals?.length) return res.status(400).json({ error: "plan_required" });
+    // Weekly plans carry days[], older/preset plans carry meals[].
+    const hasMeals = plan?.meals?.length > 0 || plan?.days?.some?.((d) => d?.meals?.length > 0);
+    if (!hasMeals) return res.status(400).json({ error: "plan_required" });
 
     const profile = await queryOne("SELECT * FROM profiles WHERE user_id = $1", [req.userId]);
     if (!profile) return res.status(400).json({ error: "onboarding_required" });

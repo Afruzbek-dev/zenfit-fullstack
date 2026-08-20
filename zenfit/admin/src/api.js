@@ -91,6 +91,7 @@ export const api = {
   saveSettings: (patch) => request("PUT", "/api/admin/settings", patch),
 
   challenges: () => request("GET", "/api/admin/challenges"),
+  challengeLeaderboard: (id) => request("GET", `/api/admin/challenges/${id}/leaderboard`),
   createChallenge: (body) => request("POST", "/api/admin/challenges", body),
   deleteChallenge: (id) => request("DELETE", `/api/admin/challenges/${id}`),
 };

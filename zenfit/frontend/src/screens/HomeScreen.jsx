@@ -1,12 +1,13 @@
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   Flame, Droplets, Dumbbell, Camera, Plus, Trash2, Minus, Activity,
   UtensilsCrossed, TrendingUp, Sparkles, BarChart3, Info, ChevronRight, Footprints,
-  ClipboardList, Trophy, Layers,
+  ClipboardList, Trophy, X,
 } from "lucide-react";
 import { Screen, Section, StatTile, ProgressRing, MacroBar, EmptyState, Skeleton, Button, ListRow } from "../components/ui.jsx";
 import ActivitySheet from "../components/ActivitySheet.jsx";
 import { PlanMealRow } from "../components/PlanMealRow.jsx";
+import { planDays, todayDayIndex } from "../lib/planMeals.js";
 import { ACTIVITY_BY_ID } from "../data/activities.js";
 import { stepTargetForGoal } from "../lib/goalPlan.js";
 import { useApp } from "../store.jsx";
@@ -73,7 +74,7 @@ function RecentFoods({ foods, busyKey, onLog, t }) {
 }
 
 export default function HomeScreen({ onNavigate }) {
-  const { user, profile, summary, meals, recentFoods, activities, addMeal, removeMeal, removeActivity, addWater, addSteps, showToast, workoutPlan, dietPlan, t } = useApp();
+  const { user, profile, summary, meals, recentFoods, activities, addMeal, removeMeal, removeActivity, addWater, addSteps, showToast, workoutPlan, dietPlan, burnReminders, dismissBurnReminder, t } = useApp();
   const [waterBusy, setWaterBusy] = useState(false);
   const [stepsBusy, setStepsBusy] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
@@ -82,6 +83,11 @@ export default function HomeScreen({ onNavigate }) {
   // a render — two taps landing in the same tick would both read `null` and log
   // the meal twice. The ref closes that window synchronously.
   const recentBusyRef = useRef(null);
+
+  const plannedToday = useMemo(
+    () => (dietPlan ? planDays(dietPlan)[todayDayIndex(dietPlan)]?.meals || [] : []),
+    [dietPlan]
+  );
 
   async function logRecent(food) {
     if (recentBusyRef.current) return;
@@ -244,6 +250,44 @@ export default function HomeScreen({ onNavigate }) {
         </button>
       )}
 
+      {/* Outstanding burn from a heavy meal the user asked to be reminded of.
+          Purely informational — it never enters the daily budget, which stays
+          target minus eaten. Clears itself server-side once covered. */}
+      {burnReminders.map((r) => {
+        const pct = Math.min(100, Math.round((r.burnedSince / r.kcal) * 100));
+        return (
+          <div key={r.id} className="mb-3 rounded-2xl border border-amber/30 bg-amber/[0.08] px-4 py-3.5">
+            <div className="flex items-start gap-3">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber/15">
+                <Flame size={18} className="text-amber" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[12.5px] font-bold text-ink">
+                  {t("mealAlert.debtTitle", { kcal: Math.max(0, r.kcal - r.burnedSince) })}
+                </p>
+                <p className="mt-0.5 text-[11.5px] leading-relaxed text-muted">
+                  {r.mealName ? `${r.mealName} · ` : ""}
+                  {r.walkMinutes ? t("mealAlert.walkSentence", { minutes: r.walkMinutes }) : ""}
+                </p>
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-borderSoft">
+                  <div className="h-full rounded-full bg-amber transition-[width] duration-500" style={{ width: `${pct}%` }} />
+                </div>
+              </div>
+              <button
+                onClick={() => dismissBurnReminder(r.id)}
+                aria-label={t("mealAlert.dismiss")}
+                className="shrink-0 text-faint"
+              >
+                <X size={15} />
+              </button>
+            </div>
+            <Button full variant="ghost" className="mt-2.5" onClick={() => setActivityOpen(true)}>
+              <Activity size={15} /> {t("mealAlert.logActivity")}
+            </Button>
+          </div>
+        );
+      })}
+
       {/* Quick actions — the destinations that are not tabs. */}
       <div className="mb-2.5 grid grid-cols-4 gap-2.5">
         <QuickAction Icon={Camera} label={t("home.qaScan")} tone="neon" onClick={() => onNavigate("scan")} />
@@ -251,10 +295,10 @@ export default function HomeScreen({ onNavigate }) {
         <QuickAction Icon={UtensilsCrossed} label={t("home.qaRecipes")} onClick={() => onNavigate("recipes")} />
         <QuickAction Icon={BarChart3} label={t("home.qaProgress")} onClick={() => onNavigate("progress")} />
       </div>
-      <div className="mb-5 grid grid-cols-4 gap-2.5">
+      {/* "Mashqlar" is the bottom-nav tab itself now, so it has no tile here. */}
+      <div className="mb-5 grid grid-cols-3 gap-2.5">
         <QuickAction Icon={ClipboardList} label={t("home.qaDietPlan")} onClick={() => onNavigate("dietplan")} />
         <QuickAction Icon={Dumbbell} label={t("home.qaWorkoutPlan")} onClick={() => onNavigate("workouts")} />
-        <QuickAction Icon={Layers} label={t("home.qaExercises")} onClick={() => onNavigate("exercises")} />
         <QuickAction Icon={Trophy} label={t("home.qaChallenges")} onClick={() => onNavigate("challenges")} />
       </div>
 
@@ -406,12 +450,13 @@ export default function HomeScreen({ onNavigate }) {
 
       <RecentFoods foods={recentFoods} busyKey={recentBusy} onLog={logRecent} t={t} />
 
-      {/* The active diet plan's meals, additive alongside the actual log below —
-          reading top-to-bottom as "the plan" then "what actually got eaten". */}
-      {dietPlan?.meals?.length > 0 && (
+      {/* Today's slice of the diet plan, additive alongside the actual log below —
+          reading top-to-bottom as "the plan" then "what actually got eaten".
+          planDays() normalises the weekly shape and every older flat one. */}
+      {plannedToday.length > 0 && (
         <Section title={t("home.plannedMeals")}>
           <div className="flex flex-col gap-2">
-            {dietPlan.meals.map((m, i) => (
+            {plannedToday.map((m, i) => (
               <PlanMealRow key={i} meal={m} onOpenRecipe={() => onNavigate("dietplan")} />
             ))}
           </div>

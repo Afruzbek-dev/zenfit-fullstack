@@ -1,10 +1,15 @@
 import { useMemo, useState } from "react";
-import { Sparkles, Dumbbell, Coffee, Check, Play, RefreshCw, ShieldAlert, Lightbulb, Crown, Flame } from "lucide-react";
-import { Screen, Section, Button, Sheet, EmptyState, ErrorNote } from "../components/ui.jsx";
+import {
+  Sparkles, Dumbbell, RefreshCw, ShieldAlert, Lightbulb, Crown, Flame,
+  Layers, History, ChevronRight,
+} from "lucide-react";
+import { Screen, Section, Button, Sheet, EmptyState, ErrorNote, ListRow } from "../components/ui.jsx";
 import WorkoutSession from "./WorkoutSession.jsx";
 import PremiumSheet from "./profile/PremiumSheet.jsx";
 import ActivitySheet from "../components/ActivitySheet.jsx";
-import { dayLabel, generateWorkoutPlan, localizeDay, planTitle } from "../lib/aiPlanEngine.js";
+import PlanDayCard from "../components/PlanDayCard.jsx";
+import { generateWorkoutPlan, planTitle } from "../lib/aiPlanEngine.js";
+import { isStale, nextWeekIndex, weekIndexOf } from "../lib/planWeek.js";
 import MuscleTargetPicker from "../components/MuscleTargetPicker.jsx";
 import { ACTIVITY_BY_ID } from "../data/activities.js";
 import { api } from "../api.js";
@@ -47,48 +52,6 @@ function CardioCard({ cardio, t, onStart }) {
         <Flame size={15} /> {t("workout.logCardio")}
       </Button>
     </div>
-  );
-}
-
-function PlanDayCard({ item, doneCount, onOpen, t }) {
-  const day = localizeDay(item.day, t);
-
-  if (item.rest) {
-    return (
-      <div className="card flex items-center gap-3 px-4 py-3.5 opacity-70">
-        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-surfaceAlt">
-          <Coffee size={17} className="text-muted" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="text-[13.5px] font-bold text-ink">{day} — {t("workout.restDay")}</p>
-          <p className="mt-0.5 text-[11.5px] text-muted">{t("workout.restDayDesc")}</p>
-        </div>
-      </div>
-    );
-  }
-
-  const total = item.exercises.length;
-  const complete = doneCount >= total && total > 0;
-
-  return (
-    <button onClick={onOpen} className="card card-lit flex w-full items-center gap-3 px-4 py-3.5 text-left active:scale-[0.99]">
-      <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${complete ? "bg-neon/15" : "bg-surfaceAlt"}`}>
-        {complete ? <Check size={18} className="text-neon" /> : <Dumbbell size={17} className="text-muted" />}
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-[13.5px] font-bold text-ink">{day} — {dayLabel(item, t)}</span>
-        <span className="mt-0.5 block text-[11.5px] text-muted">
-          {t("workout.exercisesCount", { total, done: doneCount })}
-        </span>
-      </span>
-      <span
-        className={`flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold ${
-          complete ? "bg-neon/12 text-neon" : "bg-neon text-neonOn"
-        }`}
-      >
-        {complete ? <><Check size={12} /> {t("workout.done")}</> : <><Play size={11} fill="currentColor" /> {t("workout.start")}</>}
-      </span>
-    </button>
   );
 }
 
@@ -200,13 +163,14 @@ function RegenerateSheet({ open, onClose, onDone, onLocked }) {
 }
 
 export default function WorkoutsScreen({ onNavigate }) {
-  const { workoutPlan, workoutHistory, profile, saveWorkoutPlan, showToast, subscription, t } = useApp();
+  const { workoutPlan, activeProgram, workoutHistory, profile, saveWorkoutPlan, showToast, subscription, t } = useApp();
   const [sessionDay, setSessionDay] = useState(null);
   const [regenOpen, setRegenOpen] = useState(false);
   const [tips, setTips] = useState(null);
   const [tipsError, setTipsError] = useState(null);
   const [tipsBusy, setTipsBusy] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [premiumOpen, setPremiumOpen] = useState(false);
   const [cardioSeed, setCardioSeed] = useState(null);
 
@@ -265,6 +229,48 @@ export default function WorkoutsScreen({ onNavigate }) {
     }
   }
 
+  /**
+   * Next week of the same plan.
+   *
+   * Not premium-gated: the progression engine only ever fires at generation
+   * time, so a plan left alone prescribes the same weights forever. Charging
+   * for the refresh would mean charging for the plan to keep working, and the
+   * premium gate already sits where it belongs — on creating one.
+   */
+  async function refreshWeek() {
+    setRefreshing(true);
+    try {
+      let lastSetsByExercise = {};
+      try {
+        const res = await api.getAllLastSets();
+        lastSetsByExercise = res.byExercise || {};
+      } catch {
+        /* no history yet — the baseline weights are correct */
+      }
+
+      const plan = generateWorkoutPlan({
+        goal: workoutPlan.goal || profile?.goal || "maintain",
+        level: workoutPlan.level || profile?.fitnessLevel || "beginner",
+        daysPerWeek: workoutPlan.daysPerWeek || profile?.daysPerWeek || 3,
+        equipment: workoutPlan.equipment || profile?.equipment || "home-none",
+        duration: workoutPlan.duration || profile?.sessionDuration || "60",
+        injuries: workoutPlan.injuries || profile?.injuries || "",
+        weightKg: profile?.weightKg || 70,
+        lastSetsByExercise,
+        focusMuscles: workoutPlan.focusMuscles || profile?.focusMuscles || [],
+      });
+
+      const nextIndex = nextWeekIndex(workoutPlan);
+      await saveWorkoutPlan({ ...plan, weekIndex: nextIndex });
+      haptic("success");
+      showToast(t("workout.weekRefreshed", { n: nextIndex }), "success");
+    } catch (e) {
+      showToast(e.message || t("common.error"), "error");
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
   async function loadTips() {
     if (!subscription?.isPremium) {
       setPremiumOpen(true);
@@ -283,10 +289,53 @@ export default function WorkoutsScreen({ onNavigate }) {
     }
   }
 
+  /** A running programme is a peer of the plan, reachable from beside it. */
+  const programCard = activeProgram && (
+    <button
+      onClick={() => onNavigate?.("program")}
+      className="card mb-4 flex w-full items-center gap-3 px-4 py-3.5 text-left active:scale-[0.99]"
+    >
+      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-cyan/12">
+        <Layers size={18} className="text-cyan" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[13.5px] font-bold text-ink">
+          {activeProgram.programTitle || t("workout.activeProgram")}
+        </span>
+        <span className="mt-0.5 block text-[11.5px] text-muted">
+          {t("workout.activeProgram")} · {t("workout.weekN", { n: weekIndexOf(activeProgram) })}
+        </span>
+      </span>
+      <ChevronRight size={16} className="shrink-0 text-faint" />
+    </button>
+  );
+
+  /* Reachable whether or not a plan exists — these are how someone without a
+     plan finds a free programme, and how someone with one reaches their past. */
+  const moreSection = (
+    <Section title={t("workout.otherSection")}>
+      <div className="flex flex-col gap-2">
+        <ListRow
+          Icon={Layers}
+          title={t("workout.programsRow")}
+          subtitle={t("workout.programsRowDesc")}
+          onClick={() => onNavigate?.("exercises")}
+        />
+        <ListRow
+          Icon={History}
+          title={t("workout.history")}
+          subtitle={t("workout.historyDesc")}
+          onClick={() => onNavigate?.("history")}
+        />
+      </div>
+    </Section>
+  );
+
   return (
     <Screen topPad>
       {!workoutPlan ? (
         <>
+          {programCard}
           <Section>
             <EmptyState
               Icon={subscription?.isPremium ? Sparkles : Crown}
@@ -302,17 +351,36 @@ export default function WorkoutsScreen({ onNavigate }) {
               <Dumbbell size={15} /> {t("workout.seePrograms")}
             </Button>
           </Section>
+          {moreSection}
         </>
       ) : (
         <>
+          {isStale(workoutPlan) && (
+            <div className="mb-4 flex items-start gap-3 rounded-2xl border border-amber/30 bg-amber/[0.08] px-4 py-3.5">
+              <RefreshCw size={17} className="mt-0.5 shrink-0 text-amber" />
+              <div className="min-w-0 flex-1">
+                <p className="text-[12.5px] font-bold text-ink">{t("workout.newWeek")}</p>
+                <p className="mt-0.5 text-[11.5px] leading-relaxed text-muted">{t("workout.newWeekDesc")}</p>
+                <Button full className="mt-2.5" loading={refreshing} onClick={refreshWeek}>
+                  <Sparkles size={15} /> {t("workout.refreshWeek")}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {programCard}
+
           <div className="card card-lit mb-4 px-4 py-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   <Sparkles size={15} className="shrink-0 text-neon" />
                   <h2 className="font-display text-[15px] font-bold text-ink">{planTitle(workoutPlan, t)}</h2>
                   <span className="rounded-md bg-neon/15 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wider text-neon">
                     {t("workout.active")}
+                  </span>
+                  <span className="rounded-md bg-surfaceAlt px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wider text-muted">
+                    {t("workout.weekN", { n: weekIndexOf(workoutPlan) })}
                   </span>
                 </div>
                 <p className="mt-1 text-[11.5px] text-muted">
@@ -401,6 +469,8 @@ export default function WorkoutsScreen({ onNavigate }) {
               </>
             )}
           </Section>
+
+          {moreSection}
         </>
       )}
 

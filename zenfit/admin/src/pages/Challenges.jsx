@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Trophy, Plus, Search, Check, Trash2 } from "lucide-react";
+import { Trophy, Plus, Search, Check, Trash2, BarChart3 } from "lucide-react";
 import { api } from "../api.js";
 import { Card, Badge, Spinner, EmptyState, Modal, ErrorNote, fmtDate } from "../components/ui.jsx";
 
@@ -11,6 +11,15 @@ const AUDIENCES = [
 ];
 
 const AUDIENCE_BADGE = { all: "neon", premium: "amber", free: "muted", selected: "cyan" };
+
+/** Must match backend/src/lib/challengeStats.js — every one is derived from existing logs. */
+const METRICS = [
+  { id: "steps", label: "Qadamlar" },
+  { id: "workouts", label: "Mashqlar soni" },
+  { id: "kcal", label: "Sarflangan kkal" },
+  { id: "active_days", label: "Faol kunlar" },
+];
+const METRIC_LABEL = Object.fromEntries(METRICS.map((m) => [m.id, m.label]));
 
 function isPremium(u) {
   return u.sub_status === "active" && (!u.expires_at || new Date(u.expires_at) > new Date());
@@ -103,6 +112,8 @@ function CreateChallengeModal({ open, onClose, onDone }) {
   const [description, setDescription] = useState("");
   const [durationDays, setDurationDays] = useState("");
   const [audience, setAudience] = useState("all");
+  const [metric, setMetric] = useState("active_days");
+  const [goalTarget, setGoalTarget] = useState("");
   const [selected, setSelected] = useState(new Set());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -113,6 +124,8 @@ function CreateChallengeModal({ open, onClose, onDone }) {
     setDescription("");
     setDurationDays("");
     setAudience("all");
+    setMetric("active_days");
+    setGoalTarget("");
     setSelected(new Set());
     setError(null);
     setResult(null);
@@ -126,6 +139,8 @@ function CreateChallengeModal({ open, onClose, onDone }) {
         title: title.trim(),
         description: description.trim() || undefined,
         audience,
+        metric,
+        goalTarget: goalTarget ? Number(goalTarget) : undefined,
         durationDays: durationDays ? Number(durationDays) : undefined,
         userIds: audience === "selected" ? [...selected] : undefined,
       });
@@ -194,6 +209,34 @@ function CreateChallengeModal({ open, onClose, onDone }) {
             />
           </div>
           <div>
+            <label className="label">Reyting nima bo'yicha o'lchansin</label>
+            <div className="grid grid-cols-2 gap-2">
+              {METRICS.map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => setMetric(m.id)}
+                  className={`rounded-xl border px-3 py-2.5 text-left text-[12.5px] font-semibold transition-colors ${
+                    metric === m.id ? "border-neon bg-neon/[0.12] text-ink" : "border-borderSoft bg-surfaceAlt text-muted"
+                  }`}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="label">Maqsad (ixtiyoriy — bo'sh qoldirilsa faqat reyting)</label>
+            <input
+              type="number"
+              min={1}
+              value={goalTarget}
+              onChange={(e) => setGoalTarget(e.target.value)}
+              className="input"
+              placeholder="masalan 70000"
+            />
+          </div>
+          <div>
             <label className="label">Auditoriya</label>
             <div className="grid grid-cols-2 gap-2">
               {AUDIENCES.map((a) => (
@@ -224,10 +267,67 @@ function CreateChallengeModal({ open, onClose, onDone }) {
   );
 }
 
+/** The same ranking users see, so a "why am I 4th?" question is answerable. */
+function LeaderboardModal({ challenge, onClose }) {
+  const [data, setData] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!challenge) return undefined;
+    let alive = true;
+    setData(null);
+    setError(null);
+    api
+      .challengeLeaderboard(challenge.id)
+      .then((res) => alive && setData(res))
+      .catch((e) => alive && setError(e.message));
+    return () => {
+      alive = false;
+    };
+  }, [challenge]);
+
+  return (
+    <Modal open={Boolean(challenge)} onClose={onClose} title={challenge ? `Reyting — ${challenge.title}` : ""}>
+      {error ? (
+        <ErrorNote>{error}</ErrorNote>
+      ) : !data ? (
+        <div className="flex justify-center py-8">
+          <Spinner />
+        </div>
+      ) : data.entries.length === 0 ? (
+        <p className="py-6 text-center text-[12.5px] text-faint">Hali hech kim qo'shilmagan.</p>
+      ) : (
+        <>
+          <p className="mb-3 text-[12px] text-muted">
+            {METRIC_LABEL[data.metric] || data.metric}
+            {data.goalTarget ? ` · maqsad ${data.goalTarget}` : ""}
+          </p>
+          <div className="flex flex-col gap-1.5">
+            {data.entries.map((e) => (
+              <div
+                key={e.userId}
+                className="flex items-center gap-3 rounded-xl border border-borderSoft bg-surfaceAlt px-3 py-2.5"
+              >
+                <span className="tabular w-6 shrink-0 text-[12px] font-bold text-faint">{e.rank}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[12.5px] font-semibold text-ink">{e.firstName || "—"}</span>
+                  {e.username && <span className="block text-[11px] text-faint">@{e.username}</span>}
+                </span>
+                <span className="tabular shrink-0 text-[13px] font-bold text-neon">{Math.round(e.value)}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </Modal>
+  );
+}
+
 export default function Challenges() {
   const [rows, setRows] = useState(null);
   const [error, setError] = useState(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [board, setBoard] = useState(null);
 
   const load = useCallback(async () => {
     setError(null);
@@ -258,7 +358,8 @@ export default function Challenges() {
     <div>
       <div className="mb-5 flex items-center justify-between gap-3">
         <p className="text-[12.5px] text-muted">
-          Foydalanuvchilarga yuboriladigan e'lonlar — avtomatik progress kuzatilmaydi.
+          Foydalanuvchilar qo'shiladi, progress va reyting tanlangan metrika bo'yicha avtomatik hisoblanadi.
+          Premium foydalanuvchilar ham o'z challenge'ini yarata oladi — ular bu yerda "Muallif" ustunida ko'rinadi.
         </p>
         <button onClick={() => setCreateOpen(true)} className="btn-primary shrink-0">
           <Plus size={16} /> Yangi challenge
@@ -280,7 +381,9 @@ export default function Challenges() {
               <tr>
                 <th className="px-4 py-3 font-bold">Sarlavha</th>
                 <th className="px-4 py-3 font-bold">Auditoriya</th>
-                <th className="px-4 py-3 font-bold">Qabul qiluvchilar</th>
+                <th className="px-4 py-3 font-bold">Metrika</th>
+                <th className="px-4 py-3 font-bold">Qatnashchi</th>
+                <th className="px-4 py-3 font-bold">Muallif</th>
                 <th className="px-4 py-3 font-bold">Tugaydi</th>
                 <th className="px-4 py-3 font-bold">Yaratildi</th>
                 <th className="px-4 py-3 text-right font-bold" />
@@ -300,19 +403,31 @@ export default function Challenges() {
                       {AUDIENCES.find((a) => a.id === c.audience)?.label || c.audience}
                     </Badge>
                   </td>
+                  <td className="px-4 py-3 text-[12px] text-muted">{METRIC_LABEL[c.metric] || c.metric}</td>
                   <td className="tabular px-4 py-3 text-muted">
-                    {c.audience === "selected" ? c.recipientCount || 0 : "—"}
+                    {c.participantCount || 0}
+                    {c.goalTarget ? <span className="text-faint"> · {c.goalTarget}</span> : null}
                   </td>
+                  <td className="px-4 py-3 text-[12px] text-muted">{c.creatorName || "Admin"}</td>
                   <td className="px-4 py-3 text-muted">{c.endsAt ? fmtDate(c.endsAt) : "Muddatsiz"}</td>
                   <td className="px-4 py-3 text-[12px] text-muted">{fmtDate(c.createdAt)}</td>
                   <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => remove(c.id)}
-                      aria-label="O'chirish"
-                      className="grid h-8 w-8 place-items-center rounded-lg bg-surfaceAlt"
-                    >
-                      <Trash2 size={14} className="text-rose" />
-                    </button>
+                    <div className="flex justify-end gap-1.5">
+                      <button
+                        onClick={() => setBoard(c)}
+                        aria-label="Reyting"
+                        className="grid h-8 w-8 place-items-center rounded-lg bg-surfaceAlt"
+                      >
+                        <BarChart3 size={14} className="text-muted" />
+                      </button>
+                      <button
+                        onClick={() => remove(c.id)}
+                        aria-label="O'chirish"
+                        className="grid h-8 w-8 place-items-center rounded-lg bg-surfaceAlt"
+                      >
+                        <Trash2 size={14} className="text-rose" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -322,6 +437,7 @@ export default function Challenges() {
       )}
 
       <CreateChallengeModal open={createOpen} onClose={() => setCreateOpen(false)} onDone={load} />
+      <LeaderboardModal challenge={board} onClose={() => setBoard(null)} />
     </div>
   );
 }

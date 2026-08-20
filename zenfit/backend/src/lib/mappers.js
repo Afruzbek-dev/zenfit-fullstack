@@ -192,6 +192,12 @@ export function mapChallenge(c) {
     audience: c.audience,
     durationDays: c.duration_days,
     endsAt: c.ends_at,
+    metric: c.metric || "active_days",
+    goalTarget: c.goal_target == null ? null : Number(c.goal_target),
+    // NULL on rows written before the column existed; every consumer treats
+    // created_at as the start in that case.
+    startsAt: c.starts_at || c.created_at,
+    createdByUserId: c.created_by_user_id ?? null,
     createdAt: c.created_at,
   };
 }

@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Sparkles, Loader2, Crown, ChevronRight, ShoppingBasket, AlertTriangle,
-  Plus, Trash2, Lightbulb, Search,
+  Plus, Trash2, Lightbulb, Search, History,
 } from "lucide-react";
 import { Screen, ScreenHeader, Section, Sheet, Button, ErrorNote } from "../components/ui.jsx";
 import PantrySheet, { pantryPayload } from "../components/PantrySheet.jsx";
 import DietPrefsSheet from "../components/DietPrefsSheet.jsx";
+import DietPresetSheet from "../components/DietPresetSheet.jsx";
 import { filterFoods, foodName, macros, servingMacros } from "../data/foods.js";
-import { buildDietPlan, sortPlansForGoal } from "../data/dietPlans.js";
-import { groupBySlot } from "../lib/planMeals.js";
+import { sortPlansForGoal } from "../data/dietPlans.js";
+import { dayTotals, groupBySlot, planDays, todayDayIndex } from "../lib/planMeals.js";
 import { MealSlotAccordion } from "../components/PlanMealRow.jsx";
 import { api } from "../api.js";
 import { haptic } from "../telegram.js";
@@ -74,71 +75,36 @@ function PresetPlans({ onPick }) {
   );
 }
 
-/** A preset rendered against this user's target, ready to log meal by meal. */
-function PresetSheet({ planId, onClose, onOpenRecipe }) {
-  const { profile, t, lang } = useApp();
-  const built = useMemo(
-    () => (planId ? buildDietPlan(planId, { dailyCalorieTarget: profile?.dailyCalorieTarget, lang }) : null),
-    [planId, profile?.dailyCalorieTarget, lang]
-  );
-  const groups = useMemo(() => (built ? groupBySlot(built.meals, t) : []), [built, t]);
-
-  return (
-    <Sheet open={Boolean(planId)} onClose={onClose} title={planId ? t(`dietPreset.names.${planId}`) : ""}>
-      {built && (
-        <>
-          <p className="mb-3 text-[12px] leading-relaxed text-muted">{t(`dietPreset.descs.${planId}`)}</p>
-
-          <div className="mb-3 grid grid-cols-4 gap-2">
-            {[
-              { l: "kcal", v: built.totals.kcal, c: "text-neon" },
-              { l: t("home.protein"), v: `${built.totals.protein}g`, c: "text-neon" },
-              { l: t("home.carbs"), v: `${built.totals.carbs}g`, c: "text-cyan" },
-              { l: t("home.fat"), v: `${built.totals.fat}g`, c: "text-amber" },
-            ].map((m) => (
-              <div key={m.l} className="rounded-xl bg-surfaceAlt px-2 py-2.5 text-center">
-                <p className="truncate text-[9.5px] font-bold uppercase tracking-wider text-faint">{m.l}</p>
-                <p className={`tabular mt-0.5 text-[14px] font-bold ${m.c}`}>{m.v}</p>
-              </div>
-            ))}
-          </div>
-
-          <p className={`mb-3 text-[11.5px] leading-relaxed ${built.clamped ? "text-amber" : "text-faint"}`}>
-            {built.clamped
-              ? t("dietPreset.clamped")
-              : t("dietPreset.scaled", { kcal: profile?.dailyCalorieTarget || built.totals.kcal })}
-          </p>
-
-          <div className="mb-5">
-            <MealSlotAccordion groups={groups} onOpenRecipe={onOpenRecipe} />
-          </div>
-        </>
-      )}
-    </Sheet>
-  );
-}
-
-function DietPlanCard({ onOpenPremium, onOpenPantry, onOpenRecipe }) {
+function DietPlanCard({ onOpenPremium, onOpenPantry, onOpenRecipe, onNavigate }) {
   const { dietPlan, saveDietPlan, profile, subscription, showToast, t, lang } = useApp();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [locked, setLocked] = useState(false);
   const [prefsOpen, setPrefsOpen] = useState(false);
-  const [candidates, setCandidates] = useState(null);
-  const [choosing, setChoosing] = useState(false);
+  const [dayIndex, setDayIndex] = useState(null);
 
   const premium = Boolean(subscription?.isPremium);
   const pantry = profile?.pantry || [];
   const hasPantry = pantry.length > 0;
-  const groups = useMemo(() => groupBySlot(dietPlan?.meals || [], t), [dietPlan, t]);
+
+  const days = useMemo(() => planDays(dietPlan), [dietPlan]);
+  const todayIndex = useMemo(() => todayDayIndex(dietPlan), [dietPlan]);
+  // `dayIndex === null` means "follow today", so the strip keeps tracking the
+  // real day until the user deliberately looks at another one.
+  const activeIndex = Math.min(dayIndex ?? todayIndex, days.length - 1);
+  const activeMeals = days[activeIndex]?.meals || [];
+  const groups = useMemo(() => groupBySlot(activeMeals, t), [activeMeals, t]);
+  const totals = useMemo(() => dayTotals(activeMeals), [activeMeals]);
 
   async function doGenerate() {
     setBusy(true);
     setError(null);
     try {
       const res = await api.generateDietPlan(pantryPayload(pantry, lang));
-      setCandidates(res.plans || []);
+      await saveDietPlan(res.plan);
+      setDayIndex(null);
       haptic("success");
+      showToast(t("dietPlanScreen.planChosen"), "success");
     } catch (e) {
       if (e.status === 402) {
         setLocked(true);
@@ -175,21 +141,6 @@ function DietPlanCard({ onOpenPremium, onOpenPantry, onOpenRecipe }) {
     await doGenerate();
   }
 
-  /** Persists the chosen candidate as the single active plan; the other two are dropped — they were never saved anywhere. */
-  async function choosePlan(plan) {
-    setChoosing(true);
-    try {
-      await saveDietPlan(plan);
-      setCandidates(null);
-      haptic("success");
-      showToast(t("dietPlanScreen.planChosen"), "success");
-    } catch (e) {
-      showToast(e.message || t("common.error"), "error");
-    } finally {
-      setChoosing(false);
-    }
-  }
-
   const prefsSheet = (
     <DietPrefsSheet
       open={prefsOpen}
@@ -201,20 +152,10 @@ function DietPlanCard({ onOpenPremium, onOpenPantry, onOpenRecipe }) {
     />
   );
 
-  const candidatesSheet = (
-    <PlanCandidatesSheet
-      candidates={candidates}
-      busy={choosing}
-      onClose={() => setCandidates(null)}
-      onChoose={choosePlan}
-    />
-  );
-
   if (!dietPlan) {
     return (
       <>
         {prefsSheet}
-        {candidatesSheet}
         {error && <div className="mb-2"><ErrorNote onRetry={generate}>{error}</ErrorNote></div>}
         <button
           onClick={generate}
@@ -259,7 +200,6 @@ function DietPlanCard({ onOpenPremium, onOpenPantry, onOpenRecipe }) {
   return (
     <div className="card px-4 py-4">
       {prefsSheet}
-      {candidatesSheet}
       <div className="mb-3 flex flex-wrap items-start justify-between gap-x-3 gap-y-1.5">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
@@ -274,6 +214,9 @@ function DietPlanCard({ onOpenPremium, onOpenPantry, onOpenRecipe }) {
           {dietPlan.summary && <p className="mt-1 text-[11.5px] leading-relaxed text-muted">{dietPlan.summary}</p>}
         </div>
         <div className="flex shrink-0 items-center gap-3">
+          <button onClick={() => onNavigate?.("history:diet")} aria-label={t("history.title")} className="text-faint">
+            <History size={15} />
+          </button>
           <button onClick={() => setPrefsOpen(true)} className="whitespace-nowrap text-[11.5px] font-bold text-faint">
             {t("dietPrefs.edit")}
           </button>
@@ -283,7 +226,53 @@ function DietPlanCard({ onOpenPremium, onOpenPantry, onOpenRecipe }) {
         </div>
       </div>
 
-      <MealSlotAccordion groups={groups} onOpenRecipe={onOpenRecipe} />
+      {/* The week, mirroring the workout plan's day list so the two plans read
+          as siblings. Scrolls horizontally rather than squeezing seven chips. */}
+      {days.length > 1 && (
+        <div className="-mx-4 mb-3 flex gap-2 overflow-x-auto px-4 pb-1 no-scrollbar">
+          {days.map((d, i) => {
+            const on = i === activeIndex;
+            return (
+              <button
+                key={i}
+                onClick={() => { haptic("light"); setDayIndex(i); }}
+                className={`shrink-0 rounded-xl border px-3 py-2 text-center ${
+                  on ? "border-neon bg-neon/12" : "border-borderSoft bg-surfaceAlt"
+                }`}
+              >
+                <span className={`block text-[11.5px] font-bold ${on ? "text-neon" : "text-muted"}`}>
+                  {i === todayIndex ? t("dietPlanScreen.today") : t("workout.dayN", { n: d.day || i + 1 })}
+                </span>
+                <span className="tabular mt-0.5 block text-[10px] text-faint">
+                  {dayTotals(d.meals).kcal} kcal
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {days.length > 1 && days.length < 7 && (
+        <p className="mb-3 text-[11px] leading-relaxed text-faint">
+          {t("dietPlanScreen.partialWeek", { n: days.length })}
+        </p>
+      )}
+
+      <div className="mb-3 grid grid-cols-4 gap-2">
+        {[
+          { l: "kcal", v: totals.kcal, c: "text-neon" },
+          { l: t("home.protein"), v: `${totals.protein}g`, c: "text-neon" },
+          { l: t("home.carbs"), v: `${totals.carbs}g`, c: "text-cyan" },
+          { l: t("home.fat"), v: `${totals.fat}g`, c: "text-amber" },
+        ].map((m) => (
+          <div key={m.l} className="rounded-xl bg-surfaceAlt px-2 py-2 text-center">
+            <p className="truncate text-[9px] font-bold uppercase tracking-wider text-faint">{m.l}</p>
+            <p className={`tabular mt-0.5 text-[12.5px] font-bold ${m.c}`}>{m.v}</p>
+          </div>
+        ))}
+      </div>
+
+      <MealSlotAccordion key={activeIndex} groups={groups} onOpenRecipe={onOpenRecipe} />
 
       {/* What the pantry could not cover. Saying so is the honest alternative to
           quietly inventing an ingredient the user does not have. */}
@@ -309,64 +298,6 @@ function DietPlanCard({ onOpenPremium, onOpenPantry, onOpenRecipe }) {
         </ul>
       )}
     </div>
-  );
-}
-
-/** Lets the user pick one of the 3 AI-generated candidate plans — dismissing the sheet or choosing one both drop the rest, since they were never persisted. */
-function PlanCandidatesSheet({ candidates, onClose, onChoose, busy }) {
-  const { t } = useApp();
-  const open = Boolean(candidates?.length);
-
-  return (
-    <Sheet open={open} onClose={onClose} title={t("dietPlanScreen.chooseTitle")}>
-      <p className="mb-3 text-[12px] leading-relaxed text-muted">{t("dietPlanScreen.chooseDesc")}</p>
-      <div className="flex flex-col gap-2.5">
-        {(candidates || []).map((plan, i) => {
-          const totals = (plan.meals || []).reduce(
-            (acc, m) => ({
-              kcal: acc.kcal + (m.kcal || 0),
-              protein: acc.protein + (m.protein || 0),
-              carbs: acc.carbs + (m.carbs || 0),
-              fat: acc.fat + (m.fat || 0),
-            }),
-            { kcal: 0, protein: 0, carbs: 0, fat: 0 }
-          );
-          return (
-            <button
-              key={i}
-              onClick={() => onChoose(plan)}
-              disabled={busy}
-              className="card flex w-full flex-col gap-2.5 px-4 py-3.5 text-left active:scale-[0.99] disabled:opacity-50"
-            >
-              <div>
-                <p className="text-[13px] font-bold text-ink">{plan.label || t("dietPlanScreen.chooseTitle")}</p>
-                {plan.summary && <p className="mt-0.5 text-[11.5px] leading-relaxed text-muted">{plan.summary}</p>}
-              </div>
-              <div className="grid grid-cols-4 gap-2">
-                {[
-                  { l: "kcal", v: totals.kcal, c: "text-neon" },
-                  { l: t("home.protein"), v: `${totals.protein}g`, c: "text-neon" },
-                  { l: t("home.carbs"), v: `${totals.carbs}g`, c: "text-cyan" },
-                  { l: t("home.fat"), v: `${totals.fat}g`, c: "text-amber" },
-                ].map((m) => (
-                  <div key={m.l} className="rounded-xl bg-surfaceAlt px-2 py-2 text-center">
-                    <p className="truncate text-[9px] font-bold uppercase tracking-wider text-faint">{m.l}</p>
-                    <p className={`tabular mt-0.5 text-[12.5px] font-bold ${m.c}`}>{m.v}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {(plan.meals || []).map((m, mi) => (
-                  <span key={mi} className="rounded-full bg-surfaceAlt px-2 py-1 text-[10.5px] text-muted">
-                    {m.emoji || "🍽️"} {m.name}
-                  </span>
-                ))}
-              </div>
-            </button>
-          );
-        })}
-      </div>
-    </Sheet>
   );
 }
 
@@ -608,7 +539,7 @@ function CustomPlanSection() {
   );
 }
 
-export default function DietPlanScreen({ onBack }) {
+export default function DietPlanScreen({ onBack, onNavigate }) {
   const { t } = useApp();
   const [premiumOpen, setPremiumOpen] = useState(false);
   const [pantryOpen, setPantryOpen] = useState(false);
@@ -639,6 +570,7 @@ export default function DietPlanScreen({ onBack }) {
           onOpenPremium={() => setPremiumOpen(true)}
           onOpenPantry={openPantry}
           onOpenRecipe={setRecipeFoodId}
+          onNavigate={onNavigate}
         />
       </Section>
 
@@ -674,7 +606,7 @@ export default function DietPlanScreen({ onBack }) {
           resume?.();
         }}
       />
-      <PresetSheet planId={presetId} onClose={() => setPresetId(null)} onOpenRecipe={setRecipeFoodId} />
+      <DietPresetSheet planId={presetId} onClose={() => setPresetId(null)} onOpenRecipe={setRecipeFoodId} />
       <PremiumSheet open={premiumOpen} onClose={() => setPremiumOpen(false)} />
     </Screen>
   );

@@ -101,8 +101,29 @@ export const uz = {
     customTitle: "O'zim tuzaman", customShow: "Ko'rsatish", customHide: "Yashirish",
     customDesc: "Har bir ovqatlanish vaqtiga o'zingiz mahsulot qo'shib, doimiy reja tuzing.",
     addToSlot: "Qo'shish", otherSlot: "Boshqa", pickFood: "Mahsulot tanlang",
-    chooseTitle: "Rejani tanlang", chooseDesc: "Sizga mos 3 ta reja tayyor — birini tanlang.",
-    planChosen: "Reja tanlandi ✓", howTo: "Tayyorlash",
+    planChosen: "Reja tayyor ✓", howTo: "Tayyorlash",
+    weekPlan: "Haftalik reja", today: "Bugun", dayTotals: "Kun jami",
+    partialWeek: "AI {n} kunlik reja qaytardi — yangilab to'liq hafta olishingiz mumkin.",
+  },
+
+  records: {
+    title: "Rekordlar", subtitle: "Har bir mashq bo'yicha shaxsiy natijalaringiz",
+    byExercise: "Mashqlar bo'yicha",
+    maxWeight: "Eng og'ir", bestSession: "Eng yaxshi kun", totalVolume: "Jami og'irlik",
+    totalSets: "Setlar", sessions: "Mashqlar", lastDone: "Oxirgi",
+    pr: "Rekord",
+    empty: "Hali rekord yo'q",
+    emptyDesc: "Birinchi mashqingizni bajaring — natijalar shu yerda to'planib boradi.",
+  },
+
+  history: {
+    title: "Tarix", subtitle: "Bajarilgan mashqlar va eski rejalar",
+    tabSessions: "Mashqlar", tabWorkoutPlans: "Mashq rejalari", tabDietPlans: "Dieta rejalari",
+    empty: "Hali ma'lumot yo'q",
+    emptySessions: "Bajarilgan mashqlar shu yerda ko'rinadi.",
+    emptyPlans: "Reja tuzganingizdan keyin eski versiyalari shu yerda saqlanadi.",
+    activeBadge: "Faol", createdOn: "Tuzilgan",
+    exercisesN: "{n} ta mashq", daysN: "{n} kun/hafta", mealsN: "{n} ta ovqat",
   },
 
   challengesScreen: {
@@ -114,9 +135,26 @@ export const uz = {
     shareText: "ZenFit'ga qo'shiling — birga mashq qilamiz! Mening havolam orqali kirsangiz, Premium sotib olganingizda {discount}% chegirma olasiz.",
     leaderboard: "Do'stlar reytingi", invitedYou: "Sizni taklif qildi",
     noFriends: "Hali do'stlaringiz yo'q. Birinchi bo'lib taklif qiling!",
-    comingTitle: "Tez orada",
-    comingDesc: "Do'stlaringizni taklif qiling, birga musobaqalashing va sovg'alar yutib oling.",
+    comingTitle: "Hozircha challenge yo'q",
+    comingDesc: "Birinchi bo'lib challenge yarating va do'stlaringizni chaqiring.",
     endsIn: "{days} kun qoldi", openEnded: "Muddatsiz",
+
+    activeTitle: "Challenge'lar",
+    join: "Qo'shilish", leave: "Qo'shildingiz", joined: "Qo'shildingiz",
+    openLeaderboard: "Reyting",
+    participants: "{n} ta qatnashchi", noParticipants: "Hali hech kim qo'shilmagan",
+    myProgress: "Mening natijam",
+    create: "Challenge yaratish", createTitle: "Yangi challenge",
+    created: "Challenge yaratildi 🏆",
+    titlePlaceholder: "Masalan: 7 kunlik qadam challenge'i",
+    descPlaceholder: "Qisqa tavsif (ixtiyoriy)",
+    metricLabel: "Nima bo'yicha o'lchanadi",
+    metrics: {
+      steps: "Qadamlar", workouts: "Mashqlar soni",
+      kcal: "Sarflangan kkal", active_days: "Faol kunlar",
+    },
+    targetLabel: "Maqsad", durationLabel: "Kun",
+    byUser: "Foydalanuvchi", byAdmin: "ZenFit",
   },
 
   onboarding: {
@@ -315,8 +353,29 @@ export const ru = {
     customTitle: "Составить самому", customShow: "Показать", customHide: "Скрыть",
     customDesc: "Добавляйте продукты в каждый приём пищи сами и сохраните постоянный план.",
     addToSlot: "Добавить", otherSlot: "Другое", pickFood: "Выберите продукт",
-    chooseTitle: "Выберите план", chooseDesc: "Готовы 3 варианта — выберите один.",
-    planChosen: "План выбран ✓", howTo: "Приготовление",
+    planChosen: "План готов ✓", howTo: "Приготовление",
+    weekPlan: "План на неделю", today: "Сегодня", dayTotals: "Итого за день",
+    partialWeek: "AI вернул план на {n} дн. — обновите, чтобы получить полную неделю.",
+  },
+
+  records: {
+    title: "Рекорды", subtitle: "Личные результаты по каждому упражнению",
+    byExercise: "По упражнениям",
+    maxWeight: "Максимум", bestSession: "Лучший день", totalVolume: "Общий тоннаж",
+    totalSets: "Подходы", sessions: "Тренировки", lastDone: "Последний раз",
+    pr: "Рекорд",
+    empty: "Рекордов пока нет",
+    emptyDesc: "Проведите первую тренировку — результаты начнут накапливаться здесь.",
+  },
+
+  history: {
+    title: "История", subtitle: "Выполненные тренировки и прошлые планы",
+    tabSessions: "Тренировки", tabWorkoutPlans: "Планы тренировок", tabDietPlans: "Планы питания",
+    empty: "Пока пусто",
+    emptySessions: "Выполненные тренировки появятся здесь.",
+    emptyPlans: "Прошлые версии плана сохранятся здесь после обновления.",
+    activeBadge: "Активный", createdOn: "Составлен",
+    exercisesN: "{n} упражнений", daysN: "{n} дн./нед.", mealsN: "{n} приёмов пищи",
   },
 
   challengesScreen: {
@@ -328,9 +387,26 @@ export const ru = {
     shareText: "Присоединяйся к ZenFit — будем тренироваться вместе! Перейдя по моей ссылке, ты получишь скидку {discount}% на Premium.",
     leaderboard: "Рейтинг друзей", invitedYou: "Пригласил(а) вас",
     noFriends: "Пока нет друзей. Пригласите первым!",
-    comingTitle: "Скоро",
-    comingDesc: "Приглашайте друзей, соревнуйтесь вместе и получайте награды.",
+    comingTitle: "Пока нет челленджей",
+    comingDesc: "Создайте челлендж первым и позовите друзей.",
     endsIn: "Осталось {days} дн.", openEnded: "Бессрочно",
+
+    activeTitle: "Челленджи",
+    join: "Участвовать", leave: "Вы участвуете", joined: "Вы участвуете",
+    openLeaderboard: "Рейтинг",
+    participants: "{n} участников", noParticipants: "Пока никто не участвует",
+    myProgress: "Мой результат",
+    create: "Создать челлендж", createTitle: "Новый челлендж",
+    created: "Челлендж создан 🏆",
+    titlePlaceholder: "Например: 7-дневный шаговый челлендж",
+    descPlaceholder: "Краткое описание (необязательно)",
+    metricLabel: "По чему считаем",
+    metrics: {
+      steps: "Шаги", workouts: "Тренировки",
+      kcal: "Сожжено ккал", active_days: "Активные дни",
+    },
+    targetLabel: "Цель", durationLabel: "Дней",
+    byUser: "Пользователь", byAdmin: "ZenFit",
   },
 
   onboarding: {
@@ -525,8 +601,29 @@ export const en = {
     customTitle: "Build it myself", customShow: "Show", customHide: "Hide",
     customDesc: "Add foods into each meal time yourself and keep a standing plan.",
     addToSlot: "Add", otherSlot: "Other", pickFood: "Pick a food",
-    chooseTitle: "Choose a plan", chooseDesc: "Three options are ready — pick one.",
-    planChosen: "Plan chosen ✓", howTo: "How to prepare",
+    planChosen: "Plan ready ✓", howTo: "How to prepare",
+    weekPlan: "Weekly plan", today: "Today", dayTotals: "Day total",
+    partialWeek: "The AI returned {n} days — refresh to get a full week.",
+  },
+
+  records: {
+    title: "Records", subtitle: "Your personal bests, exercise by exercise",
+    byExercise: "By exercise",
+    maxWeight: "Heaviest", bestSession: "Best session", totalVolume: "Total volume",
+    totalSets: "Sets", sessions: "Sessions", lastDone: "Last done",
+    pr: "PR",
+    empty: "No records yet",
+    emptyDesc: "Finish your first workout — your numbers start stacking up here.",
+  },
+
+  history: {
+    title: "History", subtitle: "Finished workouts and past plans",
+    tabSessions: "Workouts", tabWorkoutPlans: "Workout plans", tabDietPlans: "Diet plans",
+    empty: "Nothing here yet",
+    emptySessions: "Finished workouts will show up here.",
+    emptyPlans: "Past versions of your plan are kept here once you refresh it.",
+    activeBadge: "Active", createdOn: "Built",
+    exercisesN: "{n} exercises", daysN: "{n} days/week", mealsN: "{n} meals",
   },
 
   challengesScreen: {
@@ -538,9 +635,26 @@ export const en = {
     shareText: "Join me on ZenFit — let's train together! Use my link and get {discount}% off Premium.",
     leaderboard: "Friends leaderboard", invitedYou: "Invited you",
     noFriends: "No friends yet. Be the first to invite someone!",
-    comingTitle: "Coming soon",
-    comingDesc: "Invite friends, compete together, and earn rewards.",
+    comingTitle: "No challenges yet",
+    comingDesc: "Be the first to start one and bring your friends in.",
     endsIn: "{days} days left", openEnded: "Open-ended",
+
+    activeTitle: "Challenges",
+    join: "Join", leave: "You're in", joined: "You're in",
+    openLeaderboard: "Leaderboard",
+    participants: "{n} taking part", noParticipants: "Nobody has joined yet",
+    myProgress: "My progress",
+    create: "Create a challenge", createTitle: "New challenge",
+    created: "Challenge created 🏆",
+    titlePlaceholder: "e.g. 7-day step challenge",
+    descPlaceholder: "Short description (optional)",
+    metricLabel: "What it measures",
+    metrics: {
+      steps: "Steps", workouts: "Workouts",
+      kcal: "Calories burned", active_days: "Active days",
+    },
+    targetLabel: "Target", durationLabel: "Days",
+    byUser: "Member", byAdmin: "ZenFit",
   },
 
   onboarding: {

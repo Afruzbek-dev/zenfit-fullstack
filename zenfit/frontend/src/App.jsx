@@ -10,6 +10,9 @@ import Onboarding from "./screens/Onboarding.jsx";
 import HomeScreen from "./screens/HomeScreen.jsx";
 import WorkoutsScreen from "./screens/WorkoutsScreen.jsx";
 import WorkoutsLibraryScreen from "./screens/WorkoutsLibraryScreen.jsx";
+import ProgramScreen from "./screens/ProgramScreen.jsx";
+import HistoryScreen from "./screens/HistoryScreen.jsx";
+import RecordsScreen from "./screens/RecordsScreen.jsx";
 import ScanScreen from "./screens/ScanScreen.jsx";
 import RecipesScreen from "./screens/RecipesScreen.jsx";
 import DietPlanScreen from "./screens/DietPlanScreen.jsx";
@@ -26,7 +29,7 @@ const TABS = [
   { id: "profile", key: "nav.profile", Icon: User2 },
 ];
 
-const SECONDARY = ["recipes", "dietplan", "progress", "challenges", "exercises"];
+const SECONDARY = ["recipes", "dietplan", "progress", "challenges", "exercises", "program", "history", "records"];
 
 function BottomNav({ active, onChange, t }) {
   return (
@@ -114,12 +117,12 @@ function BootScreen({ error, onRetry, t }) {
 export default function App() {
   const { status, error, profile, boot, toast, refresh, theme, t } = useApp();
   const [tab, setTabRaw] = useState("home");
-  // Lets a card elsewhere in the app open a specific profile sub-screen rather
-  // than dumping the user on the profile menu to find it themselves.
-  const [profileView, setProfileView] = useState(null);
+  // Lets a card elsewhere in the app open a specific sub-screen ("profile:edit",
+  // "history:diet") rather than dumping the user on a menu to find it.
+  const [subView, setSubView] = useState(null);
   const setTab = (id) => {
     const [target, view] = String(id).split(":");
-    setProfileView(view || null);
+    setSubView(view || null);
     setTabRaw(target);
   };
   // Decided once when the session first loads. Onboarding saves the profile
@@ -162,12 +165,15 @@ export default function App() {
   const screens = {
     home: <HomeScreen onNavigate={setTab} />,
     workouts: <WorkoutsScreen onNavigate={setTab} />,
-    exercises: <WorkoutsLibraryScreen onBack={() => setTab("home")} onNavigate={setTab} />,
+    exercises: <WorkoutsLibraryScreen onBack={() => setTab("workouts")} onNavigate={setTab} />,
+    program: <ProgramScreen onBack={() => setTab("workouts")} onNavigate={setTab} />,
+    history: <HistoryScreen key={subView || "root"} initialTab={subView} onBack={() => setTab("workouts")} />,
+    records: <RecordsScreen onBack={() => setTab("workouts")} />,
     scan: <ScanScreen onNavigate={setTab} />,
     chat: <ChatScreen onNavigate={setTab} />,
-    profile: <ProfileScreen key={profileView || "root"} onNavigate={setTab} initialView={profileView} />,
+    profile: <ProfileScreen key={subView || "root"} onNavigate={setTab} initialView={subView} />,
     recipes: <RecipesScreen onBack={() => setTab("home")} />,
-    dietplan: <DietPlanScreen onBack={() => setTab("home")} />,
+    dietplan: <DietPlanScreen onBack={() => setTab("home")} onNavigate={setTab} />,
     progress: <ProgressScreen onBack={() => setTab("home")} />,
     challenges: <ChallengesScreen onBack={() => setTab("home")} />,
   };

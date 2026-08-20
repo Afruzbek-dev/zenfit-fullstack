@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertTriangle, Flame, Footprints } from "lucide-react";
+import { AlertTriangle, Flame, Footprints, BellPlus } from "lucide-react";
 import { Sheet, Button } from "./ui.jsx";
 import ActivitySheet from "./ActivitySheet.jsx";
 import { useApp } from "../store.jsx";
@@ -14,8 +14,9 @@ import { useApp } from "../store.jsx";
  * `mealAlert`) the whole time the user might tap through to it.
  */
 export default function MealAlertSheet() {
-  const { mealAlert, clearMealAlert, t } = useApp();
+  const { mealAlert, clearMealAlert, addBurnReminder, showToast, t } = useApp();
   const [activityOpen, setActivityOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const open = Boolean(mealAlert) && !activityOpen;
   const { reason, walkMinutes, delayDays, meal } = mealAlert || {};
@@ -23,6 +24,24 @@ export default function MealAlertSheet() {
   function closeAll() {
     setActivityOpen(false);
     clearMealAlert();
+  }
+
+  /**
+   * Most people cannot go for a 45-minute walk the moment they finish eating.
+   * This keeps the number alive instead — a card on Home that shrinks as burn
+   * is logged, and an evening push from the bot if it is still outstanding.
+   */
+  async function remindLater() {
+    setSaving(true);
+    try {
+      await addBurnReminder({ mealName: meal?.name, kcal: meal?.kcal, walkMinutes: walkMinutes || undefined });
+      showToast(t("mealAlert.reminderAdded"), "success");
+      clearMealAlert();
+    } catch (e) {
+      showToast(e.message || t("common.error"), "error");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -63,6 +82,9 @@ export default function MealAlertSheet() {
 
         <Button full size="lg" onClick={() => setActivityOpen(true)}>
           <Flame size={17} /> {t("mealAlert.logActivity")}
+        </Button>
+        <Button full variant="ghost" className="mt-2" loading={saving} onClick={remindLater}>
+          <BellPlus size={16} /> {t("mealAlert.remindLater")}
         </Button>
         <Button full variant="ghost" className="mt-2" onClick={clearMealAlert}>
           {t("mealAlert.dismiss")}

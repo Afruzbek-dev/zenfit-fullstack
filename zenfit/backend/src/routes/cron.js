@@ -50,6 +50,13 @@ const MESSAGES = {
     ru: "⏰ <b>Не забыли про тренировку?</b>\n\nВремя ещё есть — даже 20 минут дадут результат. Не пропускайте сегодняшний день!",
     en: "⏰ <b>Forgot your workout?</b>\n\nThere's still time — even 20 minutes counts. Don't let today go by!",
   },
+  // The only interpolated message — see fill() below. Raised when the user
+  // asked to be reminded about a heavy meal and has not burned it off yet.
+  burnDebt: {
+    uz: "🔥 <b>Eslatma</b>\n\nBugungi og'ir ovqatdan <b>{kcal} kkal</b> hali yoqilmadi. Taxminan {minutes} daqiqa tez yurish yetadi — hozir chiqib kelsangiz bo'ladi.",
+    ru: "🔥 <b>Напоминание</b>\n\nОсталось сжечь <b>{kcal} ккал</b> после сегодняшнего плотного приёма пищи. Хватит примерно {minutes} минут быстрой ходьбы.",
+    en: "🔥 <b>Reminder</b>\n\n<b>{kcal} kcal</b> from today's heavy meal is still unburned. About {minutes} minutes of brisk walking covers it.",
+  },
   trialEnding: {
     uz: "⏳ <b>Bepul sinov muddati tugayapti!</b>\n\n3 kunlik Premium sinovingiz 24 soatdan kamroq vaqtda tugaydi. Maqsadingizga erishish uchun vaqtni behuda ketkazmang — rejangizni yo'qotmaslik uchun hozir obuna bo'ling.",
     ru: "⏳ <b>Пробный период скоро закончится!</b>\n\nВаш 3-дневный Premium доступ истекает менее чем через 24 часа. Не теряйте время на пути к цели — оформите подписку сейчас, чтобы не потерять свой план.",
@@ -66,6 +73,9 @@ const MESSAGES = {
  * endpoint, so adding a time never means adding code.
  */
 const SLOTS = new Set(["morning", "morningLate", "evening"]);
+
+/** The message map is plain strings; only burnDebt carries placeholders. */
+const fill = (text, vars) => (vars ? text.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? `{${k}}`) : text);
 
 /**
  * One nudge per user per run, chosen by what is actually missing today.
@@ -90,7 +100,15 @@ async function reminders(req, res, next) {
               (SELECT COUNT(*) FROM meals m WHERE m.user_id = u.id AND m.logged_at >= $1 AND m.logged_at < $2) AS meals,
               (SELECT COUNT(*) FROM workout_logs w WHERE w.user_id = u.id AND w.logged_at >= $1 AND w.logged_at < $2) AS workouts,
               (SELECT COUNT(*) FROM activities a WHERE a.user_id = u.id AND a.logged_at >= $1 AND a.logged_at < $2) AS activities,
-              (SELECT COALESCE(SUM(ml), 0) FROM water_logs wl WHERE wl.user_id = u.id AND wl.logged_at >= $1 AND wl.logged_at < $2) AS water
+              (SELECT COALESCE(SUM(ml), 0) FROM water_logs wl WHERE wl.user_id = u.id AND wl.logged_at >= $1 AND wl.logged_at < $2) AS water,
+              -- An accepted "remind me to burn this off" that is still open.
+              -- Cleared rows are excluded, so paying it off silences the push.
+              (SELECT COALESCE(SUM(br.kcal), 0) FROM burn_reminders br
+                WHERE br.user_id = u.id AND br.cleared_at IS NULL
+                  AND br.created_at >= $1 AND br.created_at < $2) AS debt_kcal,
+              (SELECT COALESCE(SUM(br.walk_minutes), 0) FROM burn_reminders br
+                WHERE br.user_id = u.id AND br.cleared_at IS NULL
+                  AND br.created_at >= $1 AND br.created_at < $2) AS debt_minutes
          FROM users u
          JOIN profiles p ON p.user_id = u.id
          LEFT JOIN subscriptions s ON s.user_id = u.id
@@ -114,12 +132,18 @@ async function reminders(req, res, next) {
         msLeft != null && msLeft > 0 && msLeft < 24 * 3600 * 1000;
 
       let kind = null;
+      let vars = null;
       if (slot === "morning" || slot === "morningLate") {
         // Morning slots are only about training, and anyone who already moved
         // today should not be nagged about it.
         if (on(r.notif_workout) && !trainedToday) kind = slot;
       } else if (trialEndingSoon && on(r.notif_tips)) {
         kind = "trialEnding";
+      } else if (on(r.notif_tips) && Number(r.debt_kcal) > 0) {
+        // Ranks above the generic nudges: this is something the user explicitly
+        // asked to be reminded of, not a guess about what they forgot.
+        kind = "burnDebt";
+        vars = { kcal: Math.round(Number(r.debt_kcal)), minutes: Math.round(Number(r.debt_minutes)) || 30 };
       } else if (on(r.notif_meal) && Number(r.meals) === 0) {
         kind = "meal";
       } else if (on(r.notif_workout) && !trainedToday) {
@@ -129,7 +153,7 @@ async function reminders(req, res, next) {
       }
       if (!kind) continue;
 
-      planned.push({ userId: r.id, telegramId: r.telegram_id, kind, lang });
+      planned.push({ userId: r.id, telegramId: r.telegram_id, kind, lang, vars });
     }
 
     if (dry) return res.json({ dryRun: true, slot, candidates: planned.length, planned });
@@ -140,7 +164,7 @@ async function reminders(req, res, next) {
       async (p) => {
         // One failure (blocked bot, deleted chat) must not stop the rest.
         try {
-          const ok = await sendTelegramNotification(p.telegramId, MESSAGES[p.kind][p.lang]);
+          const ok = await sendTelegramNotification(p.telegramId, fill(MESSAGES[p.kind][p.lang], p.vars));
           if (ok !== false) sent += 1;
         } catch (err) {
           console.error("[cron] eslatma yuborilmadi:", p.telegramId, err.message);

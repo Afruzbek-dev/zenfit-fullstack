@@ -20,9 +20,11 @@ export function AppProvider({ children }) {
   const [activities, setActivities] = useState([]);
   const [workoutPlan, setWorkoutPlan] = useState(null);
   const [dietPlan, setDietPlan] = useState(null);
+  const [activeProgram, setActiveProgram] = useState(null);
   const [workoutHistory, setWorkoutHistory] = useState([]);
   const [toast, setToast] = useState(null);
   const [mealAlert, setMealAlert] = useState(null);
+  const [burnReminders, setBurnReminders] = useState([]);
 
   // Both are seeded from localStorage so the very first paint is already in the
   // right language and theme, then reconciled with the server profile on boot.
@@ -45,20 +47,25 @@ export function AppProvider({ children }) {
 
   /** Refetches everything the shell renders from. */
   const refresh = useCallback(async () => {
-    const [s, m, p, w, a, r] = await Promise.allSettled([
+    const [s, m, p, w, a, r, b] = await Promise.allSettled([
       api.getSummary(),
       api.getMeals(),
       api.getPlans(),
       api.getWorkoutHistory(),
       api.getActivities(),
       api.getRecentMeals(),
+      // Not in bootstrap: it self-clears on read, so it wants the freshest
+      // burn totals rather than whatever the boot payload was assembled from.
+      api.getBurnReminders(),
     ]);
+    if (b.status === "fulfilled") setBurnReminders(b.value.reminders || []);
     if (s.status === "fulfilled") setSummary(s.value);
     if (m.status === "fulfilled") setMeals(m.value.meals || []);
     if (r.status === "fulfilled") setRecentFoods(r.value.foods || []);
     if (p.status === "fulfilled") {
       setWorkoutPlan(p.value.workoutPlan?.plan || null);
       setDietPlan(p.value.dietPlan?.plan || null);
+      setActiveProgram(p.value.activeProgram?.plan || null);
     }
     if (w.status === "fulfilled") setWorkoutHistory(w.value.workoutLogs || []);
     if (a.status === "fulfilled") setActivities(a.value.activities || []);
@@ -112,6 +119,7 @@ export function AppProvider({ children }) {
         setMeals(data.meals || []);
         setWorkoutPlan(data.workoutPlan || null);
         setDietPlan(data.dietPlan || null);
+        setActiveProgram(data.activeProgram || null);
         setWorkoutHistory(data.workoutLogs || []);
         setActivities(data.activities || []);
         setRecentFoods(data.recentFoods || []);
@@ -367,6 +375,38 @@ export function AppProvider({ children }) {
     setDietPlan(plan);
   }, []);
 
+  /**
+   * A ready-made programme is stored as its own plan type, so starting one
+   * leaves whatever workout plan the user already had completely alone.
+   */
+  const saveProgram = useCallback(async (plan) => {
+    await api.savePlan("program", plan);
+    setActiveProgram(plan);
+  }, []);
+
+  const clearProgram = useCallback(async () => {
+    await api.deletePlan("program");
+    setActiveProgram(null);
+  }, []);
+
+  /**
+   * A heavy meal turned into something to work off later.
+   *
+   * Deliberately independent of the daily budget: `remaining` stays
+   * target − eaten, and this debt is a separate figure that only ever
+   * decreases as burn is logged.
+   */
+  const addBurnReminder = useCallback(async (body) => {
+    const res = await api.addBurnReminder(body);
+    setBurnReminders((prev) => [...prev, res.reminder]);
+    return res.reminder;
+  }, []);
+
+  const dismissBurnReminder = useCallback(async (id) => {
+    await api.clearBurnReminder(id);
+    setBurnReminders((prev) => prev.filter((r) => String(r.id) !== String(id)));
+  }, []);
+
   const completeOnboarding = useCallback(async (data) => {
     const res = await api.submitOnboarding(data);
     setProfile(res.profile);
@@ -378,16 +418,19 @@ export function AppProvider({ children }) {
     () => ({
       status, error, boot, refresh,
       user, profile, setProfile, subscription, setSubscription,
-      summary, meals, recentFoods, activities, workoutPlan, dietPlan, setDietPlan, workoutHistory,
+      summary, meals, recentFoods, activities, workoutPlan, dietPlan, setDietPlan, activeProgram, workoutHistory,
       addMeal, removeMeal, addWater, addSteps, logWorkout, saveWorkoutPlan, saveDietPlan, completeOnboarding,
+      saveProgram, clearProgram,
+      burnReminders, addBurnReminder, dismissBurnReminder,
       addActivity, removeActivity, updateProfile,
       lang, setLanguage, theme, setTheme, t,
       toast, showToast, mealAlert, clearMealAlert,
     }),
     [
       status, error, boot, refresh, user, profile, subscription, summary, meals, recentFoods,
-      activities, workoutPlan, dietPlan, workoutHistory, addMeal, removeMeal, addWater, addSteps,
-      logWorkout, saveWorkoutPlan, saveDietPlan, completeOnboarding, addActivity, removeActivity,
+      activities, workoutPlan, dietPlan, activeProgram, workoutHistory, addMeal, removeMeal, addWater, addSteps,
+      logWorkout, saveWorkoutPlan, saveDietPlan, completeOnboarding, saveProgram, clearProgram,
+      burnReminders, addBurnReminder, dismissBurnReminder, addActivity, removeActivity,
       updateProfile, lang, setLanguage, theme, setTheme, t, toast, showToast, mealAlert, clearMealAlert,
     ]
   );

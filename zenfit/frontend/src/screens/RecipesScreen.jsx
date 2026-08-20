@@ -1,7 +1,10 @@
 import { useMemo, useState } from "react";
 import { Search, Clock, Flame, Plus, Info, Minus, ChevronDown, UtensilsCrossed, BookOpen } from "lucide-react";
 import { Screen, ScreenHeader, Section, Chip, Sheet, Button, EmptyState, FitBadge, CompositionCard } from "../components/ui.jsx";
+import ProgramCard from "../components/ProgramCard.jsx";
+import DietPresetSheet from "../components/DietPresetSheet.jsx";
 import { CATEGORIES, filterFoods, foodName, macros, servingMacros } from "../data/foods.js";
+import { buildDietPlan, sortPlansForGoal } from "../data/dietPlans.js";
 import { foodFit } from "../lib/foodFit.js";
 import { haptic } from "../telegram.js";
 import { useApp } from "../store.jsx";
@@ -84,6 +87,38 @@ function FoodRow({ food, lang, t, onOpen, onAdd, onOpenRecipe }) {
   );
 }
 
+/**
+ * The five preset diet plans as photo cards, matching the ready-made workout
+ * programmes. They live here as well as on the plan screen because this is the
+ * screen someone lands on when they want to eat something, and a whole ready
+ * plan is a better answer to that than scrolling 136 individual foods.
+ */
+function DietPresetStrip({ onPick }) {
+  const { profile, t, lang } = useApp();
+  const ordered = useMemo(() => sortPlansForGoal(profile?.goal), [profile?.goal]);
+
+  return (
+    <div className="-mx-5 flex gap-3 overflow-x-auto px-5 pb-1 no-scrollbar">
+      {ordered.map((plan) => {
+        const built = buildDietPlan(plan.id, { dailyCalorieTarget: profile?.dailyCalorieTarget, lang });
+        return (
+          <ProgramCard
+            key={plan.id}
+            image={plan.image}
+            emoji={plan.emoji}
+            title={t(`dietPreset.names.${plan.id}`)}
+            meta={t("dietPreset.kcalMeta", { kcal: built?.totals.kcal ?? 0, n: built?.meals.length ?? 0 })}
+            onClick={() => {
+              haptic("light");
+              onPick(plan.id);
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
 export default function RecipesScreen({ onBack }) {
   const { addMeal, showToast, profile, summary, t, lang } = useApp();
   const [cat, setCat] = useState("all");
@@ -91,6 +126,7 @@ export default function RecipesScreen({ onBack }) {
   const [shown, setShown] = useState(FIRST_PAGE);
   const [detail, setDetail] = useState(null);
   const [recipeFoodId, setRecipeFoodId] = useState(null);
+  const [presetId, setPresetId] = useState(null);
   // Dishes are counted in portions, products in grams — the sheet swaps the
   // control, so both amounts live here and only one is ever in play.
   const [portion, setPortion] = useState(1);
@@ -159,6 +195,10 @@ export default function RecipesScreen({ onBack }) {
         subtitle={t("recipesScreen.subtitle")}
         onBack={onBack}
       />
+
+      <Section title={t("dietPreset.section")}>
+        <DietPresetStrip onPick={setPresetId} />
+      </Section>
 
       <div className="mb-3 flex items-center gap-2 rounded-2xl border border-borderSoft bg-surface px-3.5 py-3 focus-within:border-neon/50">
         <Search size={16} className="shrink-0 text-faint" />
@@ -355,6 +395,8 @@ export default function RecipesScreen({ onBack }) {
           </>
         )}
       </Sheet>
+
+      <DietPresetSheet planId={presetId} onClose={() => setPresetId(null)} onOpenRecipe={setRecipeFoodId} />
     </Screen>
   );
 }

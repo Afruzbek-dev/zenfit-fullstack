@@ -87,6 +87,149 @@ router.post("/", requireAuth, async (req, res, next) => {
   }
 });
 
+/** Minutes credited per set — the same constant computeStrengthKcal uses. */
+const MIN_PER_SET = 1.6;
+
+/**
+ * What one day of training actually came to.
+ *
+ * Everything here is derived from rows that already exist: `workout_logs`
+ * carries the server-computed burn, `exercise_sets` carries every rep and
+ * weight. There is no session record to write because there is nothing a
+ * session record would know that these two do not.
+ */
+router.get("/day-summary", requireAuth, async (req, res, next) => {
+  try {
+    const tz = Number(req.query.tz) || 0;
+    const { day, start, end } = dayRange(req.query.date, tz);
+    const planDay = typeof req.query.planDay === "string" && req.query.planDay ? req.query.planDay : null;
+
+    const logs = await query(
+      `SELECT id, exercise_id, exercise_name, kcal, sets_completed, plan_day, logged_at
+         FROM workout_logs
+        WHERE user_id = $1 AND logged_at >= $2 AND logged_at < $3
+        ORDER BY logged_at ASC`,
+      [req.userId, start, end]
+    );
+    const dayLogs = planDay ? logs.filter((l) => l.plan_day === planDay) : logs;
+
+    if (dayLogs.length === 0) {
+      return res.json({
+        summary: { date: day, kcal: 0, exerciseCount: 0, setCount: 0, repCount: 0, volumeKg: 0, minutes: 0, exercises: [] },
+      });
+    }
+
+    const logIds = new Set(dayLogs.map((l) => String(l.id)));
+    const sets = await query(
+      `SELECT workout_log_id, exercise_id, exercise_name, reps, weight_kg
+         FROM exercise_sets
+        WHERE user_id = $1 AND logged_at >= $2 AND logged_at < $3`,
+      [req.userId, start, end]
+    );
+
+    const byExercise = new Map();
+    for (const l of dayLogs) {
+      const key = l.exercise_id || l.exercise_name;
+      const entry = byExercise.get(key) || { exerciseId: l.exercise_id, exerciseName: l.exercise_name, sets: 0, reps: 0, volumeKg: 0, topWeightKg: 0 };
+      entry.exerciseName = l.exercise_name || entry.exerciseName;
+      byExercise.set(key, entry);
+    }
+
+    let setCount = 0;
+    let repCount = 0;
+    let volumeKg = 0;
+    for (const s of sets) {
+      if (!logIds.has(String(s.workout_log_id))) continue;
+      const key = s.exercise_id || s.exercise_name;
+      const entry = byExercise.get(key);
+      if (!entry) continue;
+      const reps = Number(s.reps) || 0;
+      const weight = Number(s.weight_kg) || 0;
+      entry.sets += 1;
+      entry.reps += reps;
+      entry.volumeKg += reps * weight;
+      if (weight > entry.topWeightKg) entry.topWeightKg = weight;
+      setCount += 1;
+      repCount += reps;
+      volumeKg += reps * weight;
+    }
+
+    // Fall back to sets × 1.6 min when the whole day was logged in one go —
+    // first-to-last timestamps would otherwise report a 0-minute workout.
+    const firstAt = new Date(dayLogs[0].logged_at).getTime();
+    const lastAt = new Date(dayLogs[dayLogs.length - 1].logged_at).getTime();
+    const spanMin = Number.isFinite(firstAt) && Number.isFinite(lastAt) ? (lastAt - firstAt) / 60_000 : 0;
+    const loggedSets = setCount || dayLogs.reduce((n, l) => n + (Number(l.sets_completed) || 0), 0);
+
+    res.json({
+      summary: {
+        date: day,
+        kcal: dayLogs.reduce((n, l) => n + (Number(l.kcal) || 0), 0),
+        exerciseCount: byExercise.size,
+        setCount: loggedSets,
+        repCount,
+        volumeKg: Math.round(volumeKg),
+        minutes: Math.max(1, Math.round(Math.max(spanMin, loggedSets * MIN_PER_SET))),
+        exercises: [...byExercise.values()].map((e) => ({ ...e, volumeKg: Math.round(e.volumeKg) })),
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * Per-exercise all-time records.
+ *
+ * Grouped twice: the inner query collapses each session, the outer one takes
+ * the best and the sum across them. That inner step is what makes "best single
+ * session" answerable at all — it cannot be read off individual set rows.
+ */
+router.get("/records", requireAuth, async (req, res, next) => {
+  try {
+    const rows = await query(
+      `SELECT exercise_id, exercise_name,
+              MAX(v) AS best_session_volume, SUM(v) AS total_volume,
+              SUM(st) AS total_sets, SUM(rp) AS total_reps,
+              MAX(mw) AS max_weight, MAX(last_at) AS last_at, COUNT(*) AS sessions
+         FROM (SELECT exercise_id, exercise_name, workout_log_id,
+                      SUM(COALESCE(reps,0) * COALESCE(weight_kg,0)) AS v,
+                      COUNT(*) AS st, SUM(COALESCE(reps,0)) AS rp,
+                      MAX(weight_kg) AS mw, MAX(logged_at) AS last_at
+                 FROM exercise_sets WHERE user_id = $1
+                GROUP BY exercise_id, exercise_name, workout_log_id) g
+        GROUP BY exercise_id, exercise_name
+        ORDER BY total_volume DESC`,
+      [req.userId]
+    );
+
+    const num = (v) => Number(v) || 0;
+    const records = rows.map((r) => ({
+      exerciseId: r.exercise_id,
+      exerciseName: r.exercise_name,
+      maxWeightKg: num(r.max_weight),
+      bestSessionVolumeKg: Math.round(num(r.best_session_volume)),
+      totalVolumeKg: Math.round(num(r.total_volume)),
+      totalSets: num(r.total_sets),
+      totalReps: num(r.total_reps),
+      sessions: num(r.sessions),
+      lastAt: r.last_at,
+    }));
+
+    res.json({
+      records,
+      totals: {
+        volumeKg: records.reduce((n, r) => n + r.totalVolumeKg, 0),
+        sets: records.reduce((n, r) => n + r.totalSets, 0),
+        reps: records.reduce((n, r) => n + r.totalReps, 0),
+        exercises: records.length,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 /**
  * Last recorded sets for every exercise, keyed by exercise id. One request so
  * plan generation can apply progressive overload across the whole week.

@@ -273,8 +273,8 @@ export async function generateDietPlan(ctx) {
   const system = `Sen sog'lom va sodda diet-retseptlarga ixtisoslashgan nutritsiologsan — oz sonli ingredient, tez tayyorlanadigan, protein-boy taomlar (Mob Kitchen uslubidagi diet oshxona). Foydalanuvchiga real, arzon va O'zbekistonda topish oson mahsulotlardan kunlik ovqatlanish rejasi tuzasan.
 Asosiy tanlov: grilda/pechda pishirilgan tovuq/baliq/mol go'shti, sabzavotli salat va sho'rvalar, tuxum taomlari, tvorog/yogurt asosidagi taomlar, guruch/bulg'ur/yasmiq kabi sodda garnirlar.
 Og'ir va yog'li milliy taomlarni (osh, lag'mon, manti, somsa, norin, dimlama kabi qovurilgan/dimlangan taomlarni) rejaga asosiy ovqat sifatida QO'SHMA — ular diet uchun mos emas. Bir kunlik rejada ulardan birortasi ham bo'lmasligi kerak.
-Har bir taom uchun "howTo" maydoniga 2-4 ta juda qisqa (8-12 so'zdan oshmasin) tayyorlash bosqichini yoz.
-FAQAT JSON qaytar, markdown yoki izoh qo'shma.`;
+Har bir taom uchun "howTo" maydoniga 2-3 ta juda qisqa (6-10 so'zdan oshmasin) tayyorlash bosqichini yoz.
+FAQAT JSON qaytar, markdown yoki izoh qo'shma. Qisqa yoz — javob to'liq JSON bo'lishi shart.`;
 
   // With a pantry the job changes from "compose a sensible day" to "compose a
   // sensible day out of exactly these things", so the constraint is stated
@@ -292,36 +292,34 @@ Istisno: tuz, ziravor, suv, choy — bularni erkin ishlatishing mumkin.
 Agar ro'yxatdagi mahsulotlar kunlik me'yorni to'ldirishga yetmasa, "missing" maydoniga yetishmayotgan 1-3 ta mahsulot nomini yoz va rejani bor narsadan tuz.`
     : "";
 
-  // Three candidates in one call rather than three requests — the caller shows
-  // all three and persists only the one the user actually picks (POST
-  // /api/plans), which keeps this endpoint's cost/rate-limit footprint
-  // identical to the old single-plan version.
-  const prompt = `Quyidagi foydalanuvchi uchun 1 kunlik ovqatlanish rejasining 3 XIL VARIANTINI tuz:
+  // A full week in one call. Variants used to be the shape here (three
+  // one-day plans to pick between), but a week the user actually eats through
+  // is worth more than a choice between three versions of one day.
+  const prompt = `Quyidagi foydalanuvchi uchun 7 KUNLIK (1 haftalik) ovqatlanish rejasi tuz:
 - Jins: ${profile.gender === "female" ? "ayol" : "erkak"}, yosh ${profile.age}, bo'y ${profile.height_cm}sm, vazn ${profile.weight_kg}kg
 - Maqsad: ${goalUz}
 - Kunlik me'yor: ${profile.daily_calorie_target} kcal
 - Makro: oqsil ${profile.protein_target_g}g, uglevod ${profile.carbs_target_g}g, yog' ${profile.fat_target_g}g${pantryBlock}${prefsInstruction(preferences)}
 
-3 ta variant bir-biridan aniq farq qilsin: (1) muvozanatli/oddiy, (2) yuqori oqsilli, (3) tez va kam bosqichli tayyorlanadigan. Har birining "label" maydonida shu farqni 2-3 so'zda ayt.
-
 JSON format:
 {
-  "plans": [
+  "summary": "1-2 gap umumiy tavsiya",
+  "days": [
     {
-      "label": "variant nomi (masalan 'Muvozanatli')",
-      "summary": "1-2 gap umumiy tavsiya",
+      "day": 1,
       "meals": [
         {"slot": "Nonushta", "name": "taom nomi", "portion": "porsiya tavsifi", "kcal": number, "carbs": number, "protein": number, "fat": number, "emoji": "emoji", "howTo": ["bosqich 1", "bosqich 2"]}
-      ],
-      "tips": ["qisqa maslahat 1", "qisqa maslahat 2"]${fromPantry ? ',\n      "missing": ["yetishmayotgan mahsulot nomi"]' : ""}
+      ]
     }
-  ]
+  ],
+  "tips": ["qisqa maslahat 1", "qisqa maslahat 2"]${fromPantry ? ',\n  "missing": ["yetishmayotgan mahsulot nomi"]' : ""}
 }
-"plans" massivida aniq 3 ta variant bo'lsin. Har bir variantning "meals" massivida ${slots.length} ta ovqat bo'lsin: ${slots.join(", ")}. Har bir variantning jami kaloriyasi me'yorga yaqin bo'lsin (±100 kcal).`;
+"days" massivida aniq 7 ta kun bo'lsin (day: 1 dan 7 gacha). Har bir kunning "meals" massivida ${slots.length} ta ovqat bo'lsin: ${slots.join(", ")}.
+Kunlar bir-biridan farq qilsin — bir xil taomni ketma-ket ikki kun takrorlama. Har bir kunning jami kaloriyasi me'yorga yaqin bo'lsin (±100 kcal).`;
 
-  async function requestPlans(options) {
+  async function requestPlan(options) {
     const text = await callModel([{ role: "user", content: prompt }], {
-      maxTokens: 4200,
+      maxTokens: 7000,
       system,
       json: true,
       ...options,
@@ -329,25 +327,38 @@ JSON format:
     return extractJson(text);
   }
 
-  // The free preferred model handles today's simpler prompts fine, but this
-  // asks for 3x the structured output (3 plans × several meals × howTo steps
-  // each) — a harder ask for a model chosen for being free, not for being
-  // capable. A 200 response with truncated/malformed JSON returns successfully
-  // from callModel and only fails here, past the transport-level fallback
-  // TEXT_PROVIDER would otherwise give it (that only triggers when the
-  // preferred provider throws). One retry against the main, non-`prefer`
-  // provider covers that gap instead of surfacing a 502 for something a
-  // second attempt would likely have produced fine.
+  // No TEXT_PROVIDER here, unlike the other text features. That option prefers
+  // a free model to save cost, but free models commonly cap output around 4k
+  // tokens — and a week of meals runs past that. Truncated output parses as a
+  // SyntaxError, which surfaces to the user as a 502 on a Premium-only feature.
+  // Paying for the tokens is the cheaper trade. The retry stays as the net for
+  // an ordinary bad response.
   let parsed;
   try {
-    parsed = await requestPlans(TEXT_PROVIDER);
+    parsed = await requestPlan({});
   } catch (err) {
     if (!(err instanceof SyntaxError)) throw err;
-    parsed = await requestPlans({});
+    parsed = await requestPlan({});
   }
 
-  const plans = Array.isArray(parsed.plans) ? parsed.plans : [parsed];
-  return { plans: plans.map((p) => ({ ...p, source: fromPantry ? "pantry" : "ai" })) };
+  // Older shapes and short answers both land here: a bare `meals` array becomes
+  // a one-day week, and five days beats failing outright over the missing two.
+  const days = Array.isArray(parsed.days) && parsed.days.length > 0
+    ? parsed.days
+        .filter((d) => Array.isArray(d?.meals) && d.meals.length > 0)
+        .map((d, i) => ({ day: Number(d.day) || i + 1, meals: d.meals }))
+    : [{ day: 1, meals: Array.isArray(parsed.meals) ? parsed.meals : [] }];
+
+  return {
+    plan: {
+      summary: parsed.summary || null,
+      days,
+      tips: Array.isArray(parsed.tips) ? parsed.tips : [],
+      missing: Array.isArray(parsed.missing) ? parsed.missing : undefined,
+      source: fromPantry ? "pantry" : "ai",
+      createdAt: new Date().toISOString(),
+    },
+  };
 }
 
 /**
@@ -390,7 +401,10 @@ export async function enhanceDietPlan({ profile, plan }) {
   const system = `Sen sertifikatlangan nutritsiologsan. Tayyor ovqatlanish rejasiga qisqa, amaliy maslahat berasan.
 FAQAT JSON qaytar, markdown qo'shma. O'zbek tilida yoz.`;
 
-  const mealList = (plan.meals || [])
+  // Weekly plans carry `days[]`; presets and pre-weekly AI plans carry a bare
+  // `meals[]`. Advice is about one day either way, so take the first.
+  const meals = Array.isArray(plan.days) && plan.days.length > 0 ? plan.days[0].meals || [] : plan.meals || [];
+  const mealList = meals
     .map((m) => `${m.slot || ""}: ${m.name} (${m.kcal} kkal)`.trim())
     .join("\n");
 

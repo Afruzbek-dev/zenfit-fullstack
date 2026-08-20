@@ -134,6 +134,23 @@ async function run() {
    * ---------------------------------------------------------------------- */
   await addColumn("profiles", "focus_muscles", "TEXT", "TEXT");
 
+  /* ----- challenges become joinable, ranked goals ------------------------ *
+   * The table already exists in production from the announcement-only version,
+   * so phase 1's CREATE TABLE IF NOT EXISTS is a no-op there — these four have
+   * to be added here or production would keep the old five-column shape while
+   * the code queried the new one.
+   *
+   * `metric` is what the leaderboard ranks by; `goal_target` the number to
+   * reach (NULL = rank only); `starts_at` the window start (NULL falls back to
+   * created_at, which is what every pre-existing row will have); and
+   * `created_by_user_id` marks a Premium user's own challenge, NULL meaning
+   * admin-authored. See lib/challengeStats.js and routes/challenges.js.
+   * ---------------------------------------------------------------------- */
+  await addColumn("challenges", "metric", "TEXT NOT NULL DEFAULT 'active_days'", "TEXT NOT NULL DEFAULT 'active_days'");
+  await addColumn("challenges", "goal_target", usingPostgres ? "DOUBLE PRECISION" : "REAL", "REAL");
+  await addColumn("challenges", "starts_at", usingPostgres ? "TIMESTAMPTZ" : "TEXT", "TEXT");
+  await addColumn("challenges", "created_by_user_id", usingPostgres ? "BIGINT" : "INTEGER", "INTEGER");
+
   /* ----- lock every table down ------------------------------------------ *
    * RLS on with zero policies denies the anon and authenticated Supabase
    * roles outright. The backend connects as the table owner and bypasses RLS,

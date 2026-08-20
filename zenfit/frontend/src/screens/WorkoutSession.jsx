@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Check, Info, Timer, TrendingUp, ChevronRight } from "lucide-react";
-import { Screen, ScreenHeader } from "../components/ui.jsx";
+import { Check, Info, Timer, TrendingUp, ChevronRight, Flag } from "lucide-react";
+import { Screen, ScreenHeader, Button } from "../components/ui.jsx";
 import ExerciseRunner from "./ExerciseRunner.jsx";
+import SessionSummary from "./SessionSummary.jsx";
 import ExerciseGuide from "../components/ExerciseGuide.jsx";
 import { localizeExercise } from "../data/exerciseText.js";
 import { dayLabel, formatSetPlan, isCompound, localizeDay } from "../lib/aiPlanEngine.js";
@@ -79,19 +80,29 @@ function ExerciseRow({ exercise: planned, logged, onOpen, onGuide }) {
   );
 }
 
-export default function WorkoutSession({ day, onBack }) {
-  const { logWorkout, profile, showToast, workoutHistory, t } = useApp();
+/**
+ * @param {object}  day     one `days[]` item from a generated plan
+ * @param {string} [dayKey] what gets written to `planDay` and matched against
+ *   when deciding what is already done today. Defaults to the day's own label;
+ *   a running programme passes a prefixed key so its "1-kun" and the AI plan's
+ *   "1-kun" never mark each other complete.
+ */
+export default function WorkoutSession({ day, dayKey, onBack }) {
+  const { logWorkout, showToast, workoutHistory, t } = useApp();
   const [running, setRunning] = useState(null);
   const [guideId, setGuideId] = useState(null);
+  const [summaryOpen, setSummaryOpen] = useState(false);
+
+  const planDay = dayKey || day.day;
 
   // Only own the back button when no child screen is showing.
-  useBackButton(running || guideId ? null : onBack);
+  useBackButton(running || guideId || summaryOpen ? null : onBack);
 
   // A plan-day exercise counts as done if it was logged today.
   const today = localDateKey();
   const loggedIds = new Set(
     workoutHistory
-      .filter((w) => localDateKey(new Date(w.loggedAt)) === today && w.planDay === day.day)
+      .filter((w) => localDateKey(new Date(w.loggedAt)) === today && w.planDay === planDay)
       .map((w) => w.exerciseId)
   );
 
@@ -105,7 +116,7 @@ export default function WorkoutSession({ day, onBack }) {
         // more mass, so that is the one input the client contributes.
         compound: isCompound(exercise.id),
         setsCompleted: sets.length,
-        planDay: day.day,
+        planDay,
         sets: sets.map((s) => ({ reps: Number(s.reps) || null, weightKg: Number(s.weightKg) || null })),
       });
       haptic("success");
@@ -118,11 +129,21 @@ export default function WorkoutSession({ day, onBack }) {
 
   if (guideId) return <ExerciseGuide exerciseId={guideId} onBack={() => setGuideId(null)} />;
 
+  if (summaryOpen) {
+    return (
+      <SessionSummary
+        planDay={planDay}
+        dayTitle={`${localizeDay(day.day, t)} — ${dayLabel(day, t)}`}
+        onBack={() => setSummaryOpen(false)}
+      />
+    );
+  }
+
   if (running) {
     return (
       <ExerciseRunner
         exercise={running}
-        planDay={day.day}
+        planDay={planDay}
         onBack={() => setRunning(null)}
         onFinish={finishExercise}
       />
@@ -165,6 +186,14 @@ export default function WorkoutSession({ day, onBack }) {
           />
         ))}
       </div>
+
+      {/* An explicit end to the day. Without it a session just trails off once
+          the last row strikes through, and the numbers earned never get shown. */}
+      {doneCount > 0 && (
+        <Button full size="lg" className="mt-4" onClick={() => setSummaryOpen(true)}>
+          <Flag size={16} /> {t("workout.finishDay")}
+        </Button>
+      )}
     </Screen>
   );
 }

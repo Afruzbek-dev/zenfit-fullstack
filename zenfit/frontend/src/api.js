@@ -97,6 +97,13 @@ export const api = {
   logWorkout: (body) => request("POST", "/api/workout-logs", { body }),
   getLastSets: (exerciseId) => request("GET", `/api/workout-logs/last-sets/${encodeURIComponent(exerciseId)}`),
   getAllLastSets: () => request("GET", "/api/workout-logs/last-sets"),
+  getDaySummary: ({ date, planDay } = {}) =>
+    request(
+      "GET",
+      `/api/workout-logs/day-summary?tz=${tz()}${date ? `&date=${date}` : ""}` +
+        `${planDay ? `&planDay=${encodeURIComponent(planDay)}` : ""}`
+    ),
+  getWorkoutRecords: () => request("GET", "/api/workout-logs/records"),
 
   /* activities (cardio / free workouts) */
   getActivities: (date) => request("GET", `/api/activities?tz=${tz()}${date ? `&date=${date}` : ""}`),
@@ -116,6 +123,8 @@ export const api = {
 
   /* plans */
   getPlans: () => request("GET", "/api/plans"),
+  getPlanHistory: (planType, limit = 20) =>
+    request("GET", `/api/plans/history?planType=${planType}&limit=${limit}`),
   savePlan: (planType, plan) => request("POST", "/api/plans", { body: { planType, plan } }),
   deletePlan: (planType) => request("DELETE", `/api/plans/${planType}`),
 
@@ -149,7 +158,17 @@ export const api = {
   getFriends: () => request("GET", `/api/referrals/friends?tz=${tz()}`),
 
   /* challenges */
-  getChallenges: () => request("GET", "/api/challenges"),
+  /* burn reminders — the standing debt from a heavy meal */
+  getBurnReminders: () => request("GET", "/api/burn-reminders"),
+  addBurnReminder: (body) => request("POST", "/api/burn-reminders", { body }),
+  clearBurnReminder: (id) => request("DELETE", `/api/burn-reminders/${id}`),
+
+  getChallenges: () => request("GET", `/api/challenges?tz=${tz()}`),
+  joinChallenge: (id) => request("POST", `/api/challenges/${id}/join`, { body: {} }),
+  leaveChallenge: (id) => request("DELETE", `/api/challenges/${id}/join`),
+  getChallengeLeaderboard: (id) => request("GET", `/api/challenges/${id}/leaderboard?tz=${tz()}`),
+  createChallenge: (body) => request("POST", "/api/challenges", { body }),
+  deleteChallenge: (id) => request("DELETE", `/api/challenges/${id}`),
 
   /* payment */
   getSubscription: () => request("GET", "/api/payment/subscription"),

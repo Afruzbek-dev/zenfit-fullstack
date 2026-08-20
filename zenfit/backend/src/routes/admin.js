@@ -8,6 +8,7 @@ import { PLANS } from "./payment.js";
 import { rewardReferralConversion } from "../lib/referrals.js";
 import { runPool, SEND_DEADLINE_MS } from "../lib/pool.js";
 import { mapChallenge } from "../lib/mappers.js";
+import { isMetric, metricTotals } from "../lib/challengeStats.js";
 
 const router = Router();
 
@@ -611,10 +612,54 @@ const CHALLENGE_AUDIENCES = new Set(["all", "premium", "free", "selected"]);
 router.get("/challenges", async (req, res, next) => {
   try {
     const rows = await query(
-      `SELECT c.*, (SELECT COUNT(*) FROM challenge_recipients cr WHERE cr.challenge_id = c.id) AS recipient_count
-         FROM challenges c ORDER BY c.created_at DESC LIMIT 100`
+      `SELECT c.*,
+              (SELECT COUNT(*) FROM challenge_recipients cr WHERE cr.challenge_id = c.id) AS recipient_count,
+              (SELECT COUNT(*) FROM challenge_participants cp WHERE cp.challenge_id = c.id) AS participant_count,
+              u.first_name AS creator_first_name, u.username AS creator_username
+         FROM challenges c
+         LEFT JOIN users u ON u.id = c.created_by_user_id
+        ORDER BY c.created_at DESC LIMIT 100`
     );
-    res.json({ challenges: rows.map((c) => ({ ...mapChallenge(c), recipientCount: num(c.recipient_count) })) });
+    res.json({
+      challenges: rows.map((c) => ({
+        ...mapChallenge(c),
+        recipientCount: num(c.recipient_count),
+        participantCount: num(c.participant_count),
+        // NULL creator means admin-authored, which the panel labels as such.
+        creatorName: c.created_by_user_id ? c.creator_first_name || c.creator_username || `#${c.created_by_user_id}` : null,
+      })),
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** The same ranking users see, so support can answer "why am I 4th?". */
+router.get("/challenges/:id/leaderboard", async (req, res, next) => {
+  try {
+    const challenge = await queryOne("SELECT * FROM challenges WHERE id = $1", [req.params.id]);
+    if (!challenge) return res.status(404).json({ error: "not_found" });
+
+    const people = await query(
+      `SELECT u.id, u.first_name, u.username
+         FROM challenge_participants cp JOIN users u ON u.id = cp.user_id
+        WHERE cp.challenge_id = $1`,
+      [challenge.id]
+    );
+    if (people.length === 0) return res.json({ entries: [], metric: challenge.metric });
+
+    const totals = await metricTotals(challenge, people.map((p) => p.id), Number(req.query.tz) || -300);
+    const entries = people
+      .map((p) => ({
+        userId: p.id,
+        firstName: p.first_name,
+        username: p.username,
+        value: totals.get(String(p.id)) || 0,
+      }))
+      .sort((a, b) => b.value - a.value)
+      .map((e, i) => ({ ...e, rank: i + 1 }));
+
+    res.json({ entries, metric: challenge.metric || "active_days", goalTarget: challenge.goal_target ?? null });
   } catch (err) {
     next(err);
   }
@@ -639,6 +684,11 @@ router.post("/challenges", async (req, res, next) => {
     const userIds = Array.isArray(req.body?.userIds)
       ? [...new Set(req.body.userIds.map((id) => String(id)).filter(Boolean))].slice(0, 500)
       : [];
+    const metric = isMetric(req.body?.metric) ? req.body.metric : "active_days";
+    const goalTarget =
+      Number.isFinite(req.body?.goalTarget) && req.body.goalTarget > 0
+        ? Math.min(req.body.goalTarget, 10_000_000)
+        : null;
 
     if (!title) return res.status(400).json({ error: "title_required" });
     if (!audience) return res.status(400).json({ error: "invalid_audience" });
@@ -646,12 +696,14 @@ router.post("/challenges", async (req, res, next) => {
       return res.status(400).json({ error: "recipients_required", message: "Foydalanuvchilarni tanlang." });
     }
 
-    const endsAt = durationDays ? new Date(Date.now() + durationDays * 86_400_000).toISOString() : null;
+    const now = new Date();
+    const endsAt = durationDays ? new Date(now.getTime() + durationDays * 86_400_000).toISOString() : null;
 
     const rows = await query(
-      `INSERT INTO challenges (title, description, audience, duration_days, ends_at, created_by)
-       VALUES ($1, $2, $3, $4, $5, 'admin') RETURNING *`,
-      [title, description || null, audience, durationDays, endsAt]
+      `INSERT INTO challenges (title, description, audience, duration_days, ends_at, created_by,
+                               metric, goal_target, starts_at)
+       VALUES ($1, $2, $3, $4, $5, 'admin', $6, $7, $8) RETURNING *`,
+      [title, description || null, audience, durationDays, endsAt, metric, goalTarget, now.toISOString()]
     );
     const challenge = rows[0];
 
