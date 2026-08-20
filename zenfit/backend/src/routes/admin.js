@@ -6,6 +6,8 @@ import { getSettings, setSettings, SETTING_KEYS } from "../lib/settings.js";
 import { getTelegramFileUrl, sendTelegramNotification } from "../bot.js";
 import { PLANS } from "./payment.js";
 import { rewardReferralConversion } from "../lib/referrals.js";
+import { runPool, SEND_DEADLINE_MS } from "../lib/pool.js";
+import { mapChallenge } from "../lib/mappers.js";
 
 const router = Router();
 
@@ -597,6 +599,117 @@ router.put("/settings", async (req, res, next) => {
   try {
     const settings = await setSettings(req.body || {});
     res.json({ settings });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/* ---------------------------- challenges --------------------------- */
+
+const CHALLENGE_AUDIENCES = new Set(["all", "premium", "free", "selected"]);
+
+router.get("/challenges", async (req, res, next) => {
+  try {
+    const rows = await query(
+      `SELECT c.*, (SELECT COUNT(*) FROM challenge_recipients cr WHERE cr.challenge_id = c.id) AS recipient_count
+         FROM challenges c ORDER BY c.created_at DESC LIMIT 100`
+    );
+    res.json({ challenges: rows.map((c) => ({ ...mapChallenge(c), recipientCount: num(c.recipient_count) })) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * Creates a challenge and broadcasts it. Recipients are computed per
+ * audience — 'selected' from the validated userIds, the other three by
+ * query — then notified via the same pool/deadline pattern the reminder
+ * cron already uses, so a large 'all' broadcast degrades the same accepted
+ * way a big reminder run does rather than introducing a new failure mode.
+ */
+router.post("/challenges", async (req, res, next) => {
+  try {
+    const title = typeof req.body?.title === "string" ? req.body.title.trim().slice(0, 140) : "";
+    const description = typeof req.body?.description === "string" ? req.body.description.trim().slice(0, 2000) : "";
+    const audience = CHALLENGE_AUDIENCES.has(req.body?.audience) ? req.body.audience : null;
+    const durationDays =
+      Number.isFinite(req.body?.durationDays) && req.body.durationDays >= 1 && req.body.durationDays <= 365
+        ? Math.round(req.body.durationDays)
+        : null;
+    const userIds = Array.isArray(req.body?.userIds)
+      ? [...new Set(req.body.userIds.map((id) => String(id)).filter(Boolean))].slice(0, 500)
+      : [];
+
+    if (!title) return res.status(400).json({ error: "title_required" });
+    if (!audience) return res.status(400).json({ error: "invalid_audience" });
+    if (audience === "selected" && userIds.length === 0) {
+      return res.status(400).json({ error: "recipients_required", message: "Foydalanuvchilarni tanlang." });
+    }
+
+    const endsAt = durationDays ? new Date(Date.now() + durationDays * 86_400_000).toISOString() : null;
+
+    const rows = await query(
+      `INSERT INTO challenges (title, description, audience, duration_days, ends_at, created_by)
+       VALUES ($1, $2, $3, $4, $5, 'admin') RETURNING *`,
+      [title, description || null, audience, durationDays, endsAt]
+    );
+    const challenge = rows[0];
+
+    if (audience === "selected") {
+      for (const userId of userIds) {
+        await query("INSERT INTO challenge_recipients (challenge_id, user_id) VALUES ($1, $2)", [challenge.id, userId]);
+      }
+    }
+
+    // Who gets notified — computed per audience, independent of how
+    // GET /api/challenges resolves visibility for a given user (same rules,
+    // opposite direction: there "does this user see it", here "who to tell").
+    const recipients = await query(
+      audience === "all"
+        ? `SELECT u.id, u.telegram_id FROM users u JOIN profiles p ON p.user_id = u.id WHERE p.onboarding_completed = true`
+        : audience === "premium"
+        ? `SELECT u.id, u.telegram_id FROM users u
+             JOIN subscriptions s ON s.user_id = u.id
+            WHERE s.status = 'active' AND (s.expires_at IS NULL OR s.expires_at > now())`
+        : audience === "free"
+        ? `SELECT u.id, u.telegram_id FROM users u
+            LEFT JOIN subscriptions s ON s.user_id = u.id
+            WHERE s.user_id IS NULL OR s.status != 'active' OR (s.expires_at IS NOT NULL AND s.expires_at <= now())`
+        : `SELECT u.id, u.telegram_id FROM users u
+             JOIN challenge_recipients cr ON cr.user_id = u.id
+            WHERE cr.challenge_id = $1`,
+      audience === "selected" ? [challenge.id] : []
+    );
+
+    const runStarted = Date.now();
+    let sent = 0;
+    const { started, stopped } = await runPool(
+      recipients.filter((r) => r.telegram_id),
+      async (r) => {
+        // One bad chat (blocked bot, deleted account) must not stop the rest.
+        try {
+          const ok = await sendTelegramNotification(r.telegram_id, `🏆 <b>${title}</b>\n\n${description || ""}`.trim());
+          if (ok !== false) sent += 1;
+        } catch (err) {
+          console.error("[admin] challenge yuborilmadi:", r.id, err.message);
+        }
+      },
+      { shouldStop: () => Date.now() - runStarted > SEND_DEADLINE_MS }
+    );
+
+    res.status(201).json({ challenge: mapChallenge(challenge), recipients: recipients.length, started, sent, stopped });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// A typo'd broadcast can't be unsent, but this stops it continuing to show
+// in the app. Deliberately no edit/PUT — re-broadcasting a correction is a
+// materially bigger feature than this pass covers.
+router.delete("/challenges/:id", async (req, res, next) => {
+  try {
+    await query("DELETE FROM challenges WHERE id = $1", [req.params.id]);
+    res.status(204).end();
   } catch (err) {
     next(err);
   }

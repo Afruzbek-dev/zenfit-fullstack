@@ -147,6 +147,61 @@ function FriendsLeaderboard() {
   );
 }
 
+/** Real admin-authored challenges, falling back to the "coming soon" teaser when there are none. */
+function ActiveChallenges() {
+  const { t } = useApp();
+  const [challenges, setChallenges] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .getChallenges()
+      .then((res) => !cancelled && setChallenges(res.challenges))
+      .catch((e) => !cancelled && setError(e.message || t("common.error")));
+    return () => {
+      cancelled = true;
+    };
+  }, [t]);
+
+  if (error) return <ErrorNote onRetry={() => setError(null)}>{error}</ErrorNote>;
+  if (!challenges) return <Skeleton className="h-24 rounded-2xl" />;
+
+  if (challenges.length === 0) {
+    return (
+      <div className="flex flex-col items-center rounded-xl2 border border-dashed border-border bg-surface/50 px-6 py-8 text-center">
+        <span className="mb-3 grid h-12 w-12 place-items-center rounded-2xl bg-surfaceAlt">
+          <Trophy size={22} className="text-faint" />
+        </span>
+        <p className="font-display text-[14px] font-bold text-ink">{t("challengesScreen.comingTitle")}</p>
+        <p className="mt-1 max-w-[260px] text-[12px] leading-relaxed text-muted">{t("challengesScreen.comingDesc")}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-2.5">
+      {challenges.map((c) => {
+        const daysLeft = c.endsAt ? Math.max(0, Math.ceil((new Date(c.endsAt) - new Date()) / 86_400_000)) : null;
+        return (
+          <div key={c.id} className="card flex items-start gap-3 px-4 py-3.5">
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-neon/12">
+              <Trophy size={19} className="text-neon" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[13.5px] font-bold text-ink">{c.title}</p>
+              {c.description && <p className="mt-0.5 text-[12px] leading-relaxed text-muted">{c.description}</p>}
+              <p className="mt-1.5 text-[11px] font-semibold text-cyan">
+                {daysLeft == null ? t("challengesScreen.openEnded") : t("challengesScreen.endsIn", { days: daysLeft })}
+              </p>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function ChallengesScreen({ onBack }) {
   const { t } = useApp();
   return (
@@ -162,13 +217,7 @@ export default function ChallengesScreen({ onBack }) {
       </Section>
 
       <Section>
-        <div className="flex flex-col items-center rounded-xl2 border border-dashed border-border bg-surface/50 px-6 py-8 text-center">
-          <span className="mb-3 grid h-12 w-12 place-items-center rounded-2xl bg-surfaceAlt">
-            <Trophy size={22} className="text-faint" />
-          </span>
-          <p className="font-display text-[14px] font-bold text-ink">{t("challengesScreen.comingTitle")}</p>
-          <p className="mt-1 max-w-[260px] text-[12px] leading-relaxed text-muted">{t("challengesScreen.comingDesc")}</p>
-        </div>
+        <ActiveChallenges />
       </Section>
     </Screen>
   );

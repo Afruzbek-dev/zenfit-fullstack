@@ -2,10 +2,11 @@ import { useRef, useState } from "react";
 import {
   Flame, Droplets, Dumbbell, Camera, Plus, Trash2, Minus, Activity,
   UtensilsCrossed, TrendingUp, Sparkles, BarChart3, Info, ChevronRight, Footprints,
-  ClipboardList, Trophy,
+  ClipboardList, Trophy, Layers,
 } from "lucide-react";
 import { Screen, Section, StatTile, ProgressRing, MacroBar, EmptyState, Skeleton, Button, ListRow } from "../components/ui.jsx";
 import ActivitySheet from "../components/ActivitySheet.jsx";
+import { PlanMealRow } from "../components/PlanMealRow.jsx";
 import { ACTIVITY_BY_ID } from "../data/activities.js";
 import { stepTargetForGoal } from "../lib/goalPlan.js";
 import { useApp } from "../store.jsx";
@@ -72,7 +73,7 @@ function RecentFoods({ foods, busyKey, onLog, t }) {
 }
 
 export default function HomeScreen({ onNavigate }) {
-  const { user, profile, summary, meals, recentFoods, activities, addMeal, removeMeal, removeActivity, addWater, addSteps, showToast, workoutPlan, t } = useApp();
+  const { user, profile, summary, meals, recentFoods, activities, addMeal, removeMeal, removeActivity, addWater, addSteps, showToast, workoutPlan, dietPlan, t } = useApp();
   const [waterBusy, setWaterBusy] = useState(false);
   const [stepsBusy, setStepsBusy] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
@@ -250,9 +251,10 @@ export default function HomeScreen({ onNavigate }) {
         <QuickAction Icon={UtensilsCrossed} label={t("home.qaRecipes")} onClick={() => onNavigate("recipes")} />
         <QuickAction Icon={BarChart3} label={t("home.qaProgress")} onClick={() => onNavigate("progress")} />
       </div>
-      <div className="mb-5 grid grid-cols-3 gap-2.5">
+      <div className="mb-5 grid grid-cols-4 gap-2.5">
         <QuickAction Icon={ClipboardList} label={t("home.qaDietPlan")} onClick={() => onNavigate("dietplan")} />
         <QuickAction Icon={Dumbbell} label={t("home.qaWorkoutPlan")} onClick={() => onNavigate("workouts")} />
+        <QuickAction Icon={Layers} label={t("home.qaExercises")} onClick={() => onNavigate("exercises")} />
         <QuickAction Icon={Trophy} label={t("home.qaChallenges")} onClick={() => onNavigate("challenges")} />
       </div>
 
@@ -403,6 +405,18 @@ export default function HomeScreen({ onNavigate }) {
       </Section>
 
       <RecentFoods foods={recentFoods} busyKey={recentBusy} onLog={logRecent} t={t} />
+
+      {/* The active diet plan's meals, additive alongside the actual log below —
+          reading top-to-bottom as "the plan" then "what actually got eaten". */}
+      {dietPlan?.meals?.length > 0 && (
+        <Section title={t("home.plannedMeals")}>
+          <div className="flex flex-col gap-2">
+            {dietPlan.meals.map((m, i) => (
+              <PlanMealRow key={i} meal={m} onOpenRecipe={() => onNavigate("dietplan")} />
+            ))}
+          </div>
+        </Section>
+      )}
 
       {/* Meals */}
       <Section

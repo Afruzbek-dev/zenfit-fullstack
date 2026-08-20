@@ -184,6 +184,18 @@ export function mapFriend(f) {
   };
 }
 
+export function mapChallenge(c) {
+  return {
+    id: c.id,
+    title: c.title,
+    description: c.description,
+    audience: c.audience,
+    durationDays: c.duration_days,
+    endsAt: c.ends_at,
+    createdAt: c.created_at,
+  };
+}
+
 export function mapSubscription(s) {
   if (!s) return { plan: "free", status: "inactive", isPremium: false, trialUsed: false, trialOfferGranted: false };
   const active = s.status === "active" && (!s.expires_at || new Date(s.expires_at) > new Date());

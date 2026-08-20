@@ -217,7 +217,7 @@ export default function HealthData({ onBack, onNavigate }) {
             Icon={UtensilsCrossed}
             title={t("profile.dietPlan")}
             subtitle={dietPlan ? dietPlan.title || t("profile.dietPlan") : t("profile.noPlan")}
-            onClick={() => onNavigate("workouts")}
+            onClick={() => onNavigate("dietplan")}
           />
         </div>
 

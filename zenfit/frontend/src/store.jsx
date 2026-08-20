@@ -3,6 +3,7 @@ import { api, login, setToken } from "./api.js";
 import { translator, storedLanguage, persistLanguage, DICTS } from "./lib/i18n.js";
 import { applyTheme, storedTheme, watchSystemTheme } from "./lib/theme.js";
 import { localDateKey, msUntilLocalMidnight } from "./lib/format.js";
+import { evaluateMealAlert } from "./lib/mealAlert.js";
 
 const Ctx = createContext(null);
 export const useApp = () => useContext(Ctx);
@@ -21,6 +22,7 @@ export function AppProvider({ children }) {
   const [dietPlan, setDietPlan] = useState(null);
   const [workoutHistory, setWorkoutHistory] = useState([]);
   const [toast, setToast] = useState(null);
+  const [mealAlert, setMealAlert] = useState(null);
 
   // Both are seeded from localStorage so the very first paint is already in the
   // right language and theme, then reconciled with the server profile on boot.
@@ -209,10 +211,17 @@ export function AppProvider({ children }) {
         ].slice(0, 8);
       });
 
+      // Threshold-only nudge (see lib/mealAlert.js) — checked here so every
+      // logging entry point gets it for free, not just one screen.
+      const alert = evaluateMealAlert({ meal: res.meal, profile });
+      if (alert) setMealAlert({ ...alert, meal: res.meal });
+
       return res.meal;
     },
-    []
+    [profile]
   );
+
+  const clearMealAlert = useCallback(() => setMealAlert(null), []);
 
   const removeMeal = useCallback(async (id) => {
     const meal = await new Promise((resolve) => {
@@ -353,6 +362,11 @@ export function AppProvider({ children }) {
     setWorkoutPlan(plan);
   }, []);
 
+  const saveDietPlan = useCallback(async (plan) => {
+    await api.savePlan("diet", plan);
+    setDietPlan(plan);
+  }, []);
+
   const completeOnboarding = useCallback(async (data) => {
     const res = await api.submitOnboarding(data);
     setProfile(res.profile);
@@ -365,16 +379,16 @@ export function AppProvider({ children }) {
       status, error, boot, refresh,
       user, profile, setProfile, subscription, setSubscription,
       summary, meals, recentFoods, activities, workoutPlan, dietPlan, setDietPlan, workoutHistory,
-      addMeal, removeMeal, addWater, addSteps, logWorkout, saveWorkoutPlan, completeOnboarding,
+      addMeal, removeMeal, addWater, addSteps, logWorkout, saveWorkoutPlan, saveDietPlan, completeOnboarding,
       addActivity, removeActivity, updateProfile,
       lang, setLanguage, theme, setTheme, t,
-      toast, showToast,
+      toast, showToast, mealAlert, clearMealAlert,
     }),
     [
       status, error, boot, refresh, user, profile, subscription, summary, meals, recentFoods,
       activities, workoutPlan, dietPlan, workoutHistory, addMeal, removeMeal, addWater, addSteps,
-      logWorkout, saveWorkoutPlan, completeOnboarding, addActivity, removeActivity,
-      updateProfile, lang, setLanguage, theme, setTheme, t, toast, showToast,
+      logWorkout, saveWorkoutPlan, saveDietPlan, completeOnboarding, addActivity, removeActivity,
+      updateProfile, lang, setLanguage, theme, setTheme, t, toast, showToast, mealAlert, clearMealAlert,
     ]
   );
 

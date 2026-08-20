@@ -343,15 +343,11 @@ router.post("/diet-plan", requireAuth, rateLimit({ key: "diet", windowMs: 300_00
     // so this is always whatever was last confirmed, never trusted from the
     // generate call itself.
     const preferences = parseJsonColumn(profile.diet_prefs);
-    const plan = await generateDietPlan({ profile, pantry: sanitizePantry(req.body?.pantry), preferences });
+    // A pure generator — the client shows the user 3 candidates and only
+    // POST /api/plans (routes/plans.js) persists the one actually chosen.
+    const { plans } = await generateDietPlan({ profile, pantry: sanitizePantry(req.body?.pantry), preferences });
 
-    await query("UPDATE ai_plans SET is_active = false WHERE user_id = $1 AND plan_type = 'diet'", [req.userId]);
-    const rows = await query(
-      "INSERT INTO ai_plans (user_id, plan_type, plan_json) VALUES ($1, 'diet', $2) RETURNING *",
-      [req.userId, JSON.stringify(plan)]
-    );
-
-    res.json({ plan, id: rows[0]?.id });
+    res.json({ plans });
   } catch (err) {
     handleAiError(err, res);
   }

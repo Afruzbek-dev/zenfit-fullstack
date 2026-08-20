@@ -148,6 +148,9 @@ export const api = {
   getReferralInfo: () => request("GET", "/api/referrals/me"),
   getFriends: () => request("GET", `/api/referrals/friends?tz=${tz()}`),
 
+  /* challenges */
+  getChallenges: () => request("GET", "/api/challenges"),
+
   /* payment */
   getSubscription: () => request("GET", "/api/payment/subscription"),
   getPaymentPlans: () => request("GET", "/api/payment/plans"),

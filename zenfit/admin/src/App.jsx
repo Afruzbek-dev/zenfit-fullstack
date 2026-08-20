@@ -1,16 +1,18 @@
 import { useEffect, useState } from "react";
-import { LayoutDashboard, Users as UsersIcon, Receipt, Settings as SettingsIcon, LogOut, Menu, X } from "lucide-react";
+import { LayoutDashboard, Users as UsersIcon, Receipt, Trophy, Settings as SettingsIcon, LogOut, Menu, X } from "lucide-react";
 import { api, getToken, setToken } from "./api.js";
 import Login from "./pages/Login.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import Users from "./pages/Users.jsx";
 import Payments from "./pages/Payments.jsx";
+import Challenges from "./pages/Challenges.jsx";
 import Settings from "./pages/Settings.jsx";
 
 const NAV = [
   { id: "dashboard", label: "Boshqaruv", Icon: LayoutDashboard },
   { id: "users", label: "Foydalanuvchilar", Icon: UsersIcon },
   { id: "payments", label: "To'lovlar", Icon: Receipt },
+  { id: "challenges", label: "Challenge'lar", Icon: Trophy },
   { id: "settings", label: "Sozlamalar", Icon: SettingsIcon },
 ];
 
@@ -44,7 +46,9 @@ export default function App() {
     setAuthed(false);
   }
 
-  const Page = { dashboard: Dashboard, users: Users, payments: Payments, settings: Settings }[page] || Dashboard;
+  const Page =
+    { dashboard: Dashboard, users: Users, payments: Payments, challenges: Challenges, settings: Settings }[page] ||
+    Dashboard;
 
   return (
     <div className="flex min-h-screen">

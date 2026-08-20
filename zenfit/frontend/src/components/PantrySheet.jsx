@@ -23,7 +23,7 @@ const MAX_ITEMS = 60;
 /** Dishes are meals, not ingredients — nobody has "a plate of plov" in stock. */
 const PANTRY_FOODS = FOODS.filter((f) => f.kind === "product");
 
-export default function PantrySheet({ open, onClose }) {
+export default function PantrySheet({ open, onClose, onSaved }) {
   const { profile, updateProfile, showToast, t, lang } = useApp();
   const [picked, setPicked] = useState([]);
   const [search, setSearch] = useState("");
@@ -79,7 +79,7 @@ export default function PantrySheet({ open, onClose }) {
       await updateProfile({ pantry: picked });
       haptic("success");
       showToast(t("pantry.saved"), "success");
-      onClose();
+      onSaved ? onSaved() : onClose();
     } catch (e) {
       showToast(e.message || t("common.error"), "error");
     } finally {

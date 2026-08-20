@@ -77,7 +77,7 @@ export const uz = {
   },
 
   recipesScreen: {
-    title: "Retseptlar", subtitle: "Milliy taomlar va sodda fit taomlar",
+    title: "Ovqatlar", subtitle: "Milliy taomlar va sodda fit taomlar",
     searchPlaceholder: "Retsept yoki ingredient qidirish…",
     results: "ta natija", added: "Dietaga qo'shildi ✓",
     aiSection: "AI ovqat rejasi", yourPlan: "AI kunlik rejangiz", refresh: "Yangilash",
@@ -101,6 +101,8 @@ export const uz = {
     customTitle: "O'zim tuzaman", customShow: "Ko'rsatish", customHide: "Yashirish",
     customDesc: "Har bir ovqatlanish vaqtiga o'zingiz mahsulot qo'shib, doimiy reja tuzing.",
     addToSlot: "Qo'shish", otherSlot: "Boshqa", pickFood: "Mahsulot tanlang",
+    chooseTitle: "Rejani tanlang", chooseDesc: "Sizga mos 3 ta reja tayyor — birini tanlang.",
+    planChosen: "Reja tanlandi ✓", howTo: "Tayyorlash",
   },
 
   challengesScreen: {
@@ -114,6 +116,7 @@ export const uz = {
     noFriends: "Hali do'stlaringiz yo'q. Birinchi bo'lib taklif qiling!",
     comingTitle: "Tez orada",
     comingDesc: "Do'stlaringizni taklif qiling, birga musobaqalashing va sovg'alar yutib oling.",
+    endsIn: "{days} kun qoldi", openEnded: "Muddatsiz",
   },
 
   onboarding: {
@@ -288,7 +291,7 @@ export const ru = {
   },
 
   recipesScreen: {
-    title: "Рецепты", subtitle: "Национальные блюда и простые фит-рецепты",
+    title: "Еда", subtitle: "Национальные блюда и простые фит-рецепты",
     searchPlaceholder: "Поиск рецепта или ингредиента…",
     results: "результатов", added: "Добавлено в дневник ✓",
     aiSection: "AI план питания", yourPlan: "Ваш AI план на день", refresh: "Обновить",
@@ -312,6 +315,8 @@ export const ru = {
     customTitle: "Составить самому", customShow: "Показать", customHide: "Скрыть",
     customDesc: "Добавляйте продукты в каждый приём пищи сами и сохраните постоянный план.",
     addToSlot: "Добавить", otherSlot: "Другое", pickFood: "Выберите продукт",
+    chooseTitle: "Выберите план", chooseDesc: "Готовы 3 варианта — выберите один.",
+    planChosen: "План выбран ✓", howTo: "Приготовление",
   },
 
   challengesScreen: {
@@ -325,6 +330,7 @@ export const ru = {
     noFriends: "Пока нет друзей. Пригласите первым!",
     comingTitle: "Скоро",
     comingDesc: "Приглашайте друзей, соревнуйтесь вместе и получайте награды.",
+    endsIn: "Осталось {days} дн.", openEnded: "Бессрочно",
   },
 
   onboarding: {
@@ -495,7 +501,7 @@ export const en = {
   },
 
   recipesScreen: {
-    title: "Recipes", subtitle: "Local dishes and simple fit meals",
+    title: "Foods", subtitle: "Local dishes and simple fit meals",
     searchPlaceholder: "Search a recipe or ingredient…",
     results: "results", added: "Added to your log ✓",
     aiSection: "AI meal plan", yourPlan: "Your AI plan for today", refresh: "Refresh",
@@ -519,6 +525,8 @@ export const en = {
     customTitle: "Build it myself", customShow: "Show", customHide: "Hide",
     customDesc: "Add foods into each meal time yourself and keep a standing plan.",
     addToSlot: "Add", otherSlot: "Other", pickFood: "Pick a food",
+    chooseTitle: "Choose a plan", chooseDesc: "Three options are ready — pick one.",
+    planChosen: "Plan chosen ✓", howTo: "How to prepare",
   },
 
   challengesScreen: {
@@ -532,6 +540,7 @@ export const en = {
     noFriends: "No friends yet. Be the first to invite someone!",
     comingTitle: "Coming soon",
     comingDesc: "Invite friends, compete together, and earn rewards.",
+    endsIn: "{days} days left", openEnded: "Open-ended",
   },
 
   onboarding: {

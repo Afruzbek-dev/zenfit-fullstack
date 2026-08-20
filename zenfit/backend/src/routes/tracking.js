@@ -3,6 +3,7 @@ import { query, queryOne, daysAgoIso } from "../db.js";
 import { requireAuth } from "../middleware/auth.js";
 import { getDayStats, getStreak, getMonthActivity, dayRange } from "../lib/stats.js";
 import { capExerciseCredit, tdeeFromProfileRow } from "../lib/calorie.js";
+import { stepsToKcal } from "../lib/activities.js";
 
 const router = Router();
 
@@ -27,7 +28,7 @@ router.get("/weekly", requireAuth, async (req, res, next) => {
     const tz = Number(req.query.tz) || 0;
     const since = daysAgoIso(days);
 
-    const [meals, workouts, activities, profile] = await Promise.all([
+    const [meals, workouts, activities, steps, profile] = await Promise.all([
       query(
         `SELECT kcal, logged_at FROM meals WHERE user_id = $1 AND logged_at >= $2`,
         [req.userId, since]
@@ -38,6 +39,10 @@ router.get("/weekly", requireAuth, async (req, res, next) => {
       ),
       query(
         `SELECT kcal, logged_at FROM activities WHERE user_id = $1 AND logged_at >= $2`,
+        [req.userId, since]
+      ),
+      query(
+        `SELECT steps, logged_at FROM step_logs WHERE user_id = $1 AND logged_at >= $2`,
         [req.userId, since]
       ),
       queryOne(`SELECT gender, age, height_cm, weight_kg, activity_level FROM profiles WHERE user_id = $1`, [req.userId]),
@@ -54,7 +59,7 @@ router.get("/weekly", requireAuth, async (req, res, next) => {
       const d = new Date();
       d.setMinutes(d.getMinutes() - tz);
       d.setDate(d.getDate() - i);
-      buckets.set(d.toISOString().slice(0, 10), { date: d.toISOString().slice(0, 10), consumed: 0, burned: 0 });
+      buckets.set(d.toISOString().slice(0, 10), { date: d.toISOString().slice(0, 10), consumed: 0, burned: 0, stepsTotal: 0 });
     }
     meals.forEach((m) => {
       const b = buckets.get(localDay(m.logged_at));
@@ -68,12 +73,21 @@ router.get("/weekly", requireAuth, async (req, res, next) => {
       const b = buckets.get(localDay(a.logged_at));
       if (b) b.burned += a.kcal || 0;
     });
+    steps.forEach((s) => {
+      const b = buckets.get(localDay(s.logged_at));
+      if (b) b.stepsTotal += s.steps || 0;
+    });
 
     // Same daily ceiling the dashboard applies (see getDayStats). The chart
     // scales its y-axis to the tallest bar, so one 9,900 kcal typo would not
     // just be wrong — it would flatten every honest day beside it to a stub.
     const tdee = tdeeFromProfileRow(profile);
     for (const b of buckets.values()) {
+      // Folded in once per bucket rather than per row — the formula is linear
+      // in duration, so this is mathematically identical to converting every
+      // step_logs row individually, just cheaper.
+      b.burned += stepsToKcal(b.stepsTotal, profile?.weight_kg);
+      delete b.stepsTotal;
       b.burned = capExerciseCredit(b.burned, { tdee }).kcal;
     }
 
@@ -127,9 +141,10 @@ router.delete("/water/today", requireAuth, async (req, res, next) => {
  * corrects) today's total rather than setting it, so "log another 2,000
  * steps" after checking your phone again later is the natural action, not
  * "re-enter the running total" — and the same -1000/+1000 widget pattern as
- * water's -250/+250 works without a separate "undo" path. Purely
- * informational — unlike workouts/activities, this never feeds
- * capExerciseCredit or the calorie budget.
+ * water's -250/+250 works without a separate "undo" path. Feeds the
+ * informational "burned" figure the same way workouts/activities do (see
+ * stepsToKcal in lib/activities.js) — but never the calorie budget itself:
+ * `remaining` in getDayStats only ever reads `totals.kcal`, never `burned`.
  * ------------------------------------------------------------------- */
 
 router.post("/steps", requireAuth, async (req, res, next) => {

@@ -1,5 +1,6 @@
 import { query, queryOne, daysAgoIso } from "../db.js";
 import { capExerciseCredit, tdeeFromProfileRow } from "./calorie.js";
+import { stepsToKcal } from "./activities.js";
 
 /**
  * The foods this user logs most often, newest-first among equals.
@@ -113,7 +114,8 @@ export async function getDayStats(userId, dateStr, tzOffsetMinutes = 0) {
    * on the read path also means the stored rows stay a faithful record of what
    * the user actually entered — the cap changes the budget, not the history.
    */
-  const credit = capExerciseCredit(workoutKcal + activityKcal, { tdee: tdeeFromProfileRow(profile) });
+  const stepsKcal = stepsToKcal(Number(steps?.total || 0), profile?.weight_kg);
+  const credit = capExerciseCredit(workoutKcal + activityKcal + stepsKcal, { tdee: tdeeFromProfileRow(profile) });
   const burned = credit.kcal;
   const target = profile?.daily_calorie_target || 2000;
 

@@ -88,6 +88,19 @@ export function netKcal(met, weightKg, durationMin) {
 }
 
 /**
+ * Steps, converted into the same net-burn currency as everything else here —
+ * treated as walking at a light pace (MET 3.0) so a day of steps folds into
+ * "burned" through the identical formula a logged walk would use. ~100
+ * steps/minute is an average cadence; there is no stride-length input to do
+ * better than that.
+ */
+export function stepsToKcal(steps, weightKg) {
+  const weight = Number.isFinite(weightKg) && weightKg > 0 ? weightKg : 70;
+  const minutes = Math.max(0, Number(steps) || 0) / 100;
+  return netKcal(3.0, weight, minutes);
+}
+
+/**
  * Strength work, computed from the sets actually completed.
  *
  * The compendium puts resistance training at 5.0 MET for a normal session and

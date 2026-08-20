@@ -5,9 +5,11 @@ import { initTelegram, haptic, setBackButton } from "./telegram.js";
 import { applyTheme } from "./lib/theme.js";
 import { Toast, Button } from "./components/ui.jsx";
 import TrialOfferSheet from "./components/TrialOfferSheet.jsx";
+import MealAlertSheet from "./components/MealAlertSheet.jsx";
 import Onboarding from "./screens/Onboarding.jsx";
 import HomeScreen from "./screens/HomeScreen.jsx";
 import WorkoutsScreen from "./screens/WorkoutsScreen.jsx";
+import WorkoutsLibraryScreen from "./screens/WorkoutsLibraryScreen.jsx";
 import ScanScreen from "./screens/ScanScreen.jsx";
 import RecipesScreen from "./screens/RecipesScreen.jsx";
 import DietPlanScreen from "./screens/DietPlanScreen.jsx";
@@ -24,7 +26,7 @@ const TABS = [
   { id: "profile", key: "nav.profile", Icon: User2 },
 ];
 
-const SECONDARY = ["recipes", "dietplan", "progress", "challenges"];
+const SECONDARY = ["recipes", "dietplan", "progress", "challenges", "exercises"];
 
 function BottomNav({ active, onChange, t }) {
   return (
@@ -159,7 +161,8 @@ export default function App() {
 
   const screens = {
     home: <HomeScreen onNavigate={setTab} />,
-    workouts: <WorkoutsScreen />,
+    workouts: <WorkoutsScreen onNavigate={setTab} />,
+    exercises: <WorkoutsLibraryScreen onBack={() => setTab("home")} onNavigate={setTab} />,
     scan: <ScanScreen onNavigate={setTab} />,
     chat: <ChatScreen onNavigate={setTab} />,
     profile: <ProfileScreen key={profileView || "root"} onNavigate={setTab} initialView={profileView} />,
@@ -174,6 +177,7 @@ export default function App() {
       {screens[tab] ?? screens.home}
 
       <TrialOfferSheet />
+      <MealAlertSheet />
       <Toast message={toast?.message} tone={toast?.tone} />
       <BottomNav active={tab} onChange={setTab} t={t} />
     </div>

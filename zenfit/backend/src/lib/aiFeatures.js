@@ -273,6 +273,7 @@ export async function generateDietPlan(ctx) {
   const system = `Sen sog'lom va sodda diet-retseptlarga ixtisoslashgan nutritsiologsan — oz sonli ingredient, tez tayyorlanadigan, protein-boy taomlar (Mob Kitchen uslubidagi diet oshxona). Foydalanuvchiga real, arzon va O'zbekistonda topish oson mahsulotlardan kunlik ovqatlanish rejasi tuzasan.
 Asosiy tanlov: grilda/pechda pishirilgan tovuq/baliq/mol go'shti, sabzavotli salat va sho'rvalar, tuxum taomlari, tvorog/yogurt asosidagi taomlar, guruch/bulg'ur/yasmiq kabi sodda garnirlar.
 Og'ir va yog'li milliy taomlarni (osh, lag'mon, manti, somsa, norin, dimlama kabi qovurilgan/dimlangan taomlarni) rejaga asosiy ovqat sifatida QO'SHMA — ular diet uchun mos emas. Bir kunlik rejada ulardan birortasi ham bo'lmasligi kerak.
+Har bir taom uchun "howTo" maydoniga 2-4 ta juda qisqa (8-12 so'zdan oshmasin) tayyorlash bosqichini yoz.
 FAQAT JSON qaytar, markdown yoki izoh qo'shma.`;
 
   // With a pantry the job changes from "compose a sensible day" to "compose a
@@ -291,29 +292,62 @@ Istisno: tuz, ziravor, suv, choy — bularni erkin ishlatishing mumkin.
 Agar ro'yxatdagi mahsulotlar kunlik me'yorni to'ldirishga yetmasa, "missing" maydoniga yetishmayotgan 1-3 ta mahsulot nomini yoz va rejani bor narsadan tuz.`
     : "";
 
-  const prompt = `Quyidagi foydalanuvchi uchun 1 kunlik ovqatlanish rejasi tuz:
+  // Three candidates in one call rather than three requests — the caller shows
+  // all three and persists only the one the user actually picks (POST
+  // /api/plans), which keeps this endpoint's cost/rate-limit footprint
+  // identical to the old single-plan version.
+  const prompt = `Quyidagi foydalanuvchi uchun 1 kunlik ovqatlanish rejasining 3 XIL VARIANTINI tuz:
 - Jins: ${profile.gender === "female" ? "ayol" : "erkak"}, yosh ${profile.age}, bo'y ${profile.height_cm}sm, vazn ${profile.weight_kg}kg
 - Maqsad: ${goalUz}
 - Kunlik me'yor: ${profile.daily_calorie_target} kcal
 - Makro: oqsil ${profile.protein_target_g}g, uglevod ${profile.carbs_target_g}g, yog' ${profile.fat_target_g}g${pantryBlock}${prefsInstruction(preferences)}
 
+3 ta variant bir-biridan aniq farq qilsin: (1) muvozanatli/oddiy, (2) yuqori oqsilli, (3) tez va kam bosqichli tayyorlanadigan. Har birining "label" maydonida shu farqni 2-3 so'zda ayt.
+
 JSON format:
 {
-  "summary": "1-2 gap umumiy tavsiya",
-  "meals": [
-    {"slot": "Nonushta", "name": "taom nomi", "portion": "porsiya tavsifi", "kcal": number, "carbs": number, "protein": number, "fat": number, "emoji": "emoji"}
-  ],
-  "tips": ["qisqa maslahat 1", "qisqa maslahat 2", "qisqa maslahat 3"]${fromPantry ? ',\n  "missing": ["yetishmayotgan mahsulot nomi"]' : ""}
+  "plans": [
+    {
+      "label": "variant nomi (masalan 'Muvozanatli')",
+      "summary": "1-2 gap umumiy tavsiya",
+      "meals": [
+        {"slot": "Nonushta", "name": "taom nomi", "portion": "porsiya tavsifi", "kcal": number, "carbs": number, "protein": number, "fat": number, "emoji": "emoji", "howTo": ["bosqich 1", "bosqich 2"]}
+      ],
+      "tips": ["qisqa maslahat 1", "qisqa maslahat 2"]${fromPantry ? ',\n      "missing": ["yetishmayotgan mahsulot nomi"]' : ""}
+    }
+  ]
 }
-meals massivida ${slots.length} ta ovqat bo'lsin: ${slots.join(", ")}. Jami kaloriya me'yorga yaqin bo'lsin (±100 kcal).`;
+"plans" massivida aniq 3 ta variant bo'lsin. Har bir variantning "meals" massivida ${slots.length} ta ovqat bo'lsin: ${slots.join(", ")}. Har bir variantning jami kaloriyasi me'yorga yaqin bo'lsin (±100 kcal).`;
 
-  const text = await callModel([{ role: "user", content: prompt }], {
-    maxTokens: 1600,
-    system,
-    json: true,
-    ...TEXT_PROVIDER,
-  });
-  return { ...extractJson(text), source: fromPantry ? "pantry" : "ai" };
+  async function requestPlans(options) {
+    const text = await callModel([{ role: "user", content: prompt }], {
+      maxTokens: 4200,
+      system,
+      json: true,
+      ...options,
+    });
+    return extractJson(text);
+  }
+
+  // The free preferred model handles today's simpler prompts fine, but this
+  // asks for 3x the structured output (3 plans × several meals × howTo steps
+  // each) — a harder ask for a model chosen for being free, not for being
+  // capable. A 200 response with truncated/malformed JSON returns successfully
+  // from callModel and only fails here, past the transport-level fallback
+  // TEXT_PROVIDER would otherwise give it (that only triggers when the
+  // preferred provider throws). One retry against the main, non-`prefer`
+  // provider covers that gap instead of surfacing a 502 for something a
+  // second attempt would likely have produced fine.
+  let parsed;
+  try {
+    parsed = await requestPlans(TEXT_PROVIDER);
+  } catch (err) {
+    if (!(err instanceof SyntaxError)) throw err;
+    parsed = await requestPlans({});
+  }
+
+  const plans = Array.isArray(parsed.plans) ? parsed.plans : [parsed];
+  return { plans: plans.map((p) => ({ ...p, source: fromPantry ? "pantry" : "ai" })) };
 }
 
 /**

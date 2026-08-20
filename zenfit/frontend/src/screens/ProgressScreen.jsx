@@ -419,7 +419,7 @@ export default function ProgressScreen({ onBack }) {
         title={t("progress.calorieBalance")}
         action={
           <div className="flex gap-1.5">
-            {[7, 14, 30].map((d) => (
+            {[7, 14].map((d) => (
               <Chip key={d} active={range === d} onClick={() => setRange(d)}>{t("progress.rangeDays", { n: d })}</Chip>
             ))}
           </div>

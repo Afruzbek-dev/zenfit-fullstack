@@ -1,14 +1,12 @@
 import { useMemo, useState } from "react";
-import { Sparkles, Dumbbell, Coffee, Check, Play, RefreshCw, BookOpen, ShieldAlert, Lightbulb, Crown, Flame } from "lucide-react";
-import { Screen, Section, Button, Sheet, EmptyState, ListRow, ErrorNote } from "../components/ui.jsx";
+import { Sparkles, Dumbbell, Coffee, Check, Play, RefreshCw, ShieldAlert, Lightbulb, Crown, Flame } from "lucide-react";
+import { Screen, Section, Button, Sheet, EmptyState, ErrorNote } from "../components/ui.jsx";
 import WorkoutSession from "./WorkoutSession.jsx";
-import ExerciseLibrary from "./ExerciseLibrary.jsx";
 import PremiumSheet from "./profile/PremiumSheet.jsx";
 import ActivitySheet from "../components/ActivitySheet.jsx";
 import { dayLabel, generateWorkoutPlan, localizeDay, planTitle } from "../lib/aiPlanEngine.js";
 import MuscleTargetPicker from "../components/MuscleTargetPicker.jsx";
 import { ACTIVITY_BY_ID } from "../data/activities.js";
-import { PROGRAMS } from "../data/programs.js";
 import { api } from "../api.js";
 import { haptic } from "../telegram.js";
 import { useApp } from "../store.jsx";
@@ -90,41 +88,6 @@ function PlanDayCard({ item, doneCount, onOpen, t }) {
       >
         {complete ? <><Check size={12} /> {t("workout.done")}</> : <><Play size={11} fill="currentColor" /> {t("workout.start")}</>}
       </span>
-    </button>
-  );
-}
-
-/** A ready-made program card. Falls back to a gradient+emoji tile until its photo lands under public/programs/. */
-function ProgramCard({ program, onClick, t }) {
-  const [imgFailed, setImgFailed] = useState(false);
-  const showImage = program.image && !imgFailed;
-
-  return (
-    <button
-      onClick={onClick}
-      className="flex w-[168px] shrink-0 flex-col overflow-hidden rounded-2xl border border-borderSoft bg-surface text-left active:scale-[0.98]"
-    >
-      <div className="relative aspect-square w-full overflow-hidden bg-surfaceAlt">
-        {showImage ? (
-          <img
-            src={program.image}
-            alt=""
-            loading="lazy"
-            onError={() => setImgFailed(true)}
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-neon/20 via-surfaceAlt to-surfaceAlt">
-            <span className="text-5xl">{program.emoji}</span>
-          </div>
-        )}
-      </div>
-      <div className="px-3 py-2.5">
-        <p className="truncate text-[13px] font-bold text-ink">{program.title}</p>
-        <p className="mt-0.5 truncate text-[11px] text-muted">
-          {t("workout.programMeta", { days: program.days, weeks: program.weeks })}
-        </p>
-      </div>
     </button>
   );
 }
@@ -236,9 +199,8 @@ function RegenerateSheet({ open, onClose, onDone, onLocked }) {
   );
 }
 
-export default function WorkoutsScreen() {
+export default function WorkoutsScreen({ onNavigate }) {
   const { workoutPlan, workoutHistory, profile, saveWorkoutPlan, showToast, subscription, t } = useApp();
-  const [view, setView] = useState("plan"); // plan | library
   const [sessionDay, setSessionDay] = useState(null);
   const [regenOpen, setRegenOpen] = useState(false);
   const [tips, setTips] = useState(null);
@@ -262,9 +224,6 @@ export default function WorkoutsScreen() {
 
   if (sessionDay) {
     return <WorkoutSession day={sessionDay} onBack={() => setSessionDay(null)} />;
-  }
-  if (view === "library") {
-    return <ExerciseLibrary onBack={() => setView("plan")} />;
   }
 
   async function createPlan() {
@@ -295,36 +254,6 @@ export default function WorkoutsScreen() {
         weightKg: profile?.weightKg || 70,
         lastSetsByExercise,
         focusMuscles: profile?.focusMuscles || [],
-      });
-      await saveWorkoutPlan(plan);
-      haptic("success");
-      showToast(t("workout.planReady"), "success");
-    } catch (e) {
-      showToast(e.message || t("common.error"), "error");
-    } finally {
-      setCreating(false);
-    }
-  }
-
-  /**
-   * Free path: same engine, seeded from the program's own preset instead of a
-   * personalized read of the user's answers. Weight/injuries still apply.
-   *
-   * The muscle focus deliberately does not: a preset's whole value is its fixed
-   * structure, and rebuilding its split around personal targets would make it a
-   * personalized plan wearing a program's name.
-   */
-  async function pickProgram(program) {
-    setCreating(true);
-    try {
-      const plan = generateWorkoutPlan({
-        goal: program.goal,
-        level: program.level,
-        daysPerWeek: program.days,
-        equipment: program.equipment,
-        duration: profile?.sessionDuration || "60",
-        injuries: profile?.injuries || "",
-        weightKg: profile?.weightKg || 70,
       });
       await saveWorkoutPlan(plan);
       haptic("success");
@@ -369,14 +298,9 @@ export default function WorkoutsScreen() {
                 </Button>
               }
             />
-          </Section>
-
-          <Section title={t("workout.readyPrograms")}>
-            <div className="-mx-5 flex gap-3 overflow-x-auto px-5 pb-1 no-scrollbar">
-              {PROGRAMS.map((p) => (
-                <ProgramCard key={p.id} program={p} t={t} onClick={() => pickProgram(p)} />
-              ))}
-            </div>
+            <Button full variant="ghost" className="mt-2.5" onClick={() => onNavigate?.("exercises")}>
+              <Dumbbell size={15} /> {t("workout.seePrograms")}
+            </Button>
           </Section>
         </>
       ) : (
@@ -479,18 +403,6 @@ export default function WorkoutsScreen() {
           </Section>
         </>
       )}
-
-      {/* Outside the branch on purpose: this section used to render only for
-          users who already had a plan, and the header icon was the sole route
-          for everyone else. With that icon gone it has to be reachable here. */}
-      <Section title={t("workout.library")}>
-        <ListRow
-          Icon={BookOpen}
-          title={t("workout.libraryAll")}
-          subtitle={t("workout.libraryDesc")}
-          onClick={() => setView("library")}
-        />
-      </Section>
 
       <RegenerateSheet
         open={regenOpen}

@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 import { query } from "../db.js";
 import { dayRange } from "../lib/stats.js";
 import { sendTelegramNotification } from "../bot.js";
+import { runPool, SEND_DEADLINE_MS } from "../lib/pool.js";
 
 const router = Router();
 
@@ -65,70 +66,6 @@ const MESSAGES = {
  * endpoint, so adding a time never means adding code.
  */
 const SLOTS = new Set(["morning", "morningLate", "evening"]);
-
-/**
- * Sends in flight at once.
- *
- * The loop used to be serial: at ~200 ms a Telegram call that is five users a
- * second, and vercel.json caps the function at 30 s, so the run died at roughly
- * 150 users with the tail of the list silently getting nothing.
- *
- * Not "fire them all at once", though. Telegram's bulk guidance is about 30
- * messages a second, and a few hundred simultaneous requests earn 429s instead
- * of delivery. Sixteen lanes is the compromise the send budget is sized around;
- * note that the resulting dispatch rate is a function of Telegram's latency
- * (sixteen lanes at 200 ms is ~80/s), so if 429s ever show up in the per-user
- * logs this is the number to lower.
- */
-const SEND_CONCURRENCY = 16;
-
-/**
- * Stop dispatching this far into the run.
- *
- * vercel.json allows 30 s. Being killed at the limit is exactly the failure
- * being fixed — no response, no record of where it stopped. Stopping at 24 s
- * leaves room for the sends still in flight to land and for the handler to
- * return a count that admits it did not finish.
- */
-const SEND_DEADLINE_MS = 24_000;
-
-/**
- * Runs `worker` over `items` with at most `concurrency` in flight, abandoning
- * the rest when `shouldStop()` turns true.
- *
- * Lanes pull from a shared cursor instead of being handed a fixed slice, so one
- * slow send does not leave the other lanes idle waiting for it at the end of a
- * run. Nothing here knows about reminders or Telegram — it is exported so the
- * pacing can be tested against a fake task, with no token and no network.
- *
- * `worker` is expected to handle its own failures: a throw propagates and takes
- * the pool down with it. The reminder worker below wraps its whole body.
- *
- * @returns {Promise<{started: number, stopped: boolean}>} how many items were
- *   handed to a worker, and whether the deadline cut the run short.
- */
-export async function runPool(items, worker, { concurrency = SEND_CONCURRENCY, shouldStop = () => false } = {}) {
-  const lanes = Math.max(1, Math.min(concurrency, items.length));
-  let cursor = 0;
-  let started = 0;
-  let stopped = false;
-
-  async function lane() {
-    for (;;) {
-      if (shouldStop()) {
-        stopped = true;
-        return;
-      }
-      const index = cursor++;
-      if (index >= items.length) return;
-      started += 1;
-      await worker(items[index], index);
-    }
-  }
-
-  await Promise.all(Array.from({ length: lanes }, lane));
-  return { started, stopped };
-}
 
 /**
  * One nudge per user per run, chosen by what is actually missing today.

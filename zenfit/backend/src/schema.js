@@ -301,6 +301,33 @@ export function buildSchema(pg) {
       created_at ${TS}
     )`,
 
+    // Admin-authored announcements, broadcast to a chosen audience — see
+    // routes/challenges.js (user-facing read) and routes/admin.js
+    // (create/delete). No progress-tracking columns by design: this is a
+    // motivational announcement, not a tracked goal.
+    `CREATE TABLE IF NOT EXISTS challenges (
+      id            ${ID},
+      title         TEXT NOT NULL,
+      description   TEXT,
+      audience      TEXT NOT NULL DEFAULT 'all',
+      duration_days INTEGER,
+      -- Computed in JS at insert time from duration_days, never SQL
+      -- date-math (db.js's SQLite rewriter only understands
+      -- now()/true/false/$n). NULL means open-ended.
+      ends_at       ${TS_NULL},
+      created_by    TEXT,
+      created_at    ${TS}
+    )`,
+
+    // One row per targeted user, only populated when audience = 'selected'.
+    // The 'all'/'premium'/'free' audiences are resolved by query instead.
+    `CREATE TABLE IF NOT EXISTS challenge_recipients (
+      id           ${ID},
+      challenge_id ${FK} NOT NULL REFERENCES challenges(id) ON DELETE CASCADE,
+      user_id      ${FK} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      created_at   ${TS}
+    )`,
+
     /* ----- indexes ------------------------------------------------------- *
      * Every one of these serves a query that runs on the hot path. They were
      * previously declared on the SQLite side only, so whether production had
@@ -332,6 +359,8 @@ export function buildSchema(pg) {
     `CREATE INDEX IF NOT EXISTS idx_cards_user             ON payment_cards(user_id, created_at DESC)`,
     `CREATE INDEX IF NOT EXISTS idx_referrals_referrer     ON referrals(referrer_id, created_at DESC)`,
     `CREATE INDEX IF NOT EXISTS idx_custom_diet_items_user ON custom_diet_plan_items(user_id, slot_index, id)`,
+    `CREATE INDEX IF NOT EXISTS idx_challenge_recipients_challenge ON challenge_recipients(challenge_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_challenge_recipients_user      ON challenge_recipients(user_id, challenge_id)`,
   ];
 }
 
@@ -340,5 +369,5 @@ export const RLS_TABLES = [
   "users", "profiles", "meals", "workout_logs", "exercise_sets", "ai_plans",
   "chat_messages", "water_logs", "step_logs", "weight_history", "subscriptions",
   "activities", "payments", "payment_cards", "app_settings", "ai_usage",
-  "referrals", "custom_diet_plan_items",
+  "referrals", "custom_diet_plan_items", "challenges", "challenge_recipients",
 ];
