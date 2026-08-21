@@ -38,6 +38,7 @@ export function buildSchema(pg) {
       first_name    TEXT,
       username      TEXT,
       avatar_url    TEXT,
+      phone_number  TEXT,
       language_code TEXT DEFAULT 'uz',
       created_at    ${TS},
       last_seen_at  ${TS}

@@ -49,6 +49,10 @@ async function run() {
   // needs no object storage; Telegram's photo_url is used as the default.
   await addColumn("users", "avatar_url", "TEXT", "TEXT");
 
+  // Collected via a mandatory Telegram "share contact" step in bot.js's
+  // /start flow, right after the channel-subscription gate — see cmdStart.
+  await addColumn("users", "phone_number", "TEXT", "TEXT");
+
   await addColumn("profiles", "display_name", "TEXT", "TEXT");
   await addColumn("profiles", "language", "TEXT DEFAULT 'uz'", "TEXT DEFAULT 'uz'");
   await addColumn("profiles", "theme", "TEXT DEFAULT 'dark'", "TEXT DEFAULT 'dark'");

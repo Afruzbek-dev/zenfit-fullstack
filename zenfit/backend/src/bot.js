@@ -292,6 +292,24 @@ const channelGateKeyboard = () => ({
   },
 });
 
+/** Only this button is offered — no way to reach the menu without sharing. */
+const phoneGateKeyboard = () => ({
+  reply_markup: {
+    keyboard: [[{ text: "📱 Raqamni yuborish", request_contact: true }]],
+    resize_keyboard: true,
+    one_time_keyboard: true,
+  },
+});
+
+function requestPhoneNumber(chatId) {
+  return send(
+    chatId,
+    "📱 Davom etish uchun telefon raqamingizni yuboring.\n\n" +
+      "Bu majburiy qadam — pastdagi tugmani bosib raqamingizni ulashing 👇",
+    phoneGateKeyboard()
+  );
+}
+
 async function cmdStart(chatId, from) {
   if (!(await isChannelMember(from?.id))) {
     return send(
@@ -300,6 +318,11 @@ async function cmdStart(chatId, from) {
         "Obuna bo'lgach, pastdagi tugmani bosing 👇",
       channelGateKeyboard()
     );
+  }
+
+  const dbUser = await queryOne("SELECT phone_number FROM users WHERE telegram_id = $1", [String(from?.id)]);
+  if (!dbUser?.phone_number) {
+    return requestPhoneNumber(chatId);
   }
 
   const name = from?.first_name || "Do'stim";
@@ -330,12 +353,34 @@ const ROUTES = [
   { match: (t) => t === "/help" || t === "❓ Yordam", run: (chatId) => send(chatId, HELP_TEXT, inlineAppButton) },
 ];
 
+/** The "📱 Raqamni yuborish" button under the phone-gate message. */
+async function handleContact(msg, user) {
+  const chatId = msg.chat.id;
+  const contact = msg.contact;
+  // A forwarded contact card has no user_id tie to the sender — only accept
+  // a number Telegram confirms belongs to the person sending it.
+  if (contact.user_id && msg.from?.id && contact.user_id !== msg.from.id) {
+    return send(chatId, "❌ Iltimos, faqat o'zingizning raqamingizni yuboring.", phoneGateKeyboard());
+  }
+
+  await query("UPDATE users SET phone_number = $1 WHERE id = $2", [contact.phone_number, user.id]);
+  return cmdStart(chatId, msg.from);
+}
+
 async function handleMessage(msg) {
   if (!msg?.chat?.id) return;
   const chatId = msg.chat.id;
   const text = (msg.text || "").trim();
   const user = await ensureUser(msg.from);
   if (!user) return;
+
+  if (msg.contact) return handleContact(msg, user);
+
+  // Mandatory phone-number step: once past the channel gate, nothing else
+  // routes until it's satisfied — re-issuing /start replays the same check.
+  if (!user.phone_number && !text.startsWith("/start") && (await isChannelMember(msg.from?.id))) {
+    return requestPhoneNumber(chatId);
+  }
 
   const route = ROUTES.find((r) => r.match(text));
   if (route) return route.run(chatId, user, msg.from);
