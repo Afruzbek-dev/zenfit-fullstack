@@ -1086,6 +1086,303 @@ const DISHES = [
       ],
     },
   }),
+
+  dish("shakarsiz-limonad", { uz: "Shakarsiz limonad", ru: "Лимонад без сахара", en: "Sugar-free lemonade" }, "🍋", 1000, [95, 25, 1, 0], {
+    cat: "drink", minutes: 10, approx: true,
+    note: {
+      uz: "1 litrlik partiya — muzlatkichda 3 kungacha turadi, kerak paytda quyib ichishingiz mumkin.",
+      ru: "Партия на 1 литр — хранится в холодильнике до 3 дней, наливайте по стакану по мере надобности.",
+      en: "Makes a 1-litre batch — keeps in the fridge up to 3 days, pour a glass whenever you like.",
+    },
+    composition: {
+      benefits: {
+        uz: ["Qandli ichimliklarga arzon va shakarsiz muqobil", "Asal miqdori juda oz — deyarli erkin ichish mumkin"],
+        ru: ["Дешёвая и без сахара альтернатива сладким напиткам", "Мёда совсем немного — можно пить почти свободно"],
+        en: ["A cheap, sugar-free stand-in for soda", "Only a trace of honey — close to a free-calorie drink"],
+      },
+      harms: { uz: [], ru: [], en: [] },
+    },
+    ingredients: {
+      uz: ["Limon 1 dona", "Asal 1 osh qoshiq", "Suv 1 litr", "Muz"],
+      ru: ["Лимон 1 шт", "Мёд 1 ст. л.", "Вода 1 л", "Лёд"],
+      en: ["1 lemon", "1 tbsp honey", "1 litre water", "Ice"],
+    },
+    steps: {
+      uz: [
+        "Limonni bo'laklarga bo'lib, asal va suv bilan blenderga soling.",
+        "1 daqiqa yaxshilab aralashtiring, so'ng suzgichdan o'tkazing.",
+        "Muzli idishga quying va sovutib ichishga tayyor.",
+        "Qolganini muzlatkichda saqlang — 3 kungacha yaroqli.",
+      ],
+      ru: [
+        "Порежьте лимон дольками и положите в блендер вместе с мёдом и водой.",
+        "Взбивайте 1 минуту, затем процедите через сито.",
+        "Разлейте по стаканам со льдом — готово к употреблению.",
+        "Остаток храните в холодильнике — годен до 3 дней.",
+      ],
+      en: [
+        "Cut the lemon into pieces and blend with the honey and water.",
+        "Blend for 1 minute, then strain through a sieve.",
+        "Pour over ice and it's ready to drink.",
+        "Keep the rest refrigerated — good for up to 3 days.",
+      ],
+    },
+  }),
+  dish("vazn-oshirish-kokteyli", { uz: "Vazn oshirish kokteyli", ru: "Коктейль для набора веса", en: "Weight-gain smoothie" }, "🥤", 480, [480, 50, 20, 16], {
+    cat: "drink", minutes: 5, approx: true,
+    note: {
+      uz: "Massa yig'ish davrida nonushta o'rniga yoki mashqdan keyin ichish uchun qulay — bitta stakanda ancha kaloriya.",
+      ru: "Удобно пить вместо завтрака или после тренировки в период набора массы — много калорий в одном стакане.",
+      en: "Good as a breakfast swap or post-workout during a bulk — a lot of calories in one glass.",
+    },
+    composition: {
+      benefits: {
+        uz: ["Banan va suli sekin ajraladigan energiya beradi", "Chia va yeryong'oq ezmasi sog'lom yog' qo'shadi"],
+        ru: ["Банан и овсянка дают энергию с медленным высвобождением", "Чиа и арахисовая паста добавляют полезные жиры"],
+        en: ["Banana and oats give slow-release energy", "Chia and peanut butter add healthy fats"],
+      },
+      harms: {
+        uz: ["Kaloriyasi zich — ozish davrida bir stakan kunlik me'yorning katta qismini yeb qo'yadi"],
+        ru: ["Калорийно плотный — во время похудения один стакан съедает большую часть дневной нормы"],
+        en: ["Calorie-dense — during a cut, one glass eats up a large share of the daily budget"],
+      },
+    },
+    ingredients: {
+      uz: ["Yog'li sut 300 ml", "Banan 1 dona", "Suli yormasi 40 g", "Chia urug'i 1 osh qoshiq", "Yeryong'oq ezmasi 1 choy qoshiq", "Shakarsiz kakao 1 choy qoshiq"],
+      ru: ["Жирное молоко 300 мл", "Банан 1 шт", "Овсяные хлопья 40 г", "Семена чиа 1 ст. л.", "Арахисовая паста 1 ч. л.", "Какао без сахара 1 ч. л."],
+      en: ["Whole milk 300ml", "1 banana", "Oats 40g", "1 tbsp chia seeds", "1 tsp peanut butter", "1 tsp unsweetened cocoa"],
+    },
+    steps: {
+      uz: ["Barcha masalliqlarni blenderga soling.", "Silliq bo'lguncha 1 daqiqa aralashtiring.", "Darhol ichishga tayyor."],
+      ru: ["Положите все ингредиенты в блендер.", "Взбивайте 1 минуту до однородности.", "Готово к употреблению сразу."],
+      en: ["Put all the ingredients in a blender.", "Blend for 1 minute until smooth.", "Ready to drink right away."],
+    },
+  }),
+  dish("suvli-tovuq-kokragi", { uz: "Suvli va yumshoq tovuq ko'kragi", ru: "Сочная куриная грудка", en: "Juicy pan-seared chicken breast" }, "🍗", 500, [630, 2, 114, 18], {
+    cat: "meat", minutes: 30, approx: true,
+    note: {
+      uz: "Xom vaznga hisoblangan (500g). Marinatsiya vaqti tayyorlash vaqtiga kirmagan.",
+      ru: "Расчёт на сырой вес (500 г). Время маринования не входит во время готовки.",
+      en: "Calculated on raw weight (500g). Marinating time is not counted in the prep time.",
+    },
+    composition: {
+      benefits: {
+        uz: ["Yuqori oqsil, juda past uglevod — kesish davri uchun ideal", "Zaytun moyi miqdori minimal, ortiqcha yog' yo'q"],
+        ru: ["Высокий белок, почти нет углеводов — идеально для сушки", "Оливкового масла минимум, лишнего жира нет"],
+        en: ["High protein, almost no carbs — ideal for a cut", "Barely any added oil, no excess fat"],
+      },
+      harms: { uz: [], ru: [], en: [] },
+    },
+    ingredients: {
+      uz: ["Tovuq ko'kragi 500g", "Shakarsiz soya sousi 1 osh qoshiq", "Paprika 1 choy qoshiq", "Tuz, murch", "Zaytun moyi 1 choy qoshiq (5g)"],
+      ru: ["Куриная грудка 500 г", "Соевый соус без сахара 1 ст. л.", "Паприка 1 ч. л.", "Соль, перец", "Оливковое масло 1 ч. л. (5 г)"],
+      en: ["Chicken breast 500g", "1 tbsp sugar-free soy sauce", "1 tsp paprika", "Salt, pepper", "1 tsp (5g) olive oil"],
+    },
+    steps: {
+      uz: [
+        "Tovuqni sous, paprika va murch bilan aralashtirib, 20 daqiqa (yoki 1 kun oldin) marinatsiya qiling.",
+        "Qizigan tovada baland olovda har ikki tomonini qizartirib pishiring.",
+        "Tuzni pishirish jarayonida qo'shing.",
+        "Pishgach 5 daqiqa dam bering — shu payt ichidagi shirasi saqlanadi.",
+      ],
+      ru: [
+        "Смешайте курицу с соусом, паприкой и перцем, оставьте мариноваться 20 минут (или на ночь).",
+        "Обжарьте на разогретой сковороде на сильном огне с двух сторон.",
+        "Посолите уже во время жарки.",
+        "Дайте отдохнуть 5 минут после готовки — так сок останется внутри.",
+      ],
+      en: [
+        "Mix the chicken with the sauce, paprika and pepper, marinate 20 minutes (or overnight).",
+        "Sear both sides in a hot pan over high heat.",
+        "Add salt while it cooks.",
+        "Rest for 5 minutes after cooking so the juices stay in.",
+      ],
+    },
+  }),
+  dish("tvorogdan-grek-yogurt", { uz: "Tvorogdan uy grek yogurti", ru: "Домашний греческий йогурт из творога", en: "Homemade Greek-style yogurt from curd cheese" }, "🥣", 350, [300, 7, 34, 15], {
+    cat: "dairy", minutes: 5, approx: true,
+    note: {
+      uz: "Muzlatkichda 4 kungacha turadi — bir marta tayyorlab, haftaga yetkazish mumkin.",
+      ru: "Хранится в холодильнике до 4 дней — можно приготовить один раз на несколько дней.",
+      en: "Keeps in the fridge up to 4 days — make it once and it covers several days.",
+    },
+    composition: {
+      benefits: {
+        uz: ["Sotib olinadigan grek yogurtidan arzon va oqsili yuqoriroq", "Qo'shimcha shakarsiz — faqat sut va tvorogning tabiiy tarkibi"],
+        ru: ["Дешевле покупного греческого йогурта и больше белка", "Без добавленного сахара — только натуральный состав творога и молока"],
+        en: ["Cheaper than store-bought Greek yogurt, and higher in protein", "No added sugar — just curd cheese and milk"],
+      },
+      harms: { uz: [], ru: [], en: [] },
+    },
+    ingredients: {
+      uz: ["Tvorog 5% 200g", "Sut 150 ml", "Zaytun moyi 1 choy qoshiq (5g)"],
+      ru: ["Творог 5% 200 г", "Молоко 150 мл", "Оливковое масло 1 ч. л. (5 г)"],
+      en: ["Curd cheese (5% fat) 200g", "Milk 150ml", "1 tsp (5g) olive oil"],
+    },
+    steps: {
+      uz: [
+        "Barcha masalliqlarni blender yoki chopperga solib, silliq massa hosil bo'lguncha aralashtiring.",
+        "Qopqoqli idishga solib, muzlatkichga qo'ying.",
+        "4 kungacha saqlash mumkin.",
+      ],
+      ru: [
+        "Взбейте все ингредиенты блендером до однородной массы.",
+        "Переложите в банку с крышкой и уберите в холодильник.",
+        "Хранится до 4 дней.",
+      ],
+      en: ["Blend everything together until smooth.", "Transfer to a lidded container and refrigerate.", "Keeps for up to 4 days."],
+    },
+  }),
+  dish("fit-mayonez", { uz: "Loviyadan fit sous (mayonez o'rniga)", ru: "Фит-соус из фасоли (вместо майонеза)", en: "Bean-based fit sauce (a mayo swap)" }, "🥫", 20, [29, 3, 1, 1], {
+    cat: "oil", minutes: 10, approx: true,
+    note: {
+      uz: "20 g (taxminan 1 osh qoshiq) uchun hisoblangan. Xuddi shu miqdor oddiy mayonezda ~140 kkal bo'ladi.",
+      ru: "Расчёт на 20 г (примерно 1 ст. л.). Столько же обычного майонеза — это ~140 ккал.",
+      en: "Calculated per 20g (about 1 tbsp). The same amount of regular mayo runs about 140 kcal.",
+    },
+    composition: {
+      benefits: {
+        uz: ["Oddiy mayonezdan bir necha baravar kam kaloriya", "Loviya tolasi va oqsili bor — mayonezda esa deyarli hech narsa yo'q"],
+        ru: ["В несколько раз меньше калорий, чем в обычном майонезе", "Даёт клетчатку и белок из фасоли — в майонезе их почти нет"],
+        en: ["A fraction of regular mayo's calories", "Carries fibre and protein from the beans — plain mayo has almost none"],
+      },
+      harms: { uz: [], ru: [], en: [] },
+    },
+    ingredients: {
+      uz: ["Pishirilgan loviya 400 ml (yoki konserva)", "Zaytun moyi 4 osh qoshiq", "Olma sirkasi yoki limon sharbati 1 osh qoshiq", "Tuz 5g", "Suv 100-150 ml"],
+      ru: ["Варёная фасоль 400 мл (или консервированная)", "Оливковое масло 4 ст. л.", "Яблочный уксус или лимонный сок 1 ст. л.", "Соль 5 г", "Вода 100-150 мл"],
+      en: ["Cooked beans 400ml (or canned)", "4 tbsp olive oil", "1 tbsp apple cider vinegar or lemon juice", "Salt 5g", "Water 100-150ml"],
+    },
+    steps: {
+      uz: [
+        "Barcha masalliqlarni blenderga solib, silliq konsistensiya hosil bo'lguncha aralashtiring.",
+        "Qopqoqli idishga soling.",
+        "Muzlatkichda 5 kungacha saqlash mumkin.",
+      ],
+      ru: ["Взбейте все ингредиенты блендером до гладкой консистенции.", "Переложите в банку с крышкой.", "Хранится в холодильнике до 5 дней."],
+      en: ["Blend everything until smooth.", "Transfer to a lidded jar.", "Keeps in the fridge for up to 5 days."],
+    },
+  }),
+  dish("fit-pankek", { uz: "Oqsilga boy fit pankek", ru: "Протеиновые панкейки", en: "High-protein pancakes" }, "🥞", 250, [730, 52, 69, 27], {
+    cat: "dairy", minutes: 15, approx: true,
+    note: {
+      uz: "Butun tayyorlangan partiya (bir necha pankek) uchun hisoblangan.",
+      ru: "Расчёт на всю приготовленную порцию (несколько панкейков).",
+      en: "Calculated for the whole cooked batch (several pancakes).",
+    },
+    composition: {
+      benefits: {
+        uz: ["Bitta nonushtada 69g oqsil — kunlik me'yorning katta qismi", "Tuxum, tvorog va protein — uchta to'liq oqsil manbai birga"],
+        ru: ["69 г белка в одном завтраке — большая часть дневной нормы", "Яйца, творог и протеин — три полноценных источника белка сразу"],
+        en: ["69g of protein in one breakfast — a large share of the daily target", "Eggs, curd cheese and protein powder — three complete protein sources at once"],
+      },
+      harms: {
+        uz: ["Kaloriyasi yuqori — kichik porsiyaga bo'lib yeyish tavsiya etiladi"],
+        ru: ["Калорийность высокая — лучше разделить на порции поменьше"],
+        en: ["Calorie-heavy — best split into smaller portions"],
+      },
+    },
+    ingredients: {
+      uz: ["Tuxum 4 dona", "Suli yormasi 70g", "Tvorog 50g", "Xamirturush kukuni (razrixlitel) 3g", "Protein kukuni 1 porsiya", "Suv 30 ml"],
+      ru: ["Яйца 4 шт", "Овсяные хлопья 70 г", "Творог 50 г", "Разрыхлитель 3 г", "Протеин 1 порция", "Вода 30 мл"],
+      en: ["4 eggs", "Oats 70g", "Curd cheese 50g", "Baking powder 3g", "1 scoop protein powder", "Water 30ml"],
+    },
+    steps: {
+      uz: [
+        "Tuxum, suli, tvorog va xamirturushni blenderda silliq bo'lguncha aralashtiring.",
+        "Qizigan tavada har bir pankekni ikki tomonlama pishiring.",
+        "Protein kukunini suv bilan quyuq sous holiga keltiring.",
+        "Tayyor pankeklar ustiga surtib xizmat qiling.",
+      ],
+      ru: [
+        "Взбейте блендером яйца, овсянку, творог и разрыхлитель до однородности.",
+        "Обжарьте каждый панкейк на разогретой сковороде с двух сторон.",
+        "Разведите протеин водой до консистенции соуса.",
+        "Полейте им готовые панкейки перед подачей.",
+      ],
+      en: [
+        "Blend the eggs, oats, curd cheese and baking powder until smooth.",
+        "Cook each pancake on a hot pan, both sides.",
+        "Mix the protein powder with the water into a thick sauce.",
+        "Drizzle it over the finished pancakes and serve.",
+      ],
+    },
+  }),
+  dish("fit-tiramisu", { uz: "Fit tiramisu", ru: "Фит-тирамису", en: "Fit tiramisu" }, "🍮", 300, [253, 58, 5, 1], {
+    cat: "sweet", minutes: 15, approx: true,
+    note: {
+      uz: "Shirinlikka intilish paytida oddiy tortga past kaloriyali muqobil.",
+      ru: "Низкокалорийная альтернатива обычному торту, когда хочется сладкого.",
+      en: "A low-calorie stand-in for cake when you want something sweet.",
+    },
+    composition: {
+      benefits: {
+        uz: ["Oddiy tiramisudan bir necha baravar kam kaloriya va yog'", "Qo'shimcha shakarsiz — shirinligi faqat asaldan"],
+        ru: ["В разы меньше калорий и жира, чем в обычном тирамису", "Без добавленного сахара — сладость только от мёда"],
+        en: ["A fraction of regular tiramisu's calories and fat", "No added sugar — the sweetness is from honey alone"],
+      },
+      harms: {
+        uz: ["Uglevodi baribir yuqori — kechqurun emas, kunning boshida yegani ma'qul"],
+        ru: ["Углеводов всё равно много — лучше съесть в первой половине дня, а не вечером"],
+        en: ["Still fairly high in carbs — better earlier in the day than at night"],
+      },
+    },
+    ingredients: {
+      uz: ["Guruchli non (Хлебцы) 3 dona", "Qora qahva 1 stakan", "Yogurt 3 osh qoshiq", "Asal 1 osh qoshiq", "Shakarsiz kakao 1 choy qoshiq"],
+      ru: ["Рисовые хлебцы 3 шт", "Чёрный кофе 1 стакан", "Йогурт 3 ст. л.", "Мёд 1 ст. л.", "Какао без сахара 1 ч. л."],
+      en: ["Rice crispbread 3 pieces", "Black coffee 1 cup", "Yogurt 3 tbsp", "1 tbsp honey", "1 tsp unsweetened cocoa"],
+    },
+    steps: {
+      uz: [
+        "Qahvani issiq suvda damlab tayyorlang.",
+        "Yogurt va asalni birlashtirib aralashtiring.",
+        "Har bir non bo'lagini qahvaga botirib, ustiga yogurt aralashmasidan suring — 3 qavat qiling.",
+        "Eng ustiga kakao sepib xizmat qiling.",
+      ],
+      ru: [
+        "Заварите чёрный кофе.",
+        "Смешайте йогурт с мёдом.",
+        "Каждый хлебец обмакните в кофе и промажьте йогуртовой смесью — сделайте 3 слоя.",
+        "Посыпьте какао сверху и подавайте.",
+      ],
+      en: [
+        "Brew the coffee.",
+        "Mix the yogurt with the honey.",
+        "Dip each crispbread in the coffee and spread with the yogurt mix — build 3 layers.",
+        "Dust with cocoa on top and serve.",
+      ],
+    },
+  }),
+  dish("shaftoli-puding", { uz: "Shaftolili tvorog puding", ru: "Персиковый творожный пудинг", en: "Peach curd-cheese pudding" }, "🍑", 150, [147, 28, 5, 2], {
+    cat: "fruit", minutes: 5, approx: true,
+    note: {
+      uz: "1 porsiya uchun hisob (butun tayyorlangan partiya 3 porsiyaga bo'linadi).",
+      ru: "Расчёт на 1 порцию (вся приготовленная партия делится на 3 порции).",
+      en: "Calculated per portion (the whole batch splits into 3).",
+    },
+    composition: {
+      benefits: {
+        uz: ["Shirin, lekin qo'shimcha shakarsiz — shaftolining o'z shirinligi yetadi", "Suli va tvorog bilan to'yimli, oddiy desertdan ko'ra to'qroq"],
+        ru: ["Сладко, но без добавленного сахара — хватает сладости самого персика", "Сытнее обычного десерта благодаря овсянке и творогу"],
+        en: ["Sweet with no added sugar — the peaches carry it on their own", "More filling than a typical dessert thanks to the oats and curd cheese"],
+      },
+      harms: { uz: [], ru: [], en: [] },
+    },
+    ingredients: {
+      uz: ["Pishgan shaftoli 3 dona", "Suzma (tvorog) 2 osh qoshiq", "Suli yormasi 50g"],
+      ru: ["Спелые персики 3 шт", "Творог (сузьма) 2 ст. л.", "Овсяные хлопья 50 г"],
+      en: ["Ripe peaches 3", "Curd cheese 2 tbsp", "Oats 50g"],
+    },
+    steps: {
+      uz: [
+        "Barcha masalliqlarni blenderga solib, quyuq va bir xil massa hosil bo'lguncha aralashtiring.",
+        "3 ta idishga teng bo'lib soling.",
+        "Muzlatkichda 2 kungacha saqlash mumkin.",
+      ],
+      ru: ["Взбейте все ингредиенты блендером до густой однородной массы.", "Разлейте поровну по 3 креманкам.", "Хранится в холодильнике до 2 дней."],
+      en: ["Blend everything into a thick, smooth mixture.", "Divide evenly between 3 bowls.", "Keeps in the fridge for up to 2 days."],
+    },
+  }),
 ];
 
 /* ---------------------------------------------------------------- products */

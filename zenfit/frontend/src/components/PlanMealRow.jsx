@@ -9,11 +9,13 @@ import { useApp } from "../store.jsx";
  * the row does not know or care which built it. Shared by DietPlanScreen
  * (inside MealSlotAccordion below) and HomeScreen (as a flat list).
  *
- * The recipe link only lights up for preset-plan meals: those carry
- * `foodId`, a real pointer into the catalogue. AI-generated meals carry a
- * `howTo` field instead — a short set of prep steps the model wrote for that
- * specific meal, since a freeform AI dish has no catalogue row to look a
- * real recipe up by.
+ * The recipe link lights up whenever a meal carries `foodId`, a real pointer
+ * into the catalogue — true for preset-plan meals always, and for AI-plan
+ * meals whenever the model picked one of the app's own known recipes instead
+ * of inventing one (see recipeBank.js on the backend). A meal without a
+ * `foodId` carries `howTo` instead — short prep steps the model wrote for
+ * that specific freeform dish, since it has no catalogue row to look a real
+ * recipe up by. The backend guarantees the two never both fire on one meal.
  */
 export function PlanMealRow({ meal, onOpenRecipe }) {
   const { addMeal, showToast, t } = useApp();
@@ -21,8 +23,6 @@ export function PlanMealRow({ meal, onOpenRecipe }) {
   const [howToOpen, setHowToOpen] = useState(false);
   const recipeFood = meal.foodId ? FOOD_BY_ID[meal.foodId] : null;
   const hasRecipe = Boolean(recipeFood?.steps);
-  // Mutually exclusive in practice: AI meals never carry a foodId, and preset
-  // meals never get an AI-written howTo — so these two never both fire.
   const hasHowTo = Boolean(meal.howTo?.length);
 
   async function add() {

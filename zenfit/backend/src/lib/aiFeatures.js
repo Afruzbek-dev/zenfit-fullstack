@@ -7,6 +7,7 @@
  */
 
 import { callModel } from "./aiProvider.js";
+import { RECIPE_BY_ID, recipeBankLines } from "./recipeBank.js";
 
 /**
  * The features that are plain text generation — trainer answers and the two
@@ -264,6 +265,38 @@ function prefsInstruction(preferences) {
   return lines.length ? `\n\nFOYDALANUVCHI TANLOVLARI:\n${lines.join("\n")}` : "";
 }
 
+/**
+ * A meal naming a `foodId` from the recipe bank gets its macros, name and
+ * emoji snapped to the catalogue's own values — the model's guess can drift
+ * from the real recipe, and the app renders that same id's actual steps once
+ * this reaches the client, so the two must agree. `howTo` is dropped: the
+ * real recipe already has real steps, an AI-invented one would just be wrong.
+ *
+ * An id the model invented (not in the bank) is stripped rather than trusted
+ * — the meal still stands on its own numbers, it just isn't linked to a
+ * recipe that doesn't exist.
+ */
+export function resolveMeal(meal) {
+  const recipe = meal?.foodId ? RECIPE_BY_ID[meal.foodId] : null;
+  if (!recipe) {
+    if (!meal?.foodId) return meal;
+    const { foodId, ...rest } = meal;
+    return rest;
+  }
+  return {
+    ...meal,
+    foodId: recipe.id,
+    name: recipe.nameUz,
+    emoji: recipe.emoji,
+    portion: `${recipe.portionG} g`,
+    kcal: recipe.kcal,
+    carbs: recipe.carbs,
+    protein: recipe.protein,
+    fat: recipe.fat,
+    howTo: undefined,
+  };
+}
+
 export async function generateDietPlan(ctx) {
   const { profile, pantry, preferences } = ctx;
   const goalUz = { lose: "ozish", maintain: "vaznni saqlash", gain: "massa yig'ish" }[profile.goal] || profile.goal;
@@ -273,7 +306,13 @@ export async function generateDietPlan(ctx) {
   const system = `Sen sog'lom va sodda diet-retseptlarga ixtisoslashgan nutritsiologsan — oz sonli ingredient, tez tayyorlanadigan, protein-boy taomlar (Mob Kitchen uslubidagi diet oshxona). Foydalanuvchiga real, arzon va O'zbekistonda topish oson mahsulotlardan kunlik ovqatlanish rejasi tuzasan.
 Asosiy tanlov: grilda/pechda pishirilgan tovuq/baliq/mol go'shti, sabzavotli salat va sho'rvalar, tuxum taomlari, tvorog/yogurt asosidagi taomlar, guruch/bulg'ur/yasmiq kabi sodda garnirlar.
 Og'ir va yog'li milliy taomlarni (osh, lag'mon, manti, somsa, norin, dimlama kabi qovurilgan/dimlangan taomlarni) rejaga asosiy ovqat sifatida QO'SHMA — ular diet uchun mos emas. Bir kunlik rejada ulardan birortasi ham bo'lmasligi kerak.
-Har bir taom uchun "howTo" maydoniga 2-3 ta juda qisqa (6-10 so'zdan oshmasin) tayyorlash bosqichini yoz.
+
+QUYIDA ilovaning o'zida tayyor, sinovdan o'tgan retseptlar ro'yxati bor. Mumkin bo'lgan joyda — ayniqsa foydalanuvchining mavjud mahsulotlariga yoki maqsadiga mos kelsa — yangi taom o'ylab topish o'rniga shulardan birini tanla. Shu retseptni tanlasang, "howTo" YOZMA — o'rniga "foodId" maydoniga uning id sini yoz (masalan "foodId": "tuna-loviya-salat"), ilova to'liq tayyorlash tartibini o'zi ko'rsatadi. Mos retsept bo'lmasa, odatdagidek o'zing taom o'ylab top va "howTo" bilan yoz, "foodId" qo'shma.
+
+TAYYOR RETSEPTLAR:
+${recipeBankLines()}
+
+Har bir taom uchun "howTo" maydoniga (agar "foodId" ishlatmasang) 2-3 ta juda qisqa (6-10 so'zdan oshmasin) tayyorlash bosqichini yoz.
 FAQAT JSON qaytar, markdown yoki izoh qo'shma. Qisqa yoz — javob to'liq JSON bo'lishi shart.`;
 
   // With a pantry the job changes from "compose a sensible day" to "compose a
@@ -308,7 +347,7 @@ JSON format:
     {
       "day": 1,
       "meals": [
-        {"slot": "Nonushta", "name": "taom nomi", "portion": "porsiya tavsifi", "kcal": number, "carbs": number, "protein": number, "fat": number, "emoji": "emoji", "howTo": ["bosqich 1", "bosqich 2"]}
+        {"slot": "Nonushta", "name": "taom nomi", "portion": "porsiya tavsifi", "kcal": number, "carbs": number, "protein": number, "fat": number, "emoji": "emoji", "foodId": "tayyor retseptdan foydalansang uning id si, aks holda qo'shma", "howTo": ["bosqich 1", "bosqich 2"]}
       ]
     }
   ],
@@ -346,8 +385,8 @@ Kunlar bir-biridan farq qilsin — bir xil taomni ketma-ket ikki kun takrorlama.
   const days = Array.isArray(parsed.days) && parsed.days.length > 0
     ? parsed.days
         .filter((d) => Array.isArray(d?.meals) && d.meals.length > 0)
-        .map((d, i) => ({ day: Number(d.day) || i + 1, meals: d.meals }))
-    : [{ day: 1, meals: Array.isArray(parsed.meals) ? parsed.meals : [] }];
+        .map((d, i) => ({ day: Number(d.day) || i + 1, meals: d.meals.map(resolveMeal) }))
+    : [{ day: 1, meals: (Array.isArray(parsed.meals) ? parsed.meals : []).map(resolveMeal) }];
 
   return {
     plan: {
