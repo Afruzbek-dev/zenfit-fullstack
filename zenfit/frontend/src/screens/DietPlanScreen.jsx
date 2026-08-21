@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Sparkles, Loader2, Crown, ChevronRight, ShoppingBasket, AlertTriangle,
-  Plus, Trash2, Lightbulb, Search, History, UtensilsCrossed,
+  Plus, Trash2, Lightbulb, Search, History, UtensilsCrossed, RefreshCw, SlidersHorizontal,
 } from "lucide-react";
 import { Screen, ScreenHeader, Section, Sheet, Button, ErrorNote } from "../components/ui.jsx";
 import PantrySheet, { pantryPayload } from "../components/PantrySheet.jsx";
@@ -211,15 +211,31 @@ function DietPlanCard({ onOpenPremium, onOpenPantry, onOpenRecipe, onOpenDay, on
           </div>
           {dietPlan.summary && <p className="mt-1 text-[11.5px] leading-relaxed text-muted">{dietPlan.summary}</p>}
         </div>
-        <div className="flex shrink-0 items-center gap-3">
-          <button onClick={() => onNavigate?.("history:diet")} aria-label={t("history.title")} className="text-faint">
-            <History size={15} />
+        {/* Icon-only, not text buttons: three text labels here left as little as
+            97px for the title on a 375px phone, truncating it to "AI kunlik…"
+            no matter how the row wrapped. */}
+        <div className="flex shrink-0 items-center gap-1.5">
+          <button
+            onClick={() => onNavigate?.("history:diet")}
+            aria-label={t("history.title")}
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-surfaceAlt active:scale-95"
+          >
+            <History size={15} className="text-faint" />
           </button>
-          <button onClick={() => setPrefsOpen(true)} className="whitespace-nowrap text-[11.5px] font-bold text-faint">
-            {t("dietPrefs.edit")}
+          <button
+            onClick={() => setPrefsOpen(true)}
+            aria-label={t("dietPrefs.edit")}
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-surfaceAlt active:scale-95"
+          >
+            <SlidersHorizontal size={15} className="text-faint" />
           </button>
-          <button onClick={generate} disabled={busy} className="whitespace-nowrap text-[11.5px] font-bold text-neon disabled:opacity-50">
-            {busy ? "…" : t("recipesScreen.refresh")}
+          <button
+            onClick={generate}
+            disabled={busy}
+            aria-label={t("recipesScreen.refresh")}
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-surfaceAlt active:scale-95 disabled:opacity-50"
+          >
+            {busy ? <Loader2 size={15} className="animate-spin text-neon" /> : <RefreshCw size={15} className="text-neon" />}
           </button>
         </div>
       </div>
