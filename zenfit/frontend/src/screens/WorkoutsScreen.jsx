@@ -1,9 +1,8 @@
 import { useMemo, useState } from "react";
 import {
   Sparkles, Dumbbell, RefreshCw, ShieldAlert, Lightbulb, Crown, Flame,
-  Layers, History, ChevronRight,
 } from "lucide-react";
-import { Screen, Section, Button, Sheet, EmptyState, ErrorNote, ListRow } from "../components/ui.jsx";
+import { Screen, ScreenHeader, Section, Button, Sheet, EmptyState, ErrorNote } from "../components/ui.jsx";
 import WorkoutSession from "./WorkoutSession.jsx";
 import PremiumSheet from "./profile/PremiumSheet.jsx";
 import ActivitySheet from "../components/ActivitySheet.jsx";
@@ -162,8 +161,8 @@ function RegenerateSheet({ open, onClose, onDone, onLocked }) {
   );
 }
 
-export default function WorkoutsScreen({ onNavigate }) {
-  const { workoutPlan, activeProgram, workoutHistory, profile, saveWorkoutPlan, showToast, subscription, t } = useApp();
+export default function WorkoutsScreen({ onBack, onNavigate }) {
+  const { workoutPlan, workoutHistory, profile, saveWorkoutPlan, showToast, subscription, t } = useApp();
   const [sessionDay, setSessionDay] = useState(null);
   const [regenOpen, setRegenOpen] = useState(false);
   const [tips, setTips] = useState(null);
@@ -289,53 +288,15 @@ export default function WorkoutsScreen({ onNavigate }) {
     }
   }
 
-  /** A running programme is a peer of the plan, reachable from beside it. */
-  const programCard = activeProgram && (
-    <button
-      onClick={() => onNavigate?.("program")}
-      className="card mb-4 flex w-full items-center gap-3 px-4 py-3.5 text-left active:scale-[0.99]"
-    >
-      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-cyan/12">
-        <Layers size={18} className="text-cyan" />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-[13.5px] font-bold text-ink">
-          {activeProgram.programTitle || t("workout.activeProgram")}
-        </span>
-        <span className="mt-0.5 block text-[11.5px] text-muted">
-          {t("workout.activeProgram")} · {t("workout.weekN", { n: weekIndexOf(activeProgram) })}
-        </span>
-      </span>
-      <ChevronRight size={16} className="shrink-0 text-faint" />
-    </button>
-  );
-
-  /* Reachable whether or not a plan exists — these are how someone without a
-     plan finds a free programme, and how someone with one reaches their past. */
-  const moreSection = (
-    <Section title={t("workout.otherSection")}>
-      <div className="flex flex-col gap-2">
-        <ListRow
-          Icon={Layers}
-          title={t("workout.programsRow")}
-          subtitle={t("workout.programsRowDesc")}
-          onClick={() => onNavigate?.("exercises")}
-        />
-        <ListRow
-          Icon={History}
-          title={t("workout.history")}
-          subtitle={t("workout.historyDesc")}
-          onClick={() => onNavigate?.("history")}
-        />
-      </div>
-    </Section>
-  );
-
   return (
-    <Screen topPad>
+    <Screen>
+      <ScreenHeader
+        title={t("workout.planPageTitle")}
+        subtitle={workoutPlan ? t("workout.subtitlePlan") : t("workout.subtitleNoPlan")}
+        onBack={onBack}
+      />
       {!workoutPlan ? (
         <>
-          {programCard}
           <Section>
             <EmptyState
               Icon={subscription?.isPremium ? Sparkles : Crown}
@@ -347,11 +308,10 @@ export default function WorkoutsScreen({ onNavigate }) {
                 </Button>
               }
             />
-            <Button full variant="ghost" className="mt-2.5" onClick={() => onNavigate?.("exercises")}>
+            <Button full variant="ghost" className="mt-2.5" onClick={() => onNavigate?.("workouts")}>
               <Dumbbell size={15} /> {t("workout.seePrograms")}
             </Button>
           </Section>
-          {moreSection}
         </>
       ) : (
         <>
@@ -367,8 +327,6 @@ export default function WorkoutsScreen({ onNavigate }) {
               </div>
             </div>
           )}
-
-          {programCard}
 
           <div className="card card-lit mb-4 px-4 py-4">
             <div className="flex items-start justify-between gap-3">
@@ -469,8 +427,6 @@ export default function WorkoutsScreen({ onNavigate }) {
               </>
             )}
           </Section>
-
-          {moreSection}
         </>
       )}
 

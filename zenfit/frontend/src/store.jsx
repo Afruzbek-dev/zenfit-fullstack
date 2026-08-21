@@ -9,8 +9,9 @@ const Ctx = createContext(null);
 export const useApp = () => useContext(Ctx);
 
 export function AppProvider({ children }) {
-  const [status, setStatus] = useState("loading"); // loading | ready | error
+  const [status, setStatus] = useState("loading"); // loading | ready | error | gated
   const [error, setError] = useState(null);
+  const [channelGate, setChannelGate] = useState(null); // { username, url } while status === "gated"
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [subscription, setSubscription] = useState({ isPremium: false, plan: "free" });
@@ -130,8 +131,13 @@ export function AppProvider({ children }) {
 
       setStatus("ready");
     } catch (e) {
-      setError(e);
-      setStatus("error");
+      if (e.code === "channel_subscription_required") {
+        setChannelGate({ username: e.payload?.channelUsername, url: e.payload?.channelUrl });
+        setStatus("gated");
+      } else {
+        setError(e);
+        setStatus("error");
+      }
     }
   }, [refresh, adoptPreferences]);
 
@@ -416,7 +422,7 @@ export function AppProvider({ children }) {
 
   const value = useMemo(
     () => ({
-      status, error, boot, refresh,
+      status, error, channelGate, boot, refresh,
       user, profile, setProfile, subscription, setSubscription,
       summary, meals, recentFoods, activities, workoutPlan, dietPlan, setDietPlan, activeProgram, workoutHistory,
       addMeal, removeMeal, addWater, addSteps, logWorkout, saveWorkoutPlan, saveDietPlan, completeOnboarding,
@@ -427,7 +433,7 @@ export function AppProvider({ children }) {
       toast, showToast, mealAlert, clearMealAlert,
     }),
     [
-      status, error, boot, refresh, user, profile, subscription, summary, meals, recentFoods,
+      status, error, channelGate, boot, refresh, user, profile, subscription, summary, meals, recentFoods,
       activities, workoutPlan, dietPlan, activeProgram, workoutHistory, addMeal, removeMeal, addWater, addSteps,
       logWorkout, saveWorkoutPlan, saveDietPlan, completeOnboarding, saveProgram, clearProgram,
       burnReminders, addBurnReminder, dismissBurnReminder, addActivity, removeActivity,

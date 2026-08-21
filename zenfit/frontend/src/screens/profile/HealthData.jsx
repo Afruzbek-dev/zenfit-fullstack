@@ -211,7 +211,7 @@ export default function HealthData({ onBack, onNavigate }) {
                 ? `${workoutPlan.title || t("profile.workoutPlan")} · ${workoutDays} ${t("home.days")}`
                 : t("profile.noPlan")
             }
-            onClick={() => onNavigate("workouts")}
+            onClick={() => onNavigate("workoutplan")}
           />
           <ListRow
             Icon={UtensilsCrossed}
@@ -223,7 +223,7 @@ export default function HealthData({ onBack, onNavigate }) {
 
         {!workoutPlan && (
           <div className="mt-2">
-            <Button full variant="ghost" onClick={() => onNavigate("workouts")}>
+            <Button full variant="ghost" onClick={() => onNavigate("workoutplan")}>
               <Sparkles size={16} /> {t("profile.createPlan")}
             </Button>
           </div>

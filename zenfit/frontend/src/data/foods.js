@@ -25,6 +25,8 @@
  * and are still right. Anywhere else a mismatch is a typo.
  */
 
+import { PRODUCT_COMPOSITION } from "./foodComposition.js";
+
 /* Category ids are stable; the labels are looked up per language. */
 export const CATEGORIES = ["all", "national", "meat", "fish", "dairy", "grain", "veg", "fruit", "nut", "oil", "sweet", "drink", "fast"];
 
@@ -32,8 +34,12 @@ const dish = (id, n, emoji, portionG, macros, opts = {}) => ({
   id, kind: "dish", n, emoji, portionG, macros, approx: true, ...opts,
 });
 
+// Products get their benefit/harm read from the shared lookup by default —
+// one line here beats spreading a `composition` field across 100+ literal
+// calls. `opts` can still override it, though nothing currently does.
 const product = (id, n, emoji, cat, macros, servingG, opts = {}) => ({
-  id, kind: "product", n, emoji, cat, macros, servingG, approx: false, ...opts,
+  id, kind: "product", n, emoji, cat, macros, servingG, approx: false,
+  composition: PRODUCT_COMPOSITION[id], ...opts,
 });
 
 /* ------------------------------------------------------------------ dishes */
@@ -45,6 +51,18 @@ const DISHES = [
       uz: "Bir tovoq (350 g). Uy retseptiga qarab 600-850 kcal oralig'ida — yog' va go'sht miqdoriga bog'liq.",
       ru: "Одна тарелка (350 г). В зависимости от рецепта — от 600 до 850 ккал: всё решает количество масла и мяса.",
       en: "One plate (350g). Anywhere from 600 to 850 kcal depending on the recipe — oil and meat decide it.",
+    },
+    composition: {
+      benefits: {
+        uz: ["Guruch uzoq quvvat beruvchi uglevod beradi"],
+        ru: ["Рис даёт долгую энергию за счёт углеводов"],
+        en: ["Rice gives slow-release, long-lasting energy"],
+      },
+      harms: {
+        uz: ["Qozonda erigan yog' miqdori yuqori bo'lishi mumkin", "Katta porsiya kaloriya jihatdan zich"],
+        ru: ["В казане может быть много растопленного жира", "Большая порция калорийно очень плотная"],
+        en: ["Can carry a lot of rendered oil from the pot", "A full plate is calorie-dense"],
+      },
     },
     ingredients: {
       uz: ["Guruch 120g", "Mol yoki qo'y go'shti 100g", "Sabzi 100g", "Piyoz, sarimsoq, ziravorlar"],
@@ -85,6 +103,18 @@ const DISHES = [
       ru: "Жареный — лапша обжаривается в масле. Суповой лагман в той же порции примерно на 250 ккал легче.",
       en: "The fried version — the noodles go through oil. Soup lagman is about 250 kcal lighter at the same portion.",
     },
+    composition: {
+      benefits: {
+        uz: ["Sabzavot va oqsil bir tovoqda birga"],
+        ru: ["Овощи и белок в одной тарелке"],
+        en: ["Vegetables and protein together in one bowl"],
+      },
+      harms: {
+        uz: ["Qovurishda ishlatilgan moy kaloriyani oshiradi"],
+        ru: ["Масло при жарке заметно повышает калорийность"],
+        en: ["The frying oil adds a real amount of fat"],
+      },
+    },
     ingredients: {
       uz: ["Lag'mon xamiri 150g", "Mol go'shti 100g", "Bolgar qalampiri, pomidor, sabzi"],
       ru: ["Лапша 150 г", "Говядина 100 г", "Болгарский перец, помидор, морковь"],
@@ -121,6 +151,18 @@ const DISHES = [
       ru: "Одна тандырная самса (~150 г). Из слоёного теста получается жирнее.",
       en: "One tandoor samsa (~150g). Made with puff pastry it comes out fattier.",
     },
+    composition: {
+      benefits: {
+        uz: [],
+        ru: [],
+        en: [],
+      },
+      harms: {
+        uz: ["Qatlamali xamir to'yingan yog'ga boy", "Kichik porsiyada ham tuz miqdori yuqori"],
+        ru: ["Слоёное тесто богато насыщенным жиром", "Даже маленькая порция содержит много соли"],
+        en: ["Puff pastry is high in saturated fat", "High in salt even for a small piece"],
+      },
+    },
     ingredients: {
       uz: ["Xamir 60g", "Mol/qo'y fars 50g", "Piyoz", "Ziravorlar"],
       ru: ["Тесто 60 г", "Фарш 50 г", "Лук", "Специи"],
@@ -156,6 +198,18 @@ const DISHES = [
       uz: "3 dona (~90 g dan). Qovoqli manti go'shtlisidan ~150 kcal yengilroq.",
       ru: "3 штуки (по ~90 г). Тыквенные манты примерно на 150 ккал легче мясных.",
       en: "3 pieces (~90g each). Pumpkin manti run about 150 kcal lighter than meat.",
+    },
+    composition: {
+      benefits: {
+        uz: ["Bug'da pishgani uchun qo'shimcha yog' ishlatilmaydi"],
+        ru: ["Готовится на пару — жир дополнительно не добавляется"],
+        en: ["Steamed, so no extra oil goes in during cooking"],
+      },
+      harms: {
+        uz: ["Xamir ulushi uglevodni sezilarli oshiradi"],
+        ru: ["Доля теста заметно повышает углеводы"],
+        en: ["The dough share adds a good amount of carbs"],
+      },
     },
     ingredients: {
       uz: ["Xamir", "Mol fars yoki qovoq + go'sht", "Piyoz", "Qatiq"],
@@ -196,6 +250,18 @@ const DISHES = [
       ru: "С постным мясом ~250 ккал, с жирной бараниной 450+ ккал.",
       en: "About 250 kcal with lean meat, past 450 with fatty lamb.",
     },
+    composition: {
+      benefits: {
+        uz: ["Sabzavotli, sug'oruvchi issiq taom"],
+        ru: ["Овощной, наваристый горячий суп"],
+        en: ["Vegetable-rich, warming hot soup"],
+      },
+      harms: {
+        uz: ["Yog'li go'sht tanlansa kaloriya tez oshadi"],
+        ru: ["С жирным мясом калорийность быстро растёт"],
+        en: ["Calories climb fast if the meat cut is fatty"],
+      },
+    },
     ingredients: {
       uz: ["Suyakli go'sht 150g", "Kartoshka", "Sabzi", "Pomidor"],
       ru: ["Мясо на кости 150 г", "Картофель", "Морковь", "Помидор"],
@@ -231,6 +297,18 @@ const DISHES = [
       uz: "Guruch va go'sht miqdoriga qarab farq qiladi.",
       ru: "Зависит от количества риса и мяса.",
       en: "Varies with how much rice and meat go in.",
+    },
+    composition: {
+      benefits: {
+        uz: ["Guruch va sabzavot birga, sho'rvasi yengil"],
+        ru: ["Рис и овощи вместе, суп получается лёгким"],
+        en: ["Rice and vegetables together in a light broth"],
+      },
+      harms: {
+        uz: ["Tuz miqdoriga e'tibor bering"],
+        ru: ["Обратите внимание на количество соли"],
+        en: ["Watch the salt — broths run high"],
+      },
     },
     ingredients: {
       uz: ["Guruch 50g", "Mol go'shti 80g", "Kartoshka, sabzi, pomidor"],
@@ -268,6 +346,18 @@ const DISHES = [
       ru: "В бульоне легче, жареная примерно на 150 ккал тяжелее.",
       en: "Lighter in broth; fried adds roughly 150 kcal.",
     },
+    composition: {
+      benefits: {
+        uz: ["Qaynatilgani uchun qo'shimcha yog' talab qilmaydi"],
+        ru: ["Отварной вариант не требует дополнительного жира"],
+        en: ["Boiled version needs no extra added fat"],
+      },
+      harms: {
+        uz: ["Qovurib berilsa yog' miqdori sezilarli oshadi"],
+        ru: ["В жареном виде жирность заметно выше"],
+        en: ["Frying it adds a noticeable amount of fat"],
+      },
+    },
     ingredients: {
       uz: ["Xamir 150g", "Mol fars 80g", "Piyoz", "Qatiq yoki bulyon"],
       ru: ["Тесто 150 г", "Фарш 80 г", "Лук", "Катык или бульон"],
@@ -303,6 +393,18 @@ const DISHES = [
       uz: "Sabzavot ko'p bo'lgani uchun milliy taomlar orasida yengilroqlaridan.",
       ru: "Из-за большого количества овощей — одно из более лёгких национальных блюд.",
       en: "One of the lighter national dishes, thanks to all the vegetables.",
+    },
+    composition: {
+      benefits: {
+        uz: ["Sabzavot ulushi yuqori, qo'shimcha yog' deyarli ishlatilmaydi"],
+        ru: ["Высокая доля овощей, масла добавляется по минимуму"],
+        en: ["High vegetable share, barely any added oil"],
+      },
+      harms: {
+        uz: ["Go'sht qavati baribir asosiy kaloriyani beradi"],
+        ru: ["Слой мяса всё равно даёт основную калорийность"],
+        en: ["The meat layer still carries most of the calories"],
+      },
     },
     ingredients: {
       uz: ["Mol go'shti 120g", "Kartoshka, karam, sabzi, pomidor", "Piyoz, ko'katlar"],
@@ -340,6 +442,18 @@ const DISHES = [
       ru: "2 шампура. Из баранины примерно на 90 ккал тяжелее.",
       en: "Two skewers. Lamb runs about 90 kcal heavier.",
     },
+    composition: {
+      benefits: {
+        uz: ["Yuqori sifatli oqsil, yog'ining ko'pi cho'g'ga tomchilaydi"],
+        ru: ["Качественный белок, часть жира стекает на угли"],
+        en: ["Quality protein — a good share of fat drips onto the coals"],
+      },
+      harms: {
+        uz: ["Marinadda tuz miqdori yuqori bo'lishi mumkin"],
+        ru: ["В маринаде может быть много соли"],
+        en: ["The marinade can carry a lot of salt"],
+      },
+    },
     ingredients: {
       uz: ["Mol go'shti 150g", "Piyoz", "Ziravor, sirka"],
       ru: ["Говядина 150 г", "Лук", "Специи, уксус"],
@@ -375,6 +489,18 @@ const DISHES = [
       uz: "Qazi bilan tayyorlangani ancha yog'liroq bo'ladi.",
       ru: "С казы получается заметно жирнее.",
       en: "Made with qazi it comes out noticeably fattier.",
+    },
+    composition: {
+      benefits: {
+        uz: ["Go'shti qaynatilgan, qo'shimcha yog'da qovurilmaydi"],
+        ru: ["Мясо отварное, дополнительно на масле не жарится"],
+        en: ["The meat is boiled, not fried in extra oil"],
+      },
+      harms: {
+        uz: ["Xamir ulushi katta bo'lgani uchun uglevod yuqori"],
+        ru: ["Большая доля теста даёт много углеводов"],
+        en: ["A large dough share means high carbs"],
+      },
     },
     ingredients: {
       uz: ["Xamir 150g", "Qaynatilgan go'sht 120g", "Piyoz", "Bulyon"],
@@ -415,6 +541,18 @@ const DISHES = [
       ru: "Стабильное значение для варианта без масла.",
       en: "A stable figure for the no-oil version.",
     },
+    composition: {
+      benefits: {
+        uz: ["Yog'siz oqsil va murakkab uglevod balansi", "Yuqori to'yimlilik, past yog'"],
+        ru: ["Баланс нежирного белка и сложных углеводов", "Хорошо насыщает при низком жире"],
+        en: ["Balanced lean protein and complex carbs", "Filling with very little fat"],
+      },
+      harms: {
+        uz: [],
+        ru: [],
+        en: [],
+      },
+    },
     ingredients: {
       uz: ["Tovuq ko'krak 150g", "Jigarrang guruch 100g (pishgan)", "Limon, ziravorlar"],
       ru: ["Куриная грудка 150 г", "Бурый рис 100 г (варёный)", "Лимон, специи"],
@@ -448,6 +586,18 @@ const DISHES = [
       ru: "Подходит для низкоуглеводного завтрака.",
       en: "Suits a low-carb breakfast.",
     },
+    composition: {
+      benefits: {
+        uz: ["Avokadodan sog'lom yog', tuxumdan to'liq oqsil"],
+        ru: ["Полезные жиры из авокадо, полноценный белок из яиц"],
+        en: ["Healthy fat from avocado, complete protein from eggs"],
+      },
+      harms: {
+        uz: ["Kaloriya jihatdan zich — porsiyani nazorat qiling"],
+        ru: ["Калорийно плотное — контролируйте порцию"],
+        en: ["Calorie-dense — keep an eye on portion size"],
+      },
+    },
     ingredients: {
       uz: ["Tuxum 3 dona", "Avokado 1/2 dona", "Zaytun moyi 1 choy qoshiq", "Ko'katlar"],
       ru: ["Яйца 3 шт", "Авокадо 1/2", "Оливковое масло 1 ч. л.", "Зелень"],
@@ -480,6 +630,18 @@ const DISHES = [
       uz: "Losos bilan ~420 kcal, oq baliq bilan ~290 kcal.",
       ru: "С лососем ~420 ккал, с белой рыбой ~290 ккал.",
       en: "About 420 kcal with salmon, 290 with white fish.",
+    },
+    composition: {
+      benefits: {
+        uz: ["Omega-3 (losos bilan) va sabzavot tolasi birga"],
+        ru: ["Омега-3 (с лососем) вместе с клетчаткой овощей"],
+        en: ["Omega-3s (with salmon) alongside vegetable fibre"],
+      },
+      harms: {
+        uz: [],
+        ru: [],
+        en: [],
+      },
     },
     ingredients: {
       uz: ["Baliq filesi 180g", "Brokkoli, sabzi, qalampir 200g", "Zaytun moyi", "Limon"],
@@ -517,6 +679,18 @@ const DISHES = [
       ru: "Стабильное значение для нежирного творога.",
       en: "A stable figure for low-fat curd cheese.",
     },
+    composition: {
+      benefits: {
+        uz: ["Yuqori oqsil va kaltsiy manbai"],
+        ru: ["Источник белка и кальция"],
+        en: ["High in protein and calcium"],
+      },
+      harms: {
+        uz: ["Asal qo'shimcha shakar qo'shadi"],
+        ru: ["Мёд добавляет свободный сахар"],
+        en: ["Honey adds free sugar to the total"],
+      },
+    },
     ingredients: {
       uz: ["Tvorog (5%) 150g", "Asal 1 osh qoshiq"],
       ru: ["Творог 5% 150 г", "Мёд 1 ст. л."],
@@ -535,6 +709,18 @@ const DISHES = [
       ru: "Для натурального катыка без сахара. С сладким йогуртом +80 ккал.",
       en: "For plain unsweetened yoghurt. Sweetened adds about 80 kcal.",
     },
+    composition: {
+      benefits: {
+        uz: ["Probiotik qatiq va yong'oqdan sog'lom yog'"],
+        ru: ["Пробиотики из катыка и полезный жир из орехов"],
+        en: ["Probiotics from the yoghurt, healthy fat from the nuts"],
+      },
+      harms: {
+        uz: ["Shirin meva ulushi shakarni oshiradi"],
+        ru: ["Доля сладких фруктов повышает сахар"],
+        en: ["The fruit share raises the natural sugar"],
+      },
+    },
     ingredients: {
       uz: ["Tabiiy qatiq 200g", "Meva 100g", "Yong'oq 15g"],
       ru: ["Натуральный катык 200 г", "Фрукты 100 г", "Орехи 15 г"],
@@ -544,6 +730,360 @@ const DISHES = [
       uz: ["Qatiqni likopchaga soling.", "Mevani bo'laklab, yong'oq bilan ustidan sepib bering."],
       ru: ["Выложите катык в тарелку.", "Нарежьте фрукты и посыпьте орехами сверху."],
       en: ["Spoon the yoghurt into a bowl.", "Slice the fruit and scatter the nuts on top."],
+    },
+  }),
+
+  /**
+   * Diet-style recipes: simple whole-food dishes built for a calorie/macro
+   * target rather than a household tradition — the Mob Kitchen school of
+   * cooking (few ingredients, quick steps, protein-forward) rather than the
+   * national dishes above. `cat` is never "national" and `uzbek` is never
+   * set for these, so the diet-plan builder and preset plans can prefer them
+   * over the heavier, harder-to-portion national dishes.
+   */
+  dish("tuna-loviya-salat", { uz: "Tunets va loviya salati", ru: "Салат с тунцом и стручковой фасолью", en: "Tuna and green bean salad" }, "🥗", 300, [280, 13, 29, 12], {
+    cat: "fish", minutes: 15, approx: false,
+    note: {
+      uz: "Konservadagi tunets suvda bo'lsa yengilroq, moyda bo'lsa ~40 kcal ko'proq.",
+      ru: "Тунец в собственном соку легче, в масле — примерно на 40 ккал больше.",
+      en: "Tuna in water is lighter; tuna in oil runs about 40 kcal more.",
+    },
+    composition: {
+      benefits: {
+        uz: ["Yog'siz oqsil va tolali sabzavot birga", "Omega-3 yog' kislotalari bor"],
+        ru: ["Постный белок вместе с клетчаткой овощей", "Содержит омега-3 жирные кислоты"],
+        en: ["Lean protein paired with fibre-rich vegetables", "Carries omega-3 fatty acids"],
+      },
+      harms: {
+        uz: ["Konserva tunetsda tuz miqdori yuqori bo'lishi mumkin"],
+        ru: ["В консервированном тунце может быть много соли"],
+        en: ["Canned tuna can be high in added sodium"],
+      },
+    },
+    ingredients: {
+      uz: ["Tunets (suvda, konserva) 100g", "Yashil loviya 150g", "Pomidor 50g", "Zaytun moyi 1 osh qoshiq", "Limon sharbati"],
+      ru: ["Тунец в собственном соку 100 г", "Стручковая фасоль 150 г", "Помидор 50 г", "Оливковое масло 1 ст. л.", "Лимонный сок"],
+      en: ["Tuna in water 100g", "Green beans 150g", "Tomato 50g", "1 tbsp olive oil", "Lemon juice"],
+    },
+    steps: {
+      uz: [
+        "Loviyani qaynoq suvda 5-6 daqiqa qaynatib, sovuq suvda sovuting.",
+        "Tunetsning suvini to'kib, yirik bo'laklarga ajrating.",
+        "Loviya, tunets va bo'laklangan pomidorni idishga soling.",
+        "Zaytun moyi va limon sharbati bilan aralashtirib darhol xizmat qiling.",
+      ],
+      ru: [
+        "Отварите фасоль в кипятке 5-6 минут, затем остудите в холодной воде.",
+        "Слейте жидкость с тунца и разомните крупными кусками.",
+        "Выложите фасоль, тунец и нарезанный помидор в миску.",
+        "Заправьте оливковым маслом и лимонным соком, подавайте сразу.",
+      ],
+      en: [
+        "Boil the green beans for 5-6 minutes, then cool in cold water.",
+        "Drain the tuna and break it into large flakes.",
+        "Combine the beans, tuna and chopped tomato in a bowl.",
+        "Dress with olive oil and lemon juice and serve right away.",
+      ],
+    },
+  }),
+  dish("noxat-salat", { uz: "O'rta yer dengizi noxat salati", ru: "Средиземноморский салат из нута", en: "Mediterranean chickpea salad" }, "🫘", 380, [440, 48, 19, 20], {
+    cat: "grain", minutes: 15, approx: false,
+    note: {
+      uz: "Pishloq o'rniga suzma qo'yilsa taxminan 60 kcal kamayadi.",
+      ru: "Если заменить сыр на сузьму — калорийность снижается примерно на 60 ккал.",
+      en: "Swap the cheese for suzma and it comes down by about 60 kcal.",
+    },
+    composition: {
+      benefits: {
+        uz: ["No'xat o'simlik oqsili va tolaga boy", "Uzoq to'yimlilik beradi"],
+        ru: ["Нут богат растительным белком и клетчаткой", "Хорошо насыщает надолго"],
+        en: ["Chickpeas bring plant protein and fibre", "Keeps you full for longer"],
+      },
+      harms: {
+        uz: ["Pishloq tuz va to'yingan yog' qo'shadi"],
+        ru: ["Сыр добавляет соль и насыщенный жир"],
+        en: ["The cheese adds salt and saturated fat"],
+      },
+    },
+    ingredients: {
+      uz: ["No'xat (pishgan) 150g", "Bodring 100g", "Pomidor 80g", "Yumshoq pishloq 30g", "Zaytun moyi 1 osh qoshiq", "Limon sharbati"],
+      ru: ["Нут варёный 150 г", "Огурец 100 г", "Помидор 80 г", "Мягкий сыр 30 г", "Оливковое масло 1 ст. л.", "Лимонный сок"],
+      en: ["Cooked chickpeas 150g", "Cucumber 100g", "Tomato 80g", "Soft cheese 30g", "1 tbsp olive oil", "Lemon juice"],
+    },
+    steps: {
+      uz: [
+        "No'xatni suvini to'kib, idishga soling.",
+        "Bodring va pomidorni mayda kublab qo'shing.",
+        "Pishloqni maydalab ustiga sepib, zaytun moyi va limon bilan aralashtiring.",
+        "Darhol yoki 20 daqiqa sovutib xizmat qiling.",
+      ],
+      ru: [
+        "Слейте жидкость с нута и переложите в миску.",
+        "Нарежьте огурец и помидор мелкими кубиками, добавьте к нуту.",
+        "Раскрошите сыр сверху, заправьте оливковым маслом и лимонным соком.",
+        "Подавайте сразу или после 20 минут в холодильнике.",
+      ],
+      en: [
+        "Drain the chickpeas and tip them into a bowl.",
+        "Dice the cucumber and tomato and add them in.",
+        "Crumble the cheese on top, then dress with olive oil and lemon.",
+        "Serve right away, or chill for 20 minutes first.",
+      ],
+    },
+  }),
+  dish("tovuq-salat-orash", { uz: "Salat bargida tovuq", ru: "Курица в листьях салата", en: "Chicken lettuce wraps" }, "🥬", 280, [320, 6, 48, 11], {
+    cat: "meat", minutes: 20, approx: false,
+    note: {
+      uz: "Non yoki lavash ishlatilmagani uchun oddiy lavashdan ~150 kcal yengilroq.",
+      ru: "Без лаваша получается примерно на 150 ккал легче обычной шаурмы.",
+      en: "No wrap or bread — about 150 kcal lighter than a regular lavash.",
+    },
+    composition: {
+      benefits: {
+        uz: ["Non o'rniga salat bargi — uglevodi juda past", "Yuqori oqsil, yengil taom"],
+        ru: ["Лист салата вместо лаваша — очень мало углеводов", "Высокий белок, лёгкое блюдо"],
+        en: ["Lettuce instead of bread keeps carbs very low", "High protein, light overall"],
+      },
+      harms: { uz: [], ru: [], en: [] },
+    },
+    ingredients: {
+      uz: ["Tovuq ko'krak 150g", "Ko'k salat bargi 8 dona", "Sabzi, bodring (julienne) 80g", "Soya sousi, kunjut moyi"],
+      ru: ["Куриная грудка 150 г", "Листья салата 8 шт", "Морковь, огурец соломкой 80 г", "Соевый соус, кунжутное масло"],
+      en: ["Chicken breast 150g", "8 lettuce leaves", "Julienned carrot and cucumber 80g", "Soy sauce, sesame oil"],
+    },
+    steps: {
+      uz: [
+        "Tovuq ko'krakni tuzlab, tovada yoki grilda har tarafini 6-7 daqiqadan pishiring.",
+        "Sovigach ingichka tilimlarga to'g'rang.",
+        "Har bir salat bargiga tovuq va sabzavot julienne joylashtiring.",
+        "Ustiga ozgina soya sousi va kunjut moyi tomizib, o'rab xizmat qiling.",
+      ],
+      ru: [
+        "Посолите куриную грудку и обжарьте на сковороде или гриле по 6-7 минут с каждой стороны.",
+        "Остывшую грудку нарежьте тонкими полосками.",
+        "На каждый лист салата выложите курицу и овощи соломкой.",
+        "Сбрызните соевым соусом и кунжутным маслом, сверните и подавайте.",
+      ],
+      en: [
+        "Salt the chicken breast and pan-sear or grill 6-7 minutes per side.",
+        "Once cool, slice it into thin strips.",
+        "Fill each lettuce leaf with chicken and the julienned vegetables.",
+        "Drizzle with soy sauce and sesame oil, wrap and serve.",
+      ],
+    },
+  }),
+  dish("mol-sabzavot-qovurma", { uz: "Mol go'shti va sabzavot qovurma", ru: "Говядина с овощами вок", en: "Beef and vegetable stir-fry" }, "🥩", 400, [450, 17, 50, 21], {
+    cat: "meat", minutes: 20, approx: false,
+    note: {
+      uz: "Farsh o'rniga bo'lakli yog'siz go'sht ishlatilgani uchun kamroq yog'li.",
+      ru: "Используется нежирное мясо кусочками, а не фарш — поэтому менее жирное.",
+      en: "Made with lean cubed meat rather than mince, so it runs leaner.",
+    },
+    composition: {
+      benefits: {
+        uz: ["Yog'siz go'shtdan yuqori sifatli oqsil", "Brokkolidan C vitamini va tola"],
+        ru: ["Качественный белок из постной говядины", "Витамин C и клетчатка из брокколи"],
+        en: ["Quality protein from lean beef", "Vitamin C and fibre from the broccoli"],
+      },
+      harms: {
+        uz: ["Kuchli otashda qovurish uchun moy miqdorini nazorat qiling"],
+        ru: ["При жарке на сильном огне следите за количеством масла"],
+        en: ["Keep an eye on the oil — high-heat searing tempts more than needed"],
+      },
+    },
+    ingredients: {
+      uz: ["Mol go'shti (yog'siz) 150g", "Brokkoli 150g", "Bolgar qalampiri 100g", "Sarimsoq, moy 1 osh qoshiq"],
+      ru: ["Говядина постная 150 г", "Брокколи 150 г", "Болгарский перец 100 г", "Чеснок, масло 1 ст. л."],
+      en: ["Lean beef 150g", "Broccoli 150g", "Bell pepper 100g", "Garlic, 1 tbsp oil"],
+    },
+    steps: {
+      uz: [
+        "Go'shtni ingichka tilimlab, qaynoq moyda 3-4 daqiqa tez qovuring.",
+        "Sarimsoqni qo'shib 30 soniya qovuring.",
+        "Brokkoli va qalampirni solib, kuchli otashda 4-5 daqiqa aralashtirib qovuring.",
+        "Tuz-murch solib, sabzavot xiroz qarsillagan holida darhol xizmat qiling.",
+      ],
+      ru: [
+        "Нарежьте мясо тонкими полосками и быстро обжарьте на сильном огне 3-4 минуты.",
+        "Добавьте чеснок и жарьте 30 секунд.",
+        "Положите брокколи и перец, жарьте на сильном огне 4-5 минут, помешивая.",
+        "Посолите, поперчите и подавайте, пока овощи ещё слегка хрустящие.",
+      ],
+      en: [
+        "Slice the beef thin and sear it fast over high heat, 3-4 minutes.",
+        "Add the garlic and cook for 30 seconds.",
+        "Add the broccoli and pepper, stir-fry over high heat 4-5 minutes.",
+        "Season and serve while the vegetables are still a little crisp.",
+      ],
+    },
+  }),
+  dish("yasmiq-shorva", { uz: "Yasmiq sho'rva", ru: "Чечевичный суп", en: "Lentil vegetable soup" }, "🍲", 400, [350, 51, 19, 9], {
+    cat: "grain", minutes: 35, approx: false,
+    note: {
+      uz: "Butunlay o'simlik mahsulotlaridan — vegetarian taom.",
+      ru: "Полностью растительное блюдо — подходит вегетарианцам.",
+      en: "Fully plant-based — works for a vegetarian day.",
+    },
+    composition: {
+      benefits: {
+        uz: ["Yasmiq o'simlik oqsili va tolaga juda boy", "Temir manbai"],
+        ru: ["Чечевица богата растительным белком и клетчаткой", "Источник железа"],
+        en: ["Lentils are rich in plant protein and fibre", "A good source of iron"],
+      },
+      harms: { uz: [], ru: [], en: [] },
+    },
+    ingredients: {
+      uz: ["Yasmiq (quruq) 100g", "Sabzi 80g", "Pomidor 80g", "Piyoz, sarimsoq", "Zaytun moyi 1 osh qoshiq"],
+      ru: ["Чечевица сухая 100 г", "Морковь 80 г", "Помидор 80 г", "Лук, чеснок", "Оливковое масло 1 ст. л."],
+      en: ["Dry lentils 100g", "Carrot 80g", "Tomato 80g", "Onion, garlic", "1 tbsp olive oil"],
+    },
+    steps: {
+      uz: [
+        "Piyoz va sabzini mayda to'g'rab zaytun moyida 4-5 daqiqa qovuring.",
+        "Yasmiqni yuvib qo'shing, ustiga suv quyib qaynating.",
+        "Pomidor va sarimsoqni solib, kuchsiz otashda 20-25 daqiqa qaynating.",
+        "Tuz-ziravor solib, yasmiq yumshaguncha pishirib issiq holida bering.",
+      ],
+      ru: [
+        "Мелко нарежьте лук и морковь, обжарьте на оливковом масле 4-5 минут.",
+        "Добавьте промытую чечевицу, залейте водой и доведите до кипения.",
+        "Положите помидор и чеснок, варите на слабом огне 20-25 минут.",
+        "Посолите и приправьте, варите до мягкости чечевицы и подавайте горячим.",
+      ],
+      en: [
+        "Finely chop the onion and carrot, fry in olive oil for 4-5 minutes.",
+        "Add the rinsed lentils, cover with water and bring to a boil.",
+        "Add the tomato and garlic, simmer gently for 20-25 minutes.",
+        "Season and cook until the lentils are soft, then serve hot.",
+      ],
+    },
+  }),
+  dish("tuxum-oqi-ismaloq", { uz: "Tuxum oqi va ismaloq", ru: "Яичные белки со шпинатом", en: "Egg white and spinach scramble" }, "🍳", 250, [145, 7, 22, 4], {
+    cat: "dairy", minutes: 10, approx: false,
+    note: {
+      uz: "Faqat oqi ishlatilgani uchun to'liq tuxumga nisbatan yog'i ancha kam.",
+      ru: "Используются только белки — жира заметно меньше, чем в цельных яйцах.",
+      en: "Whites only, so the fat comes in well below whole eggs.",
+    },
+    composition: {
+      benefits: {
+        uz: ["Deyarli yog'siz, yuqori sifatli oqsil", "Ismaloqdan temir va vitamin K"],
+        ru: ["Почти без жира, качественный белок", "Железо и витамин K из шпината"],
+        en: ["Almost fat-free, high-quality protein", "Iron and vitamin K from the spinach"],
+      },
+      harms: { uz: [], ru: [], en: [] },
+    },
+    ingredients: {
+      uz: ["Tuxum oqi 5 dona", "Ismaloq 100g", "Pomidor 50g", "Zaytun moyi spreyi"],
+      ru: ["Яичные белки 5 шт", "Шпинат 100 г", "Помидор 50 г", "Спрей оливкового масла"],
+      en: ["5 egg whites", "Spinach 100g", "Tomato 50g", "Olive oil spray"],
+    },
+    steps: {
+      uz: [
+        "Tovani ozgina zaytun moyi bilan qizdiring.",
+        "Ismaloqni solib, so'lguncha 1-2 daqiqa qovuring.",
+        "Tuxum oqini quyib, tuz sepib past otashda aralashtirib pishiring.",
+        "Bo'lakli pomidor bilan darhol xizmat qiling.",
+      ],
+      ru: [
+        "Разогрейте сковороду с небольшим количеством оливкового масла.",
+        "Добавьте шпинат и обжарьте 1-2 минуты до увядания.",
+        "Влейте яичные белки, посолите и готовьте на слабом огне, помешивая.",
+        "Подавайте сразу с нарезанным помидором.",
+      ],
+      en: [
+        "Heat a pan with a light spray of olive oil.",
+        "Add the spinach and cook 1-2 minutes until wilted.",
+        "Pour in the egg whites, season, and cook on low heat, stirring.",
+        "Serve right away with the chopped tomato.",
+      ],
+    },
+  }),
+  dish("tungi-suli", { uz: "Tungi suli bo'tqasi", ru: "Овсянка на ночь", en: "Overnight oats with berries" }, "🥣", 320, [350, 48, 15, 12], {
+    cat: "grain", minutes: 5, approx: false,
+    note: {
+      uz: "Kechqurun tayyorlab, muzlatgichda tunab qoldiriladi — ertalab tayyor bo'ladi.",
+      ru: "Готовится вечером и настаивается в холодильнике всю ночь — утром готово.",
+      en: "Made the night before and left in the fridge — ready by morning.",
+    },
+    composition: {
+      benefits: {
+        uz: ["Suli tolasi xolesterinni pasaytirishga yordam beradi", "Tayyorlash oson, ertalab shoshilmaydi"],
+        ru: ["Клетчатка овса помогает снижать холестерин", "Готовится заранее — утром не нужно спешить"],
+        en: ["Oat fibre helps lower cholesterol", "Prepped ahead, so mornings stay unhurried"],
+      },
+      harms: {
+        uz: ["Shirin qo'shimchalar (asal, mayiz) qo'shsangiz shakar oshadi"],
+        ru: ["Если добавить мёд или изюм — сахар заметно вырастет"],
+        en: ["Sweet add-ins like honey or raisins push the sugar up"],
+      },
+    },
+    ingredients: {
+      uz: ["Suli yormasi 50g", "Kefir yoki sut 150g", "Qulupnay 100g", "Yong'oq 10g"],
+      ru: ["Овсяные хлопья 50 г", "Кефир или молоко 150 г", "Клубника 100 г", "Орехи 10 г"],
+      en: ["Rolled oats 50g", "Kefir or milk 150g", "Strawberries 100g", "Nuts 10g"],
+    },
+    steps: {
+      uz: [
+        "Suli yormasini idishga solib, kefir yoki sut bilan aralashtiring.",
+        "Ustini yopib, muzlatgichda kamida 6 soat yoki tun bo'yi qoldiring.",
+        "Ertalab bo'laklangan qulupnay va yong'oq bilan bezab xizmat qiling.",
+      ],
+      ru: [
+        "Смешайте овсяные хлопья с кефиром или молоком в банке.",
+        "Накройте и уберите в холодильник минимум на 6 часов или на ночь.",
+        "Утром украсьте нарезанной клубникой и орехами и подавайте.",
+      ],
+      en: [
+        "Mix the oats with kefir or milk in a jar.",
+        "Cover and refrigerate for at least 6 hours, or overnight.",
+        "In the morning, top with sliced strawberries and nuts and serve.",
+      ],
+    },
+  }),
+  dish("krevetka-qovurma", { uz: "Krevetka va sabzavot qovurma", ru: "Креветки с овощами вок", en: "Shrimp and vegetable stir-fry" }, "🍤", 390, [330, 12, 52, 9], {
+    cat: "fish", minutes: 15, approx: false,
+    note: {
+      uz: "Krevetka tez pishadi — ortiqcha pishirilsa qattiqlashib qoladi.",
+      ru: "Креветки готовятся быстро — при переготовке становятся резиновыми.",
+      en: "Shrimp cook fast — overcook them and they turn rubbery.",
+    },
+    composition: {
+      benefits: {
+        uz: ["Juda yog'siz, yuqori sifatli dengiz oqsili", "Tez tayyorlanadi"],
+        ru: ["Очень нежирный, качественный морской белок", "Готовится быстро"],
+        en: ["Very lean, high-quality seafood protein", "Cooks in minutes"],
+      },
+      harms: {
+        uz: ["Krevetkada xolesterin miqdori boshqa go'shtlarga nisbatan yuqoriroq"],
+        ru: ["В креветках холестерина больше, чем в другом мясе"],
+        en: ["Shrimp carries more cholesterol than most other meats"],
+      },
+    },
+    ingredients: {
+      uz: ["Krevetka (tozalangan) 200g", "Brokkoli 100g", "Bolgar qalampiri 80g", "Sarimsoq, moy 1 osh qoshiq"],
+      ru: ["Креветки очищенные 200 г", "Брокколи 100 г", "Болгарский перец 80 г", "Чеснок, масло 1 ст. л."],
+      en: ["Peeled shrimp 200g", "Broccoli 100g", "Bell pepper 80g", "Garlic, 1 tbsp oil"],
+    },
+    steps: {
+      uz: [
+        "Sarimsoqni qaynoq moyda 30 soniya qovuring.",
+        "Brokkoli va qalampirni solib 3-4 daqiqa kuchli otashda qovuring.",
+        "Krevetkani qo'shib, pushti rangga kirguncha 2-3 daqiqa qovuring.",
+        "Tuz-murch solib darhol issiq holida xizmat qiling.",
+      ],
+      ru: [
+        "Обжарьте чеснок на горячем масле 30 секунд.",
+        "Добавьте брокколи и перец, жарьте на сильном огне 3-4 минуты.",
+        "Положите креветки и жарьте 2-3 минуты до розового цвета.",
+        "Посолите, поперчите и сразу подавайте горячим.",
+      ],
+      en: [
+        "Fry the garlic in hot oil for 30 seconds.",
+        "Add the broccoli and pepper, stir-fry over high heat 3-4 minutes.",
+        "Add the shrimp and cook 2-3 minutes until pink.",
+        "Season and serve hot right away.",
+      ],
     },
   }),
 ];

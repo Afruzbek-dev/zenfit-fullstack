@@ -15,6 +15,12 @@ export default {
     on: "On", off: "Off", optional: "optional", day: "day",
     connectFailed: "Could not connect", connectFailedDesc: "Something went wrong reaching the server.",
   },
+  channelGate: {
+    title: "Subscribe to the channel first",
+    desc: "You need to subscribe to {channel} to use ZenFit.",
+    openChannel: "Open {channel}",
+    check: "I subscribed, check again",
+  },
   nav: { home: "Home", workouts: "Workouts", scan: "Scan", trainer: "Trainer", profile: "Profile" },
 
   home: {
@@ -118,6 +124,7 @@ export default {
 
     planTitle: "Your AI plan",
     title: "Workouts", subtitlePlan: "Your personal AI programme", subtitleNoPlan: "Choose your plan",
+    planPageTitle: "My workout plan", hubSubtitle: "Ready programmes, exercise library and history",
     library: "Exercise library", libraryAll: "Browse every exercise",
     libraryDesc: "Technique, common mistakes and video",
     librarySubtitle: "{count} exercises — with technique and video",
@@ -128,7 +135,7 @@ export default {
     noPlanDesc: "The AI builds a weekly plan from your weight, experience and equipment — with weights in kg.",
     noPlanDescLocked: "A personalized AI plan is a Premium feature. You can also pick one of the ready-made programs below for free.",
     createPlan: "Build my plan with AI", planReady: "Your AI plan is ready 🚀",
-    readyPrograms: "Or a ready-made programme", programsSoon: "Ready-made programmes are coming — build an AI plan for now",
+    readyPrograms: "Ready-made programmes", programsSoon: "Ready-made programmes are coming — build an AI plan for now",
     seePrograms: "Browse ready-made programmes",
     programMeta: "{days} days/week • {weeks} weeks",
     active: "Active", planMeta: "{days} days a week • {reps} reps • {rest} rest",

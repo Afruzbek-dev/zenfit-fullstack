@@ -4,6 +4,7 @@ import { validateTelegramInitData } from "../lib/telegramAuth.js";
 import { signToken } from "../lib/jwt.js";
 import { upsertUser } from "../lib/users.js";
 import { mapProfile, mapSubscription } from "../lib/mappers.js";
+import { isChannelMember, REQUIRED_CHANNEL_USERNAME, REQUIRED_CHANNEL_URL } from "../bot.js";
 
 const router = Router();
 
@@ -33,6 +34,18 @@ router.post("/telegram", async (req, res, next) => {
     if (!result.user?.id) return res.status(400).json({ error: "no_user_in_init_data" });
 
     const user = await upsertUser(result.user);
+
+    // Same gate as /api/bootstrap — this route is only the fallback path
+    // (used when a stale token forces a fresh login), but it must not become
+    // a way to slip past the requirement.
+    if (!(await isChannelMember(user.telegram_id))) {
+      return res.status(403).json({
+        error: "channel_subscription_required",
+        channelUsername: REQUIRED_CHANNEL_USERNAME,
+        channelUrl: REQUIRED_CHANNEL_URL,
+      });
+    }
+
     res.json(await sessionPayload(user));
   } catch (err) {
     next(err);

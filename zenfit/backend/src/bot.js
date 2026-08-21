@@ -3,6 +3,11 @@ import { getDayStats, getStreak } from "./lib/stats.js";
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const MINI_APP_URL = process.env.MINI_APP_URL || "https://frontend-kappa-vert-24.vercel.app";
+// No @ prefix stored — callers add it where Telegram's API wants a chat_id
+// and leave it off where a t.me link or display text wants a bare handle.
+const REQUIRED_CHANNEL = (process.env.REQUIRED_CHANNEL_USERNAME || "zenfituz").replace(/^@/, "");
+export const REQUIRED_CHANNEL_USERNAME = REQUIRED_CHANNEL;
+export const REQUIRED_CHANNEL_URL = `https://t.me/${REQUIRED_CHANNEL}`;
 
 async function tgApi(method, payload = {}) {
   if (!BOT_TOKEN) return null;
@@ -17,6 +22,30 @@ async function tgApi(method, payload = {}) {
     console.error(`Telegram API xatosi [${method}]:`, err.message);
     return null;
   }
+}
+
+/**
+ * Whether `telegramId` currently belongs to REQUIRED_CHANNEL.
+ *
+ * Fails OPEN on anything that isn't a definitive "not a member" — no
+ * BOT_TOKEN, a network error, or the bot itself lacking access to the
+ * channel (getChatMember needs the bot to be a member, in practice an admin,
+ * of the channel it's asked about). A misconfigured gate should never lock
+ * out the whole user base; it should just not gate anyone until fixed.
+ */
+export async function isChannelMember(telegramId) {
+  if (!BOT_TOKEN || !telegramId) return true;
+  // Local/dev logins use fake ids ("dev-1") that Telegram's API rejects
+  // outright — this flag is never set in production, so skipping the gate
+  // here can't skip it for a real user.
+  if (process.env.ALLOW_DEV_LOGIN === "1") return true;
+  const res = await tgApi("getChatMember", { chat_id: `@${REQUIRED_CHANNEL}`, user_id: telegramId });
+  if (!res || res.ok === false) {
+    if (res) console.error(`[channel-gate] getChatMember failed: ${res.description}`);
+    return true;
+  }
+  const status = res.result?.status;
+  return status ? !["left", "kicked"].includes(status) : true;
 }
 
 /**
@@ -254,7 +283,25 @@ const HELP_TEXT =
   "/help — Shu yordam\n\n" +
   "Ilovada qo'shgan har bir ovqat va mashq shu yerdagi statistikaga darhol tushadi.";
 
+const channelGateKeyboard = () => ({
+  reply_markup: {
+    inline_keyboard: [
+      [{ text: "📢 Kanalga o'tish", url: REQUIRED_CHANNEL_URL }],
+      [{ text: "✅ Obuna bo'ldim, tekshirish", callback_data: "check_sub" }],
+    ],
+  },
+});
+
 async function cmdStart(chatId, from) {
+  if (!(await isChannelMember(from?.id))) {
+    return send(
+      chatId,
+      `📢 Ilovadan foydalanish uchun avval <b>@${REQUIRED_CHANNEL}</b> kanaliga obuna bo'ling.\n\n` +
+        "Obuna bo'lgach, pastdagi tugmani bosing 👇",
+      channelGateKeyboard()
+    );
+  }
+
   const name = from?.first_name || "Do'stim";
   await send(
     chatId,
@@ -296,9 +343,28 @@ async function handleMessage(msg) {
   return send(chatId, "Menyudan tanlang yoki ilovani oching:", { reply_markup: mainReplyKeyboard });
 }
 
+/** The "✅ Obuna bo'ldim, tekshirish" button under the channel-gate message. */
+async function handleCallbackQuery(cb) {
+  if (cb?.data !== "check_sub") return;
+  const chatId = cb.message?.chat?.id;
+  if (!chatId) return;
+
+  if (await isChannelMember(cb.from?.id)) {
+    await tgApi("answerCallbackQuery", { callback_query_id: cb.id, text: "Obuna tasdiqlandi ✅" });
+    await cmdStart(chatId, cb.from);
+  } else {
+    await tgApi("answerCallbackQuery", {
+      callback_query_id: cb.id,
+      text: "Hali obuna bo'lmagansiz — kanalga o'tib obuna bo'ling.",
+      show_alert: true,
+    });
+  }
+}
+
 /** Single entry point shared by webhook and polling modes. */
 export async function handleUpdate(update) {
   if (update?.message) await handleMessage(update.message);
+  else if (update?.callback_query) await handleCallbackQuery(update.callback_query);
 }
 
 /* ------------------------------------------------------------------ *
@@ -376,7 +442,7 @@ export async function setWebhook(url, secretToken) {
   return tgApi("setWebhook", {
     url,
     secret_token: secretToken || undefined,
-    allowed_updates: ["message"],
+    allowed_updates: ["message", "callback_query"],
     drop_pending_updates: true,
   });
 }

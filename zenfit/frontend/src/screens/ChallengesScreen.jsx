@@ -150,6 +150,35 @@ function FriendsLeaderboard() {
 
 const METRICS = ["steps", "workouts", "kcal", "active_days"];
 
+/** Gold / silver / bronze — center spot tallest, left/right shorter. */
+const PODIUM = {
+  1: { order: "order-2", ring: "border-amber", glow: "bg-amber/15", text: "text-amber", bar: "bg-amber/25", barH: "h-16", avatar: "h-16 w-16" },
+  2: { order: "order-1", ring: "border-faint/70", glow: "bg-surfaceAlt", text: "text-ink", bar: "bg-surfaceAlt", barH: "h-11", avatar: "h-12 w-12" },
+  3: { order: "order-3", ring: "border-rose/60", glow: "bg-rose/12", text: "text-rose", bar: "bg-rose/15", barH: "h-8", avatar: "h-12 w-12" },
+};
+
+function PodiumSpot({ entry, rank, isMe, t }) {
+  const p = PODIUM[rank];
+  return (
+    <div className={`flex flex-1 flex-col items-center ${p.order}`}>
+      <span className={`grid shrink-0 place-items-center overflow-hidden rounded-full border-2 ${p.ring} ${p.glow} ${p.avatar}`}>
+        {entry.avatarUrl ? (
+          <img src={entry.avatarUrl} alt="" className="h-full w-full object-cover" />
+        ) : (
+          <User2 size={rank === 1 ? 24 : 18} className="text-faint" />
+        )}
+      </span>
+      <p className={`mt-2 max-w-[76px] truncate text-center text-[12px] font-bold ${isMe ? "text-neon" : "text-ink"}`}>
+        {entry.firstName || entry.username || "—"}
+      </p>
+      <p className={`tabular text-[12px] font-bold ${p.text}`}>{Math.round(entry.value)}</p>
+      <div className={`mt-2 flex w-full items-start justify-center rounded-t-xl pt-1.5 ${p.bar} ${p.barH}`}>
+        <span className={`text-[15px] font-bold ${p.text}`}>{rank}</span>
+      </div>
+    </div>
+  );
+}
+
 /** The ranking for one challenge, behind a single button on its card. */
 function LeaderboardSheet({ challenge, onClose }) {
   const { user, t } = useApp();
@@ -171,6 +200,8 @@ function LeaderboardSheet({ challenge, onClose }) {
   }, [challenge, t]);
 
   const rows = data?.entries || [];
+  const podiumRows = rows.slice(0, 3);
+  const restRows = rows.slice(3);
   // Being 140th is still worth seeing — a leaderboard that hides you is
   // demoralising, so the caller's own row is appended when it fell off the cap.
   const meOutside = data?.me && !rows.some((r) => String(r.userId) === String(data.me.userId));
@@ -184,34 +215,48 @@ function LeaderboardSheet({ challenge, onClose }) {
       ) : rows.length === 0 ? (
         <p className="py-6 text-center text-[12px] text-faint">{t("challengesScreen.noParticipants")}</p>
       ) : (
-        <div className="flex flex-col gap-2">
-          {[...rows, ...(meOutside ? [data.me] : [])].map((r) => {
-            const isMe = String(r.userId) === String(user?.id);
-            return (
-              <div
-                key={r.userId}
-                className={`flex items-center gap-3 rounded-2xl border px-3.5 py-3 ${
-                  isMe ? "border-neon/40 bg-neon/[0.06]" : "border-borderSoft bg-surface"
-                }`}
-              >
-                <span className="tabular grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-surfaceAlt text-[11.5px] font-bold text-faint">
-                  {r.rank}
-                </span>
-                <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-surfaceAlt">
-                  {r.avatarUrl ? (
-                    <img src={r.avatarUrl} alt="" className="h-full w-full object-cover" />
-                  ) : (
-                    <User2 size={15} className="text-faint" />
-                  )}
-                </span>
-                <span className="min-w-0 flex-1 truncate text-[13px] font-bold text-ink">
-                  {r.firstName || r.username || "—"}
-                </span>
-                <span className="tabular shrink-0 text-[12.5px] font-bold text-neon">{Math.round(r.value)}</span>
-              </div>
-            );
-          })}
-        </div>
+        <>
+          <p className="mb-4 text-center text-[11.5px] font-semibold text-faint">
+            {t(`challengesScreen.metrics.${data.metric}`)}
+          </p>
+
+          <div className="mb-5 flex items-end gap-2">
+            {podiumRows.map((r) => (
+              <PodiumSpot key={r.userId} entry={r} rank={r.rank} isMe={String(r.userId) === String(user?.id)} t={t} />
+            ))}
+          </div>
+
+          {(restRows.length > 0 || meOutside) && (
+            <div className="flex flex-col gap-2">
+              {[...restRows, ...(meOutside ? [data.me] : [])].map((r) => {
+                const isMe = String(r.userId) === String(user?.id);
+                return (
+                  <div
+                    key={r.userId}
+                    className={`flex items-center gap-3 rounded-2xl border px-3.5 py-3 ${
+                      isMe ? "border-neon/40 bg-neon/[0.06]" : "border-borderSoft bg-surface"
+                    }`}
+                  >
+                    <span className="tabular grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-surfaceAlt text-[11.5px] font-bold text-faint">
+                      {r.rank}
+                    </span>
+                    <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-surfaceAlt">
+                      {r.avatarUrl ? (
+                        <img src={r.avatarUrl} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <User2 size={15} className="text-faint" />
+                      )}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-[13px] font-bold text-ink">
+                      {r.firstName || r.username || "—"}
+                    </span>
+                    <span className="tabular shrink-0 text-[12.5px] font-bold text-neon">{Math.round(r.value)}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
       )}
     </Sheet>
   );

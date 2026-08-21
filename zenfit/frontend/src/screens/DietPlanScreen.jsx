@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Sparkles, Loader2, Crown, ChevronRight, ShoppingBasket, AlertTriangle,
-  Plus, Trash2, Lightbulb, Search, History,
+  Plus, Trash2, Lightbulb, Search, History, UtensilsCrossed,
 } from "lucide-react";
 import { Screen, ScreenHeader, Section, Sheet, Button, ErrorNote } from "../components/ui.jsx";
 import PantrySheet, { pantryPayload } from "../components/PantrySheet.jsx";
@@ -16,6 +16,7 @@ import { haptic } from "../telegram.js";
 import { useApp } from "../store.jsx";
 import PremiumSheet from "./profile/PremiumSheet.jsx";
 import RecipeGuide from "./RecipeGuide.jsx";
+import DietDayScreen from "./DietDayScreen.jsx";
 
 /** Entry point to "Mahsulotlarim", and the reason the AI plan below it changes. */
 function PantryCard({ onOpen }) {
@@ -75,13 +76,12 @@ function PresetPlans({ onPick }) {
   );
 }
 
-function DietPlanCard({ onOpenPremium, onOpenPantry, onOpenRecipe, onNavigate }) {
+function DietPlanCard({ onOpenPremium, onOpenPantry, onOpenRecipe, onOpenDay, onNavigate }) {
   const { dietPlan, saveDietPlan, profile, subscription, showToast, t, lang } = useApp();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [locked, setLocked] = useState(false);
   const [prefsOpen, setPrefsOpen] = useState(false);
-  const [dayIndex, setDayIndex] = useState(null);
 
   const premium = Boolean(subscription?.isPremium);
   const pantry = profile?.pantry || [];
@@ -89,12 +89,10 @@ function DietPlanCard({ onOpenPremium, onOpenPantry, onOpenRecipe, onNavigate })
 
   const days = useMemo(() => planDays(dietPlan), [dietPlan]);
   const todayIndex = useMemo(() => todayDayIndex(dietPlan), [dietPlan]);
-  // `dayIndex === null` means "follow today", so the strip keeps tracking the
-  // real day until the user deliberately looks at another one.
-  const activeIndex = Math.min(dayIndex ?? todayIndex, days.length - 1);
-  const activeMeals = days[activeIndex]?.meals || [];
-  const groups = useMemo(() => groupBySlot(activeMeals, t), [activeMeals, t]);
-  const totals = useMemo(() => dayTotals(activeMeals), [activeMeals]);
+  // Only ever rendered for the single-day case (a preset or a legacy flat
+  // plan) — a real week is shown as a day list instead, see below.
+  const groups = useMemo(() => groupBySlot(days[0]?.meals || [], t), [days, t]);
+  const totals = useMemo(() => dayTotals(days[0]?.meals || []), [days]);
 
   async function doGenerate() {
     setBusy(true);
@@ -226,53 +224,64 @@ function DietPlanCard({ onOpenPremium, onOpenPantry, onOpenRecipe, onNavigate })
         </div>
       </div>
 
-      {/* The week, mirroring the workout plan's day list so the two plans read
-          as siblings. Scrolls horizontally rather than squeezing seven chips. */}
-      {days.length > 1 && (
-        <div className="-mx-4 mb-3 flex gap-2 overflow-x-auto px-4 pb-1 no-scrollbar">
-          {days.map((d, i) => {
-            const on = i === activeIndex;
-            return (
-              <button
-                key={i}
-                onClick={() => { haptic("light"); setDayIndex(i); }}
-                className={`shrink-0 rounded-xl border px-3 py-2 text-center ${
-                  on ? "border-neon bg-neon/12" : "border-borderSoft bg-surfaceAlt"
-                }`}
-              >
-                <span className={`block text-[11.5px] font-bold ${on ? "text-neon" : "text-muted"}`}>
-                  {i === todayIndex ? t("dietPlanScreen.today") : t("workout.dayN", { n: d.day || i + 1 })}
-                </span>
-                <span className="tabular mt-0.5 block text-[10px] text-faint">
-                  {dayTotals(d.meals).kcal} kcal
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      )}
-
       {days.length > 1 && days.length < 7 && (
         <p className="mb-3 text-[11px] leading-relaxed text-faint">
           {t("dietPlanScreen.partialWeek", { n: days.length })}
         </p>
       )}
 
-      <div className="mb-3 grid grid-cols-4 gap-2">
-        {[
-          { l: "kcal", v: totals.kcal, c: "text-neon" },
-          { l: t("home.protein"), v: `${totals.protein}g`, c: "text-neon" },
-          { l: t("home.carbs"), v: `${totals.carbs}g`, c: "text-cyan" },
-          { l: t("home.fat"), v: `${totals.fat}g`, c: "text-amber" },
-        ].map((m) => (
-          <div key={m.l} className="rounded-xl bg-surfaceAlt px-2 py-2 text-center">
-            <p className="truncate text-[9px] font-bold uppercase tracking-wider text-faint">{m.l}</p>
-            <p className={`tabular mt-0.5 text-[12.5px] font-bold ${m.c}`}>{m.v}</p>
+      {/* A real week reads as a day list, mirroring the workout plan's —
+          each day is entered separately rather than swapped in place. */}
+      {days.length > 1 ? (
+        <div className="flex flex-col gap-2">
+          {days.map((d, i) => {
+            const dt = dayTotals(d.meals);
+            const isToday = i === todayIndex;
+            return (
+              <button
+                key={i}
+                onClick={() => { haptic("light"); onOpenDay(i); }}
+                className="card flex w-full items-center gap-3 px-4 py-3 text-left active:scale-[0.99]"
+              >
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-surfaceAlt">
+                  <UtensilsCrossed size={16} className="text-muted" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-1.5">
+                    <span className="text-[13px] font-bold text-ink">{t("workout.dayN", { n: d.day || i + 1 })}</span>
+                    {isToday && (
+                      <span className="shrink-0 rounded-md bg-neon/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-neon">
+                        {t("dietPlanScreen.today")}
+                      </span>
+                    )}
+                  </span>
+                  <span className="mt-0.5 block text-[11.5px] text-muted">
+                    {t("dietPreset.kcalMeta", { kcal: dt.kcal, n: d.meals.length })}
+                  </span>
+                </span>
+                <ChevronRight size={16} className="shrink-0 text-faint" />
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <>
+          <div className="mb-3 grid grid-cols-4 gap-2">
+            {[
+              { l: "kcal", v: totals.kcal, c: "text-neon" },
+              { l: t("home.protein"), v: `${totals.protein}g`, c: "text-neon" },
+              { l: t("home.carbs"), v: `${totals.carbs}g`, c: "text-cyan" },
+              { l: t("home.fat"), v: `${totals.fat}g`, c: "text-amber" },
+            ].map((m) => (
+              <div key={m.l} className="rounded-xl bg-surfaceAlt px-2 py-2 text-center">
+                <p className="truncate text-[9px] font-bold uppercase tracking-wider text-faint">{m.l}</p>
+                <p className={`tabular mt-0.5 text-[12.5px] font-bold ${m.c}`}>{m.v}</p>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
-
-      <MealSlotAccordion key={activeIndex} groups={groups} onOpenRecipe={onOpenRecipe} />
+          <MealSlotAccordion groups={groups} onOpenRecipe={onOpenRecipe} />
+        </>
+      )}
 
       {/* What the pantry could not cover. Saying so is the honest alternative to
           quietly inventing an ingredient the user does not have. */}
@@ -540,12 +549,13 @@ function CustomPlanSection() {
 }
 
 export default function DietPlanScreen({ onBack, onNavigate }) {
-  const { t } = useApp();
+  const { dietPlan, subscription, t } = useApp();
   const [premiumOpen, setPremiumOpen] = useState(false);
   const [pantryOpen, setPantryOpen] = useState(false);
   const [presetId, setPresetId] = useState(null);
   const [recipeFoodId, setRecipeFoodId] = useState(null);
   const [customOpen, setCustomOpen] = useState(false);
+  const [openDayIndex, setOpenDayIndex] = useState(null);
   // Set only when the pantry sheet is opened as a gate in front of AI
   // generation (DietPlanCard.generate()) — lets that flow resume itself once
   // the pantry is saved, instead of making the user tap "generate" again.
@@ -560,6 +570,21 @@ export default function DietPlanScreen({ onBack, onNavigate }) {
     return <RecipeGuide foodId={recipeFoodId} onBack={() => setRecipeFoodId(null)} />;
   }
 
+  if (openDayIndex !== null) {
+    const days = planDays(dietPlan);
+    const day = days[openDayIndex];
+    if (day) {
+      const isToday = openDayIndex === todayDayIndex(dietPlan);
+      return (
+        <DietDayScreen
+          day={day}
+          dayLabel={isToday ? t("dietPlanScreen.today") : t("workout.dayN", { n: day.day || openDayIndex + 1 })}
+          onBack={() => setOpenDayIndex(null)}
+        />
+      );
+    }
+  }
+
   return (
     <Screen>
       <ScreenHeader title={t("dietPlanScreen.title")} subtitle={t("dietPlanScreen.subtitle")} onBack={onBack} />
@@ -570,16 +595,21 @@ export default function DietPlanScreen({ onBack, onNavigate }) {
           onOpenPremium={() => setPremiumOpen(true)}
           onOpenPantry={openPantry}
           onOpenRecipe={setRecipeFoodId}
+          onOpenDay={setOpenDayIndex}
           onNavigate={onNavigate}
         />
       </Section>
 
       <DietTipsSection />
 
-      <Section title={t("dietPreset.section")}>
-        <p className="mb-2.5 text-[11.5px] leading-relaxed text-faint">{t("dietPreset.desc")}</p>
-        <PresetPlans onPick={setPresetId} />
-      </Section>
+      {/* Premium already gets an AI-tailored week above; the fixed presets are
+          the free-tier alternative to that, not a second option once you have it. */}
+      {!subscription?.isPremium && (
+        <Section title={t("dietPreset.section")}>
+          <p className="mb-2.5 text-[11.5px] leading-relaxed text-faint">{t("dietPreset.desc")}</p>
+          <PresetPlans onPick={setPresetId} />
+        </Section>
+      )}
 
       <Section
         title={t("dietPlanScreen.customTitle")}

@@ -5,6 +5,7 @@ import { signToken, verifyToken } from "../lib/jwt.js";
 import { upsertUser } from "../lib/users.js";
 import { getDayStats, getStreak, dayRange, getRecentFoods } from "../lib/stats.js";
 import { mapProfile, mapSubscription, mapMeal, mapPlan, mapWorkoutLog, mapActivity } from "../lib/mappers.js";
+import { isChannelMember, REQUIRED_CHANNEL_USERNAME, REQUIRED_CHANNEL_URL } from "../bot.js";
 
 const router = Router();
 
@@ -45,13 +46,24 @@ router.post("/", async (req, res, next) => {
       issuedToken = signToken({ sub: user.id });
     }
 
-    const [user, profile, subscription] = await Promise.all([
-      queryOne("SELECT id, first_name, username, avatar_url FROM users WHERE id = $1", [userId]),
+    const user = await queryOne("SELECT id, first_name, username, avatar_url, telegram_id FROM users WHERE id = $1", [userId]);
+    if (!user) return res.status(401).json({ error: "user_not_found" });
+
+    // Gated on every boot, not just first registration — re-checked here
+    // rather than only at /start so re-opening the Mini App directly (which
+    // skips the bot chat entirely) can't bypass it.
+    if (!(await isChannelMember(user.telegram_id))) {
+      return res.status(403).json({
+        error: "channel_subscription_required",
+        channelUsername: REQUIRED_CHANNEL_USERNAME,
+        channelUrl: REQUIRED_CHANNEL_URL,
+      });
+    }
+
+    const [profile, subscription] = await Promise.all([
       queryOne("SELECT * FROM profiles WHERE user_id = $1", [userId]),
       queryOne("SELECT * FROM subscriptions WHERE user_id = $1", [userId]),
     ]);
-
-    if (!user) return res.status(401).json({ error: "user_not_found" });
 
     const session = {
       token: issuedToken || undefined,

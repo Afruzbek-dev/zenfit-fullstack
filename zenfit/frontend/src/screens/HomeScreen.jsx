@@ -298,7 +298,7 @@ export default function HomeScreen({ onNavigate }) {
       {/* "Mashqlar" is the bottom-nav tab itself now, so it has no tile here. */}
       <div className="mb-5 grid grid-cols-3 gap-2.5">
         <QuickAction Icon={ClipboardList} label={t("home.qaDietPlan")} onClick={() => onNavigate("dietplan")} />
-        <QuickAction Icon={Dumbbell} label={t("home.qaWorkoutPlan")} onClick={() => onNavigate("workouts")} />
+        <QuickAction Icon={Dumbbell} label={t("home.qaWorkoutPlan")} onClick={() => onNavigate("workoutplan")} />
         <QuickAction Icon={Trophy} label={t("home.qaChallenges")} onClick={() => onNavigate("challenges")} />
       </div>
 
@@ -520,7 +520,7 @@ export default function HomeScreen({ onNavigate }) {
       {!workoutPlan && (
         <Section>
           <button
-            onClick={() => onNavigate("workouts")}
+            onClick={() => onNavigate("workoutplan")}
             className="card card-lit flex w-full items-center gap-3 px-4 py-4 text-left active:scale-[0.99]"
           >
             <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-neon/12">

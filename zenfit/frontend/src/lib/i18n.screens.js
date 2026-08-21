@@ -106,6 +106,11 @@ export const uz = {
     partialWeek: "AI {n} kunlik reja qaytardi — yangilab to'liq hafta olishingiz mumkin.",
   },
 
+  dietDay: {
+    infoTab: "Ovqat haqida", prepTab: "Tayyorlanishi",
+    noRecipe: "Bu taom uchun tayyorlash tartibi yo'q",
+  },
+
   records: {
     title: "Rekordlar", subtitle: "Har bir mashq bo'yicha shaxsiy natijalaringiz",
     byExercise: "Mashqlar bo'yicha",
@@ -358,6 +363,11 @@ export const ru = {
     partialWeek: "AI вернул план на {n} дн. — обновите, чтобы получить полную неделю.",
   },
 
+  dietDay: {
+    infoTab: "О блюде", prepTab: "Приготовление",
+    noRecipe: "Для этого блюда нет рецепта приготовления",
+  },
+
   records: {
     title: "Рекорды", subtitle: "Личные результаты по каждому упражнению",
     byExercise: "По упражнениям",
@@ -604,6 +614,11 @@ export const en = {
     planChosen: "Plan ready ✓", howTo: "How to prepare",
     weekPlan: "Weekly plan", today: "Today", dayTotals: "Day total",
     partialWeek: "The AI returned {n} days — refresh to get a full week.",
+  },
+
+  dietDay: {
+    infoTab: "About the meal", prepTab: "Preparation",
+    noRecipe: "No preparation steps for this meal",
   },
 
   records: {

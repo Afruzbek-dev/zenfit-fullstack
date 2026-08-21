@@ -30,6 +30,12 @@ const uz = {
     on: "Yoqilgan", off: "O'chirilgan", optional: "ixtiyoriy", day: "kun",
     connectFailed: "Ulanib bo'lmadi", connectFailedDesc: "Serverga ulanishda muammo yuz berdi.",
   },
+  channelGate: {
+    title: "Avval kanalga obuna bo'ling",
+    desc: "ZenFit'dan foydalanish uchun {channel} kanaliga obuna bo'lishingiz kerak.",
+    openChannel: "{channel} kanaliga o'tish",
+    check: "Obuna bo'ldim, tekshirish",
+  },
   nav: { home: "Bosh", workouts: "Mashqlar", scan: "Skan", trainer: "Trener", profile: "Profil" },
 
   home: {
@@ -135,6 +141,7 @@ const uz = {
 
     planTitle: "AI Shaxsiy Reja",
     title: "Mashqlar", subtitlePlan: "AI shaxsiy dasturingiz", subtitleNoPlan: "Rejangizni tanlang",
+    planPageTitle: "Mashq rejam", hubSubtitle: "Tayyor dasturlar, mashqlar bazasi va tarix",
     library: "Mashqlar bazasi", libraryAll: "Barcha mashqlarni ko'rish",
     libraryDesc: "Bajarish texnikasi, xatolar va videolar",
     librarySubtitle: "{count} ta mashq — texnika va video bilan",
@@ -145,7 +152,7 @@ const uz = {
     noPlanDesc: "AI vazningiz, tajribangiz va jihozingizga qarab haftalik reja tuzib beradi — og'irliklar kg'da ko'rsatiladi.",
     noPlanDescLocked: "Shaxsiy AI reja Premium xususiyati. Pastdagi tayyor dasturlardan birini bepul tanlashingiz ham mumkin.",
     createPlan: "AI reja tuzish", planReady: "AI reja tayyor 🚀",
-    readyPrograms: "Yoki tayyor dasturlar", programsSoon: "Tayyor dasturlar tez orada — hozircha AI reja tuzing",
+    readyPrograms: "Tayyor dasturlar", programsSoon: "Tayyor dasturlar tez orada — hozircha AI reja tuzing",
     seePrograms: "Tayyor dasturlarni ko'rish",
     programMeta: "{days} kun/hafta • {weeks} hafta",
     active: "Faol", planMeta: "Haftasiga {days} kun • {reps} takror • {rest} dam",
@@ -459,6 +466,12 @@ const ru = {
     on: "Включено", off: "Выключено", optional: "необязательно", day: "день",
     connectFailed: "Не удалось подключиться", connectFailedDesc: "Не получилось связаться с сервером.",
   },
+  channelGate: {
+    title: "Сначала подпишитесь на канал",
+    desc: "Чтобы пользоваться ZenFit, подпишитесь на канал {channel}.",
+    openChannel: "Перейти в {channel}",
+    check: "Я подписался, проверить",
+  },
   nav: { home: "Главная", workouts: "Тренировки", scan: "Скан", trainer: "Тренер", profile: "Профиль" },
 
   home: {
@@ -562,6 +575,7 @@ const ru = {
 
     planTitle: "Персональный AI-план",
     title: "Тренировки", subtitlePlan: "Ваша персональная AI-программа", subtitleNoPlan: "Выберите план",
+    planPageTitle: "Мой план тренировок", hubSubtitle: "Готовые программы, база упражнений и история",
     library: "База упражнений", libraryAll: "Посмотреть все упражнения",
     libraryDesc: "Техника выполнения, ошибки и видео",
     librarySubtitle: "{count} упражнений — с техникой и видео",
@@ -572,7 +586,7 @@ const ru = {
     noPlanDesc: "AI составит недельный план по вашему весу, опыту и инвентарю — с весами в кг.",
     noPlanDescLocked: "Персональный AI-план — функция Premium. Можно бесплатно выбрать одну из готовых программ ниже.",
     createPlan: "Составить план с AI", planReady: "AI-план готов 🚀",
-    readyPrograms: "Или готовые программы", programsSoon: "Готовые программы скоро — пока составьте AI-план",
+    readyPrograms: "Готовые программы", programsSoon: "Готовые программы скоро — пока составьте AI-план",
     seePrograms: "Смотреть готовые программы",
     programMeta: "{days} дн/нед • {weeks} нед.",
     active: "Активен", planMeta: "{days} дн/нед • {reps} повт. • отдых {rest}",

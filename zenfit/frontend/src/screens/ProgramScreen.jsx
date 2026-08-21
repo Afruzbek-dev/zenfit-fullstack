@@ -58,7 +58,7 @@ export default function ProgramScreen({ onBack, onNavigate }) {
           title={t("workout.programsRow")}
           desc={t("workout.programsRowDesc")}
           action={
-            <Button full onClick={() => onNavigate?.("exercises")}>
+            <Button full onClick={() => onNavigate?.("workouts")}>
               <Layers size={15} /> {t("workout.seePrograms")}
             </Button>
           }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { Home, Dumbbell, Camera, User2, MessageSquare, Loader2, WifiOff } from "lucide-react";
+import { Home, Dumbbell, Camera, User2, MessageSquare, Loader2, WifiOff, Megaphone, Check } from "lucide-react";
 import { useApp } from "./store.jsx";
-import { initTelegram, haptic, setBackButton } from "./telegram.js";
+import { initTelegram, haptic, setBackButton, openTelegramLink } from "./telegram.js";
 import { applyTheme } from "./lib/theme.js";
 import { Toast, Button } from "./components/ui.jsx";
 import TrialOfferSheet from "./components/TrialOfferSheet.jsx";
@@ -29,7 +29,7 @@ const TABS = [
   { id: "profile", key: "nav.profile", Icon: User2 },
 ];
 
-const SECONDARY = ["recipes", "dietplan", "progress", "challenges", "exercises", "program", "history", "records"];
+const SECONDARY = ["recipes", "dietplan", "progress", "challenges", "workoutplan", "program", "history", "records"];
 
 function BottomNav({ active, onChange, t }) {
   return (
@@ -87,6 +87,41 @@ function BottomNav({ active, onChange, t }) {
   );
 }
 
+/**
+ * Blocks the whole app behind a channel subscription — checked on every boot
+ * (see store.jsx's boot()), not just first registration, so re-opening the
+ * Mini App directly (skipping the bot chat) can't slip past it either.
+ */
+function ChannelGateScreen({ channelGate, onCheck, checking, t }) {
+  const username = channelGate?.username ? `@${channelGate.username}` : "";
+  return (
+    <div className="app-atmosphere flex min-h-screen items-center justify-center px-8">
+      <div className="relative z-10 flex flex-col items-center text-center">
+        <span className="mb-4 grid h-16 w-16 place-items-center rounded-2xl bg-neon/12">
+          <Megaphone size={26} className="text-neon" />
+        </span>
+        <h1 className="font-display text-[19px] font-bold text-ink">{t("channelGate.title")}</h1>
+        <p className="mt-2 max-w-[300px] text-[13px] leading-relaxed text-muted">
+          {t("channelGate.desc", { channel: username })}
+        </p>
+        <Button
+          className="mt-5 w-full max-w-[260px]"
+          size="lg"
+          onClick={() => {
+            haptic("light");
+            openTelegramLink(channelGate?.url);
+          }}
+        >
+          <Megaphone size={16} /> {t("channelGate.openChannel", { channel: username })}
+        </Button>
+        <Button variant="ghost" className="mt-2.5 w-full max-w-[260px]" loading={checking} onClick={onCheck}>
+          <Check size={16} /> {t("channelGate.check")}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function BootScreen({ error, onRetry, t }) {
   return (
     <div className="app-atmosphere flex min-h-screen items-center justify-center px-8">
@@ -115,8 +150,9 @@ function BootScreen({ error, onRetry, t }) {
 }
 
 export default function App() {
-  const { status, error, profile, boot, toast, refresh, theme, t } = useApp();
+  const { status, error, channelGate, profile, boot, toast, refresh, theme, t } = useApp();
   const [tab, setTabRaw] = useState("home");
+  const [checkingGate, setCheckingGate] = useState(false);
   // Lets a card elsewhere in the app open a specific sub-screen ("profile:edit",
   // "history:diet") rather than dumping the user on a menu to find it.
   const [subView, setSubView] = useState(null);
@@ -159,13 +195,31 @@ export default function App() {
   // Errors must be checked first: `inOnboarding` stays null when boot fails,
   // so the loading guard would otherwise swallow the error and spin forever.
   if (status === "error") return <BootScreen error={error} onRetry={boot} t={t} />;
+  if (status === "gated") {
+    return (
+      <ChannelGateScreen
+        channelGate={channelGate}
+        checking={checkingGate}
+        onCheck={async () => {
+          haptic("light");
+          setCheckingGate(true);
+          try {
+            await boot();
+          } finally {
+            setCheckingGate(false);
+          }
+        }}
+        t={t}
+      />
+    );
+  }
   if (status === "loading" || inOnboarding === null) return <BootScreen t={t} />;
   if (inOnboarding) return <Onboarding onFinish={() => setInOnboarding(false)} />;
 
   const screens = {
     home: <HomeScreen onNavigate={setTab} />,
-    workouts: <WorkoutsScreen onNavigate={setTab} />,
-    exercises: <WorkoutsLibraryScreen onBack={() => setTab("workouts")} onNavigate={setTab} />,
+    workouts: <WorkoutsLibraryScreen onNavigate={setTab} />,
+    workoutplan: <WorkoutsScreen onBack={() => setTab("home")} onNavigate={setTab} />,
     program: <ProgramScreen onBack={() => setTab("workouts")} onNavigate={setTab} />,
     history: <HistoryScreen key={subView || "root"} initialTab={subView} onBack={() => setTab("workouts")} />,
     records: <RecordsScreen onBack={() => setTab("workouts")} />,
